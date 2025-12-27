@@ -280,7 +280,7 @@ export default function RoomsTable() {
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
               >
                 Cancel
               </button>
@@ -296,12 +296,12 @@ export default function RoomsTable() {
         >
           <form id="roomForm" onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Department</label>
+              <label className="block text-sm font-medium mb-2 dark:text-white">Department</label>
               <select
                 name="departmentID"
                 value={formData.departmentID}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 required
               >
                 <option value="">Select Department</option>
@@ -313,25 +313,25 @@ export default function RoomsTable() {
               </select>
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Room Name</label>
+              <label className="block text-sm font-medium mb-2 dark:text-white">Room Name</label>
               <input
                 type="text"
                 name="roomName"
                 placeholder="Room Name"
                 value={formData.roomName}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 required
               />
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Description</label>
+              <label className="block text-sm font-medium mb-2 dark:text-white">Description</label>
               <textarea
                 name="description"
                 placeholder="Description"
                 value={formData.description}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 rows="3"
               />
             </div>
@@ -350,7 +350,7 @@ export default function RoomsTable() {
             <>
               <button
                 onClick={() => setShowAssetModal(false)}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
               >
                 Close
               </button>
@@ -359,47 +359,59 @@ export default function RoomsTable() {
         >
           <div className="mb-4">
             {/* Add Asset Form */}
-            <form onSubmit={handleAddAssetSubmit} className="mb-6 p-4 border rounded bg-gray-50">
-              <h4 className="font-semibold mb-3">Add Asset to Room</h4>
+            <form onSubmit={handleAddAssetSubmit} className="mb-6 p-4 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+              <h4 className="font-semibold mb-3 dark:text-white">Add Asset to Room</h4>
               <div className="grid grid-cols-2 gap-3 mb-3">
-                <select
-                  name="assetID"
-                  value={assetFormData.assetID}
-                  onChange={handleAssetInputChange}
-                  className="col-span-1 p-2 border rounded"
-                  required
-                >
-                  <option value="">Select Asset</option>
-                  {allAssets.map((asset) => (
-                    <option key={asset.assetID} value={asset.assetID}>
-                      {asset.assetName} ({asset.assetCode})
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  name="serialNumber"
-                  placeholder="Serial Number"
-                  value={assetFormData.serialNumber}
-                  onChange={handleAssetInputChange}
-                  className="col-span-1 p-2 border rounded"
-                />
-                <input
-                  type="text"
-                  name="currentCondition"
-                  placeholder="Current Condition"
-                  value={assetFormData.currentCondition}
-                  onChange={handleAssetInputChange}
-                  className="col-span-1 p-2 border rounded"
-                />
-                <textarea
-                  name="remarks"
-                  placeholder="Remarks"
-                  value={assetFormData.remarks}
-                  onChange={handleAssetInputChange}
-                  className="col-span-2 p-2 border rounded"
-                  rows="2"
-                />
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium mb-1 dark:text-white">Asset</label>
+                  <select
+                    name="assetID"
+                    value={assetFormData.assetID}
+                    onChange={handleAssetInputChange}
+                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                    required
+                  >
+                    <option value="">Select Asset</option>
+                    {allAssets.map((asset) => (
+                      <option key={asset.assetID} value={asset.assetID}>
+                        {asset.assetName} ({asset.assetCode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium mb-1 dark:text-white">Serial Number</label>
+                  <input
+                    type="text"
+                    name="serialNumber"
+                    placeholder="e.g., SN-12345"
+                    value={assetFormData.serialNumber}
+                    onChange={handleAssetInputChange}
+                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:placeholder-gray-300"
+                  />
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium mb-1 dark:text-white">Current Condition</label>
+                  <input
+                    type="text"
+                    name="currentCondition"
+                    placeholder="e.g., Good, Fair, Poor"
+                    value={assetFormData.currentCondition}
+                    onChange={handleAssetInputChange}
+                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:placeholder-gray-300"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1 dark:text-white">Remarks</label>
+                  <textarea
+                    name="remarks"
+                    placeholder="Additional remarks..."
+                    value={assetFormData.remarks}
+                    onChange={handleAssetInputChange}
+                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:placeholder-gray-300"
+                    rows="2"
+                  />
+                </div>
               </div>
               <button
                 type="submit"
@@ -411,20 +423,20 @@ export default function RoomsTable() {
 
             {/* Assets List */}
             <div>
-              <h4 className="font-semibold mb-3">Current Assets</h4>
+              <h4 className="font-semibold mb-3 dark:text-white">Current Assets</h4>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Asset Name</th>
-                      <th className="text-left p-2">Serial Number</th>
-                      <th className="text-left p-2">Condition</th>
-                      <th className="text-left p-2">Actions</th>
+                    <tr className="border-b dark:border-gray-600">
+                      <th className="text-left p-2 dark:text-white">Asset Name</th>
+                      <th className="text-left p-2 dark:text-white">Serial Number</th>
+                      <th className="text-left p-2 dark:text-white">Condition</th>
+                      <th className="text-left p-2 dark:text-white">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {roomAssets.map((asset) => (
-                      <tr key={asset.roomAssetID} className="border-b">
+                      <tr key={asset.roomAssetID} className="border-b dark:border-gray-600 dark:text-white">
                         <td className="p-2">{asset.assetName}</td>
                         <td className="p-2">{asset.serialNumber}</td>
                         <td className="p-2">{asset.currentCondition}</td>

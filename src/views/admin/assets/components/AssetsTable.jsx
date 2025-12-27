@@ -248,7 +248,7 @@ export default function AssetsTable() {
                   placeholder="Asset Code"
                   value={formData.assetCode}
                   onChange={handleInputChange}
-                  className="col-span-1 p-2 border rounded"
+                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                   required
                 />
                 <input
@@ -257,14 +257,14 @@ export default function AssetsTable() {
                   placeholder="Asset Name"
                   value={formData.assetName}
                   onChange={handleInputChange}
-                  className="col-span-1 p-2 border rounded"
+                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                   required
                 />
                 <select
                   name="categoryID"
                   value={formData.categoryID}
                   onChange={handleInputChange}
-                  className="col-span-1 p-2 border rounded"
+                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   required
                 >
                   <option value="">Select Category</option>
@@ -280,7 +280,7 @@ export default function AssetsTable() {
                   placeholder="Brand"
                   value={formData.brand}
                   onChange={handleInputChange}
-                  className="col-span-1 p-2 border rounded"
+                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 />
                 <input
                   type="text"
@@ -288,7 +288,7 @@ export default function AssetsTable() {
                   placeholder="Model"
                   value={formData.model}
                   onChange={handleInputChange}
-                  className="col-span-1 p-2 border rounded"
+                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 />
                 <input
                   type="text"
@@ -296,7 +296,7 @@ export default function AssetsTable() {
                   placeholder="Specification"
                   value={formData.specification}
                   onChange={handleInputChange}
-                  className="col-span-1 p-2 border rounded"
+                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 />
                 <input
                   type="text"
@@ -304,7 +304,7 @@ export default function AssetsTable() {
                   placeholder="Country of Origin"
                   value={formData.countryOfOrigin}
                   onChange={handleInputChange}
-                  className="col-span-1 p-2 border rounded"
+                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 />
                 <input
                   type="number"
@@ -312,14 +312,14 @@ export default function AssetsTable() {
                   placeholder="Quantity"
                   value={formData.quantity}
                   onChange={handleInputChange}
-                  className="col-span-1 p-2 border rounded"
+                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                   required
                 />
                 <select
                   name="unit"
                   value={formData.unit}
                   onChange={handleInputChange}
-                  className="col-span-1 p-2 border rounded"
+                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   required
                 >
                   <option value="">Select Unit</option>
@@ -335,7 +335,7 @@ export default function AssetsTable() {
                   placeholder="Unit Price"
                   value={formData.unitPrice}
                   onChange={handleInputChange}
-                  className="col-span-1 p-2 border rounded"
+                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                   step="0.01"
                 />
                 <input
@@ -343,14 +343,14 @@ export default function AssetsTable() {
                   name="purchaseDate"
                   value={formData.purchaseDate}
                   onChange={handleInputChange}
-                  className="col-span-1 p-2 border rounded"
+                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 />
                 <textarea
                   name="notes"
                   placeholder="Notes"
                   value={formData.notes}
                   onChange={handleInputChange}
-                  className="col-span-2 p-2 border rounded"
+                  className="col-span-2 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 />
               </div>
             </form>

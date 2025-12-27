@@ -167,7 +167,7 @@ export default function DepartmentsTable() {
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
               >
                 Cancel
               </button>
@@ -183,26 +183,26 @@ export default function DepartmentsTable() {
         >
           <form id="departmentForm" onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Department Code</label>
+              <label className="block text-sm font-medium mb-2 dark:text-white">Department Code</label>
               <input
                 type="text"
                 name="departmentCode"
                 placeholder="Department Code"
                 value={formData.departmentCode}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 required
               />
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Department Name</label>
+              <label className="block text-sm font-medium mb-2 dark:text-white">Department Name</label>
               <input
                 type="text"
                 name="departmentName"
                 placeholder="Department Name"
                 value={formData.departmentName}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 required
               />
             </div>

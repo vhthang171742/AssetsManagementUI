@@ -294,7 +294,7 @@ export default function HandoversTable() {
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
               >
                 Cancel
               </button>
@@ -310,12 +310,12 @@ export default function HandoversTable() {
         >
           <form id="handoverForm" onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Room</label>
+              <label className="block text-sm font-medium mb-2 dark:text-white">Room</label>
               <select
                 name="roomID"
                 value={formData.roomID}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 required
               >
                 <option value="">Select Room</option>
@@ -327,46 +327,46 @@ export default function HandoversTable() {
               </select>
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Handover Date</label>
+              <label className="block text-sm font-medium mb-2 dark:text-white">Handover Date</label>
               <input
                 type="datetime-local"
                 name="handoverDate"
                 value={formData.handoverDate}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 required
               />
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Delivered By</label>
+              <label className="block text-sm font-medium mb-2 dark:text-white">Delivered By</label>
               <input
                 type="text"
                 name="deliveredBy"
                 placeholder="Delivered By"
                 value={formData.deliveredBy}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
               />
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Received By</label>
+              <label className="block text-sm font-medium mb-2 dark:text-white">Received By</label>
               <input
                 type="text"
                 name="receivedBy"
                 placeholder="Received By"
                 value={formData.receivedBy}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
               />
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Notes</label>
+              <label className="block text-sm font-medium mb-2 dark:text-white">Notes</label>
               <textarea
                 name="notes"
                 placeholder="Notes"
                 value={formData.notes}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 rows="3"
               />
             </div>
@@ -385,7 +385,7 @@ export default function HandoversTable() {
             <>
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
               >
                 Close
               </button>
@@ -396,50 +396,62 @@ export default function HandoversTable() {
             {/* Add Detail Form */}
             <form
               onSubmit={handleAddDetailSubmit}
-              className="mb-6 p-4 border rounded bg-gray-50"
+              className="mb-6 p-4 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
             >
-              <h4 className="font-semibold mb-3">Add Asset to Handover</h4>
+              <h4 className="font-semibold mb-3 dark:text-white">Add Asset to Handover</h4>
               <div className="grid grid-cols-2 gap-3 mb-3">
-                <select
-                  name="assetID"
-                  value={detailFormData.assetID}
-                  onChange={handleDetailInputChange}
-                  className="col-span-1 p-2 border rounded"
-                  required
-                >
-                  <option value="">Select Asset</option>
-                  {assets.map((asset) => (
-                    <option key={asset.assetID} value={asset.assetID}>
-                      {asset.assetName} ({asset.assetCode})
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  name="quantity"
-                  placeholder="Quantity"
-                  value={detailFormData.quantity}
-                  onChange={handleDetailInputChange}
-                  className="col-span-1 p-2 border rounded"
-                  required
-                  min="1"
-                />
-                <input
-                  type="text"
-                  name="conditionAtHandover"
-                  placeholder="Condition at Handover"
-                  value={detailFormData.conditionAtHandover}
-                  onChange={handleDetailInputChange}
-                  className="col-span-1 p-2 border rounded"
-                />
-                <textarea
-                  name="remarks"
-                  placeholder="Remarks"
-                  value={detailFormData.remarks}
-                  onChange={handleDetailInputChange}
-                  className="col-span-2 p-2 border rounded"
-                  rows="2"
-                />
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium mb-1 dark:text-white">Asset</label>
+                  <select
+                    name="assetID"
+                    value={detailFormData.assetID}
+                    onChange={handleDetailInputChange}
+                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                    required
+                  >
+                    <option value="">Select Asset</option>
+                    {assets.map((asset) => (
+                      <option key={asset.assetID} value={asset.assetID}>
+                        {asset.assetName} ({asset.assetCode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium mb-1 dark:text-white">Quantity</label>
+                  <input
+                    type="number"
+                    name="quantity"
+                    placeholder="e.g., 5"
+                    value={detailFormData.quantity}
+                    onChange={handleDetailInputChange}
+                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:placeholder-gray-300"
+                    required
+                    min="1"
+                  />
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium mb-1 dark:text-white">Condition at Handover</label>
+                  <input
+                    type="text"
+                    name="conditionAtHandover"
+                    placeholder="e.g., Good, Fair, Poor"
+                    value={detailFormData.conditionAtHandover}
+                    onChange={handleDetailInputChange}
+                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:placeholder-gray-300"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1 dark:text-white">Remarks</label>
+                  <textarea
+                    name="remarks"
+                    placeholder="Additional remarks..."
+                    value={detailFormData.remarks}
+                    onChange={handleDetailInputChange}
+                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:placeholder-gray-300"
+                    rows="2"
+                  />
+                </div>
               </div>
               <button
                 type="submit"
@@ -451,20 +463,20 @@ export default function HandoversTable() {
 
             {/* Details List */}
             <div>
-              <h4 className="font-semibold mb-3">Current Details</h4>
+              <h4 className="font-semibold mb-3 dark:text-white">Current Details</h4>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Asset</th>
-                      <th className="text-left p-2">Quantity</th>
-                      <th className="text-left p-2">Condition</th>
-                      <th className="text-left p-2">Actions</th>
+                    <tr className="border-b dark:border-gray-600">
+                      <th className="text-left p-2 dark:text-white">Asset</th>
+                      <th className="text-left p-2 dark:text-white">Quantity</th>
+                      <th className="text-left p-2 dark:text-white">Condition</th>
+                      <th className="text-left p-2 dark:text-white">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {handoverDetails.map((detail) => (
-                      <tr key={detail.handoverDetailID} className="border-b">
+                      <tr key={detail.handoverDetailID} className="border-b dark:border-gray-600 dark:text-white">
                         <td className="p-2">{detail.assetName}</td>
                         <td className="p-2">{detail.quantity}</td>
                         <td className="p-2">{detail.conditionAtHandover}</td>

@@ -167,7 +167,7 @@ export default function CategoriesTable() {
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
               >
                 Cancel
               </button>
@@ -183,25 +183,25 @@ export default function CategoriesTable() {
         >
           <form id="categoryForm" onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Category Name</label>
+              <label className="block text-sm font-medium mb-2 dark:text-white">Category Name</label>
               <input
                 type="text"
                 name="categoryName"
                 placeholder="Category Name"
                 value={formData.categoryName}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 required
               />
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Description</label>
+              <label className="block text-sm font-medium mb-2 dark:text-white">Description</label>
               <textarea
                 name="description"
                 placeholder="Description"
                 value={formData.description}
                 onChange={handleInputChange}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 rows="4"
               />
             </div>
