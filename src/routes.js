@@ -2,10 +2,12 @@ import React from "react";
 
 // Admin Imports
 import MainDashboard from "views/admin/default";
-import NFTMarketplace from "views/admin/marketplace";
 import Profile from "views/admin/profile";
-import DataTables from "views/admin/tables";
-import RTLDefault from "views/rtl/default";
+import Assets from "views/admin/assets";
+import Categories from "views/admin/categories";
+import Departments from "views/admin/departments";
+import Rooms from "views/admin/rooms";
+import Handovers from "views/admin/handovers";
 
 // Auth Imports
 import SignIn from "views/auth/SignIn";
@@ -13,10 +15,13 @@ import SignIn from "views/auth/SignIn";
 // Icon Imports
 import {
   MdHome,
-  MdOutlineShoppingCart,
-  MdBarChart,
   MdPerson,
   MdLock,
+  MdStorefront,
+  MdCategory,
+  MdApartment,
+  MdMeetingRoom,
+  MdAssignment,
 } from "react-icons/md";
 
 const routes = [
@@ -28,19 +33,39 @@ const routes = [
     component: <MainDashboard />,
   },
   {
-    name: "NFT Marketplace",
+    name: "Assets",
     layout: "/admin",
-    path: "nft-marketplace",
-    icon: <MdOutlineShoppingCart className="h-6 w-6" />,
-    component: <NFTMarketplace />,
-    secondary: true,
+    path: "assets",
+    icon: <MdStorefront className="h-6 w-6" />,
+    component: <Assets />,
   },
   {
-    name: "Data Tables",
+    name: "Categories",
     layout: "/admin",
-    icon: <MdBarChart className="h-6 w-6" />,
-    path: "data-tables",
-    component: <DataTables />,
+    path: "categories",
+    icon: <MdCategory className="h-6 w-6" />,
+    component: <Categories />,
+  },
+  {
+    name: "Departments",
+    layout: "/admin",
+    path: "departments",
+    icon: <MdApartment className="h-6 w-6" />,
+    component: <Departments />,
+  },
+  {
+    name: "Rooms",
+    layout: "/admin",
+    path: "rooms",
+    icon: <MdMeetingRoom className="h-6 w-6" />,
+    component: <Rooms />,
+  },
+  {
+    name: "Handovers",
+    layout: "/admin",
+    path: "handovers",
+    icon: <MdAssignment className="h-6 w-6" />,
+    component: <Handovers />,
   },
   {
     name: "Profile",
@@ -55,13 +80,6 @@ const routes = [
     path: "sign-in",
     icon: <MdLock className="h-6 w-6" />,
     component: <SignIn />,
-  },
-  {
-    name: "RTL Admin",
-    layout: "/rtl",
-    path: "rtl",
-    icon: <MdHome className="h-6 w-6" />,
-    component: <RTLDefault />,
   },
 ];
 export default routes;
