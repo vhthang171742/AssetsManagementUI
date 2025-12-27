@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { assetService, assetCategoryService } from "services/api";
+import Table from "components/table/Table";
 import Card from "components/card";
 import Modal from "components/modal/Modal";
 
@@ -122,6 +123,17 @@ export default function AssetsTable() {
     }
   };
 
+  const handleBulkDelete = async (ids) => {
+    try {
+      await assetService.bulkDelete(ids);
+      alert("Deleted selected assets");
+      fetchAssets();
+    } catch (err) {
+      console.error("Bulk delete failed:", err);
+      throw err;
+    }
+  };
+
   const getCategoryName = (categoryID) => {
     const category = categories.find((c) => c.categoryID === categoryID);
     return category ? category.categoryName : "Unknown";
@@ -129,8 +141,7 @@ export default function AssetsTable() {
 
   return (
     <Card extra={"w-full h-full sm:overflow-auto px-2 sm:px-0"}>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-navy-700">Assets Management</h2>
+      <div className="flex justify-between items-center">
         <button
           onClick={() => {
             setEditingId(null);
@@ -159,47 +170,40 @@ export default function AssetsTable() {
       {loading ? (
         <div className="text-center py-8">Loading...</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left p-3">Code</th>
-                <th className="text-left p-3">Name</th>
-                <th className="text-left p-3">Category</th>
-                <th className="text-left p-3">Brand</th>
-                <th className="text-left p-3">Quantity</th>
-                <th className="text-left p-3">Unit Price</th>
-                <th className="text-left p-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assets.map((asset) => (
-                <tr key={asset.assetID} className="border-b hover:bg-gray-50">
-                  <td className="p-3">{asset.assetCode}</td>
-                  <td className="p-3">{asset.assetName}</td>
-                  <td className="p-3">{getCategoryName(asset.categoryID)}</td>
-                  <td className="p-3">{asset.brand}</td>
-                  <td className="p-3">{asset.quantity}</td>
-                  <td className="p-3">${asset.unitPrice?.toFixed(2)}</td>
-                  <td className="p-3 space-x-2">
-                    <button
-                      onClick={() => handleEdit(asset)}
-                      className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(asset.assetID)}
-                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          data={assets}
+          pageSize={10}
+          height={'calc(100vh - 240px)'}
+          onBulkDelete={handleBulkDelete}
+          selectable={true}
+          columns={[
+            { header: 'Code', accessor: 'assetCode' },
+            { header: 'Name', accessor: 'assetName' },
+            { header: 'Category', accessor: 'categoryID', render: (row) => getCategoryName(row.categoryID) },
+            { header: 'Brand', accessor: 'brand' },
+            { header: 'Quantity', accessor: 'quantity' },
+            { header: 'Unit Price', accessor: 'unitPrice', render: (row) => (row.unitPrice != null ? `$${parseFloat(row.unitPrice).toFixed(2)}` : '') },
+            {
+              header: 'Actions',
+              render: (row) => (
+                <div className="space-x-2">
+                  <button
+                    onClick={() => handleEdit(row)}
+                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(row.assetID)}
+                    className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+        />
       )}
 
       {/* Modal */}

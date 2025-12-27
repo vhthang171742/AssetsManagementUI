@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { roomService, departmentService, assetService } from "services/api";
 import Card from "components/card";
+import Table from "components/table/Table";
 import Modal from "components/modal/Modal";
 
 export default function RoomsTable() {
@@ -153,6 +154,17 @@ export default function RoomsTable() {
     }
   };
 
+  const handleBulkDelete = async (ids) => {
+    try {
+      await roomService.bulkDelete(ids);
+      alert("Deleted selected rooms");
+      fetchRooms();
+    } catch (err) {
+      console.error("Bulk delete failed:", err);
+      throw err;
+    }
+  };
+
   const handleRemoveAsset = async (roomId, assetId) => {
     if (window.confirm("Are you sure you want to remove this asset from the room?")) {
       try {
@@ -185,8 +197,7 @@ export default function RoomsTable() {
   return (
     <>
       <Card extra={"w-full h-full sm:overflow-auto px-2 sm:px-0"}>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-navy-700">Rooms Management</h2>
+        <div className="flex justify-between items-center">
           <button
             onClick={() => {
               setEditingId(null);
@@ -206,47 +217,44 @@ export default function RoomsTable() {
         {loading ? (
           <div className="text-center py-8">Loading...</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3">Room Name</th>
-                  <th className="text-left p-3">Department</th>
-                  <th className="text-left p-3">Description</th>
-                  <th className="text-left p-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rooms.map((room) => (
-                  <tr key={room.roomID} className="border-b hover:bg-gray-50">
-                    <td className="p-3">{room.roomName}</td>
-                    <td className="p-3">{getDepartmentName(room.departmentID)}</td>
-                    <td className="p-3">{room.description}</td>
-                    <td className="p-3 space-x-2">
-                      <button
-                        onClick={() => openAssetModal(room.roomID)}
-                        className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
-                      >
-                        Assets
-                      </button>
-                      <button
-                        onClick={() => handleEdit(room)}
-                        className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(room.roomID)}
-                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            data={rooms}
+            pageSize={10}
+            height={'calc(100vh - 240px)'}
+            onBulkDelete={handleBulkDelete}
+            selectable={true}
+            idField="roomID"
+            columns={[
+              { header: 'Room Name', accessor: 'roomName' },
+              { header: 'Department', accessor: 'departmentID', render: (row) => getDepartmentName(row.departmentID) },
+              { header: 'Description', accessor: 'description' },
+              {
+                header: 'Actions',
+                render: (row) => (
+                  <div className="space-x-2">
+                    <button
+                      onClick={() => openAssetModal(row.roomID)}
+                      className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                    >
+                      Assets
+                    </button>
+                    <button
+                      onClick={() => handleEdit(row)}
+                      className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(row.roomID)}
+                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ),
+              },
+            ]}
+          />
         )}
       </Card>
 

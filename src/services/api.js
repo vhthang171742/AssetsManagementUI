@@ -59,6 +59,12 @@ export const assetCategoryService = {
 
   getAssets: (categoryId) =>
     apiCall(`/AssetCategories/${categoryId}/assets`),
+
+  bulkDelete: (ids) =>
+    apiCall(`/AssetCategories/bulk`, {
+      method: "DELETE",
+      body: JSON.stringify({ ids }),
+    }),
 };
 
 // ============ ASSETS ============
@@ -100,6 +106,11 @@ export const assetService = {
       method: "PATCH",
       body: JSON.stringify({ quantityChange }),
     }),
+  bulkDelete: (ids) =>
+    apiCall(`/Assets/bulk`, {
+      method: "DELETE",
+      body: JSON.stringify({ ids }),
+    }),
 };
 
 // ============ DEPARTMENTS ============
@@ -129,6 +140,12 @@ export const departmentService = {
 
   getRooms: (departmentId) =>
     apiCall(`/Departments/${departmentId}/rooms`),
+
+  bulkDelete: (ids) =>
+    apiCall(`/Departments/bulk`, {
+      method: "DELETE",
+      body: JSON.stringify({ ids }),
+    }),
 };
 
 // ============ ROOMS ============
@@ -172,6 +189,12 @@ export const roomService = {
 
   getByDepartment: (departmentId) =>
     apiCall(`/Rooms/department/${departmentId}`),
+
+  bulkDelete: (ids) =>
+    apiCall(`/Rooms/bulk`, {
+      method: "DELETE",
+      body: JSON.stringify({ ids }),
+    }),
 };
 
 // ============ HANDOVERS ============
@@ -223,5 +246,11 @@ export const handoverService = {
   deleteDetail: (detailId) =>
     apiCall(`/Handovers/details/${detailId}`, {
       method: "DELETE",
+    }),
+
+  bulkDelete: (ids) =>
+    apiCall(`/Handovers/bulk`, {
+      method: "DELETE",
+      body: JSON.stringify({ ids }),
     }),
 };

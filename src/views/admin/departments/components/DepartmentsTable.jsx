@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { departmentService } from "services/api";
 import Card from "components/card";
+import Table from "components/table/Table";
 import Modal from "components/modal/Modal";
 
 export default function DepartmentsTable() {
@@ -83,10 +84,20 @@ export default function DepartmentsTable() {
     }
   };
 
+  const handleBulkDelete = async (ids) => {
+    try {
+      await departmentService.bulkDelete(ids);
+      alert("Deleted selected departments");
+      fetchDepartments();
+    } catch (err) {
+      console.error("Bulk delete failed:", err);
+      throw err;
+    }
+  };
+
   return (
     <Card extra={"w-full h-full sm:overflow-auto px-2 sm:px-0"}>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-navy-700">Departments</h2>
+      <div className="flex justify-between items-center">
         <button
           onClick={() => {
             setEditingId(null);
@@ -105,39 +116,37 @@ export default function DepartmentsTable() {
       {loading ? (
         <div className="text-center py-8">Loading...</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left p-3">Code</th>
-                <th className="text-left p-3">Name</th>
-                <th className="text-left p-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {departments.map((department) => (
-                <tr key={department.departmentID} className="border-b hover:bg-gray-50">
-                  <td className="p-3">{department.departmentCode}</td>
-                  <td className="p-3">{department.departmentName}</td>
-                  <td className="p-3 space-x-2">
-                    <button
-                      onClick={() => handleEdit(department)}
-                      className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(department.departmentID)}
-                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          data={departments}
+          pageSize={10}
+          height={'calc(100vh - 240px)'}
+          onBulkDelete={handleBulkDelete}
+          selectable={true}
+          idField="departmentID"
+          columns={[
+            { header: 'Code', accessor: 'departmentCode' },
+            { header: 'Name', accessor: 'departmentName' },
+            {
+              header: 'Actions',
+              render: (row) => (
+                <div className="space-x-2">
+                  <button
+                    onClick={() => handleEdit(row)}
+                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(row.departmentID)}
+                    className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+        />
       )}
 
       {/* Modal */}

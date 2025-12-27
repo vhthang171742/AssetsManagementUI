@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { handoverService, roomService, assetService } from "services/api";
 import Card from "components/card";
+import Table from "components/table/Table";
 import Modal from "components/modal/Modal";
 
 export default function HandoversTable() {
@@ -162,6 +163,17 @@ export default function HandoversTable() {
     }
   };
 
+  const handleBulkDelete = async (ids) => {
+    try {
+      await handoverService.bulkDelete(ids);
+      alert("Deleted selected handovers");
+      fetchHandovers();
+    } catch (err) {
+      console.error("Bulk delete failed:", err);
+      throw err;
+    }
+  };
+
   const handleDeleteDetail = async (detailId) => {
     if (window.confirm("Are you sure you want to delete this detail?")) {
       try {
@@ -198,8 +210,7 @@ export default function HandoversTable() {
   return (
     <>
       <Card extra={"w-full h-full sm:overflow-auto px-2 sm:px-0"}>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-navy-700">Handover Records</h2>
+        <div className="flex justify-between items-center">
           <button
             onClick={() => {
               setEditingId(null);
@@ -221,49 +232,45 @@ export default function HandoversTable() {
         {loading ? (
           <div className="text-center py-8">Loading...</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3">Room</th>
-                  <th className="text-left p-3">Handover Date</th>
-                  <th className="text-left p-3">Delivered By</th>
-                  <th className="text-left p-3">Received By</th>
-                  <th className="text-left p-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {handovers.map((handover) => (
-                  <tr key={handover.handoverID} className="border-b hover:bg-gray-50">
-                    <td className="p-3">{getRoomName(handover.roomID)}</td>
-                    <td className="p-3">{formatDate(handover.handoverDate)}</td>
-                    <td className="p-3">{handover.deliveredBy}</td>
-                    <td className="p-3">{handover.receivedBy}</td>
-                    <td className="p-3 space-x-2">
-                      <button
-                        onClick={() => openDetailsModal(handover.handoverID)}
-                        className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
-                      >
-                        Details
-                      </button>
-                      <button
-                        onClick={() => handleEdit(handover)}
-                        className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(handover.handoverID)}
-                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            data={handovers}
+            pageSize={10}
+            height={'calc(100vh - 240px)'}
+            onBulkDelete={handleBulkDelete}
+            selectable={true}
+            idField="handoverID"
+            columns={[
+              { header: 'Room', accessor: 'roomID', render: (row) => getRoomName(row.roomID) },
+              { header: 'Handover Date', accessor: 'handoverDate', render: (row) => formatDate(row.handoverDate) },
+              { header: 'Delivered By', accessor: 'deliveredBy' },
+              { header: 'Received By', accessor: 'receivedBy' },
+              {
+                header: 'Actions',
+                render: (row) => (
+                  <div className="space-x-2">
+                    <button
+                      onClick={() => openDetailsModal(row.handoverID)}
+                      className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                    >
+                      Details
+                    </button>
+                    <button
+                      onClick={() => handleEdit(row)}
+                      className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(row.handoverID)}
+                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ),
+              },
+            ]}
+          />
         )}
       </Card>
 
