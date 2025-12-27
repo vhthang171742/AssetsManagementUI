@@ -75,6 +75,9 @@ export const assetService = {
   getByCategory: (categoryId) =>
     apiCall(`/Assets/by-category/${categoryId}`),
 
+  getUnits: () =>
+    apiCall("/Assets/units"),
+
   create: (data) =>
     apiCall("/Assets", {
       method: "POST",

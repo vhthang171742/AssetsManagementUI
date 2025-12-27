@@ -5,6 +5,7 @@ import Card from "components/card";
 export default function AssetsTable() {
   const [assets, setAssets] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -26,6 +27,7 @@ export default function AssetsTable() {
   useEffect(() => {
     fetchAssets();
     fetchCategories();
+    fetchUnits();
   }, []);
 
   const fetchAssets = async () => {
@@ -47,6 +49,15 @@ export default function AssetsTable() {
       setCategories(data || []);
     } catch (error) {
       console.error("Failed to fetch categories:", error);
+    }
+  };
+
+  const fetchUnits = async () => {
+    try {
+      const data = await assetService.getUnits();
+      setUnits(data || []);
+    } catch (error) {
+      console.error("Failed to fetch units:", error);
     }
   };
 
@@ -272,14 +283,20 @@ export default function AssetsTable() {
                   className="col-span-1 p-2 border rounded"
                   required
                 />
-                <input
-                  type="text"
+                <select
                   name="unit"
-                  placeholder="Unit"
                   value={formData.unit}
                   onChange={handleInputChange}
                   className="col-span-1 p-2 border rounded"
-                />
+                  required
+                >
+                  <option value="">Select Unit</option>
+                  {units.map((unit) => (
+                    <option key={unit.value} value={unit.value}>
+                      {unit.name}
+                    </option>
+                  ))}
+                </select>
                 <input
                   type="number"
                   name="unitPrice"
