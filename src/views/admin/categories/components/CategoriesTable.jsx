@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { assetCategoryService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
+import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
 
 export default function CategoriesTable() {
@@ -129,18 +130,22 @@ export default function CategoriesTable() {
             {
               header: 'Actions',
               render: (row) => (
-                <div className="space-x-2">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleEdit(row)}
-                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                    title="Edit"
+                    aria-label="Edit"
+                    className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                   >
-                    Edit
+                    <MdModeEditOutline className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(row.categoryID)}
-                    className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                    title="Delete"
+                    aria-label="Delete"
+                    className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
                   >
-                    Delete
+                    <MdDelete className="h-4 w-4" />
                   </button>
                 </div>
               ),

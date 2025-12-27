@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { roomService, departmentService, assetService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
+import { MdModeEditOutline, MdDelete, MdInventory2, MdRemoveCircle } from "react-icons/md";
 import Modal from "components/modal/Modal";
 
 export default function RoomsTable() {
@@ -232,24 +233,32 @@ export default function RoomsTable() {
                 header: 'Actions',
                 render: (row) => (
                   <div className="space-x-2">
-                    <button
-                      onClick={() => openAssetModal(row.roomID)}
-                      className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
-                    >
-                      Assets
-                    </button>
-                    <button
-                      onClick={() => handleEdit(row)}
-                      className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(row.roomID)}
-                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
-                    >
-                      Delete
-                    </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => openAssetModal(row.roomID)}
+                          title="Assets"
+                          aria-label="Assets"
+                          className="p-2 bg-green-500 text-white rounded hover:bg-green-600"
+                        >
+                          <MdInventory2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(row)}
+                          title="Edit"
+                          aria-label="Edit"
+                          className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                        >
+                          <MdModeEditOutline className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(row.roomID)}
+                          title="Delete"
+                          aria-label="Delete"
+                          className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
+                        >
+                          <MdDelete className="h-4 w-4" />
+                        </button>
+                      </div>
                   </div>
                 ),
               },
@@ -423,9 +432,11 @@ export default function RoomsTable() {
                             onClick={() =>
                               handleRemoveAsset(selectedRoomId, asset.assetID)
                             }
-                            className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
+                            title="Remove"
+                            aria-label="Remove"
+                            className="p-2 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
                           >
-                            Remove
+                            <MdRemoveCircle className="h-4 w-4" />
                           </button>
                         </td>
                       </tr>
