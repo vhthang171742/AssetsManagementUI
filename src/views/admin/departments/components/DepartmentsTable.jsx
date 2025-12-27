@@ -26,7 +26,7 @@ export default function DepartmentsTable() {
       setDepartments(data || []);
     } catch (error) {
       console.error("Failed to fetch departments:", error);
-      alert("Failed to fetch departments");
+      alert(`Failed to fetch departments: ${error.message || "Unknown error"}`);
     } finally {
       setLoading(false);
     }
@@ -80,7 +80,7 @@ export default function DepartmentsTable() {
         fetchDepartments();
       } catch (error) {
         console.error("Failed to delete department:", error);
-        alert("Failed to delete department");
+        alert(`Failed to delete department: ${error.message || "Unknown error"}`);
       }
     }
   };
@@ -92,6 +92,7 @@ export default function DepartmentsTable() {
       fetchDepartments();
     } catch (err) {
       console.error("Bulk delete failed:", err);
+      alert(`Failed to delete selected departments: ${err.message || "Unknown error"}`);
       throw err;
     }
   };

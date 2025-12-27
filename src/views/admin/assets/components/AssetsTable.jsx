@@ -40,7 +40,7 @@ export default function AssetsTable() {
       setAssets(data || []);
     } catch (error) {
       console.error("Failed to fetch assets:", error);
-      alert("Failed to fetch assets");
+      alert(`Failed to fetch assets: ${error.message || "Unknown error"}`);
     } finally {
       setLoading(false);
     }
@@ -119,7 +119,7 @@ export default function AssetsTable() {
         fetchAssets();
       } catch (error) {
         console.error("Failed to delete asset:", error);
-        alert("Failed to delete asset");
+        alert(`Failed to delete asset: ${error.message || "Unknown error"}`);
       }
     }
   };
@@ -131,6 +131,7 @@ export default function AssetsTable() {
       fetchAssets();
     } catch (err) {
       console.error("Bulk delete failed:", err);
+      alert(`Failed to delete selected assets: ${err.message || "Unknown error"}`);
       throw err;
     }
   };

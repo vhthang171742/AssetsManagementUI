@@ -73,20 +73,20 @@ export default function Table({
   };
 
   return (
-    <div className="w-full h-full flex flex-col border rounded shadow-sm bg-white">
+    <div className="w-full h-full flex flex-col border rounded shadow-sm bg-white dark:bg-gray-800 dark:border-gray-700">
       <div style={{ flex: "1 1 auto", height }} className="overflow-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b">
+            <tr className="border-b dark:border-gray-700">
               {selectable && (
-                <th className="p-2 sticky top-0 bg-white z-10">
+                <th className="p-2 sticky top-0 bg-white dark:bg-gray-800 z-10">
                   <input type="checkbox" checked={allSelectedOnPage} onChange={toggleSelectAllOnPage} />
                 </th>
               )}
               {columns.map((col, idx) => (
                 <th
                   key={idx}
-                  className="text-left p-3 sticky top-0 bg-white z-10"
+                  className="text-left p-3 sticky top-0 bg-white dark:bg-gray-800 dark:text-white z-10"
                   style={{ width: col.width }}
                 >
                   {col.header}
@@ -96,7 +96,7 @@ export default function Table({
           </thead>
           <tbody>
             {pageData.map((row) => (
-              <tr key={row[idField] || row.id || Math.random()} className="border-b hover:bg-gray-50">
+              <tr key={row[idField] || row.id || Math.random()} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                 {selectable && (
                   <td className="p-2">
                     <input
@@ -108,7 +108,7 @@ export default function Table({
                   </td>
                 )}
                 {columns.map((col, cidx) => (
-                  <td key={cidx} className="p-3 align-top">
+                  <td key={cidx} className="p-3 align-top dark:text-white">
                     {col.render ? col.render(row) : row[col.accessor]}
                   </td>
                 ))}
@@ -116,7 +116,7 @@ export default function Table({
             ))}
             {pageData.length === 0 && (
               <tr>
-                <td colSpan={columns.length + (selectable ? 1 : 0)} className="p-6 text-center text-gray-500">
+                <td colSpan={columns.length + (selectable ? 1 : 0)} className="p-6 text-center text-gray-500 dark:text-gray-400">
                   No data
                 </td>
               </tr>
@@ -125,13 +125,13 @@ export default function Table({
         </table>
       </div>
 
-      <div className="sticky bottom-0 bg-white z-10 border-t p-3 flex items-center justify-between">
+      <div className="sticky bottom-0 bg-white dark:bg-gray-800 z-10 border-t dark:border-gray-700 p-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           {onBulkDelete && (
             <button
               onClick={handleBulkDelete}
               disabled={selected.size === 0}
-              className={`px-3 py-1 rounded text-white ${selected.size === 0 ? 'bg-gray-300' : 'bg-red-500 hover:bg-red-600'}`}
+              className={`px-3 py-1 rounded text-white ${selected.size === 0 ? 'bg-gray-300 dark:bg-gray-600' : 'bg-red-500 hover:bg-red-600'}`}
             >
               Delete Selected ({selected.size})
             </button>
@@ -139,18 +139,18 @@ export default function Table({
         </div>
 
         <div className="flex items-center space-x-2">
-          <div className="text-sm text-gray-600">Page {page} / {totalPages}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Page {page} / {totalPages}</div>
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="px-2 py-1 border rounded disabled:opacity-50"
+            className="px-2 py-1 border rounded disabled:opacity-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
           >
             Prev
           </button>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="px-2 py-1 border rounded disabled:opacity-50"
+            className="px-2 py-1 border rounded disabled:opacity-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
           >
             Next
           </button>

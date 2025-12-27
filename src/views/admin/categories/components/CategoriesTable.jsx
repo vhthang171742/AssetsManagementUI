@@ -26,7 +26,7 @@ export default function CategoriesTable() {
       setCategories(data || []);
     } catch (error) {
       console.error("Failed to fetch categories:", error);
-      alert("Failed to fetch categories");
+      alert(`Failed to fetch categories: ${error.message || "Unknown error"}`);
     } finally {
       setLoading(false);
     }
@@ -80,7 +80,7 @@ export default function CategoriesTable() {
         fetchCategories();
       } catch (error) {
         console.error("Failed to delete category:", error);
-        alert("Failed to delete category");
+        alert(`Failed to delete category: ${error.message || "Unknown error"}`);
       }
     }
   };
@@ -92,6 +92,7 @@ export default function CategoriesTable() {
       fetchCategories();
     } catch (err) {
       console.error("Bulk delete failed:", err);
+      alert(`Failed to delete selected categories: ${err.message || "Unknown error"}`);
       throw err;
     }
   };

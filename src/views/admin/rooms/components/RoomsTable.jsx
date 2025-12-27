@@ -40,7 +40,7 @@ export default function RoomsTable() {
       setRooms(data || []);
     } catch (error) {
       console.error("Failed to fetch rooms:", error);
-      alert("Failed to fetch rooms");
+      alert(`Failed to fetch rooms: ${error.message || "Unknown error"}`);
     } finally {
       setLoading(false);
     }
@@ -150,7 +150,7 @@ export default function RoomsTable() {
         fetchRooms();
       } catch (error) {
         console.error("Failed to delete room:", error);
-        alert("Failed to delete room");
+        alert(`Failed to delete room: ${error.message || "Unknown error"}`);
       }
     }
   };
@@ -162,6 +162,7 @@ export default function RoomsTable() {
       fetchRooms();
     } catch (err) {
       console.error("Bulk delete failed:", err);
+      alert(`Failed to delete selected rooms: ${err.message || "Unknown error"}`);
       throw err;
     }
   };
@@ -174,7 +175,7 @@ export default function RoomsTable() {
         fetchRoomAssets(roomId);
       } catch (error) {
         console.error("Failed to remove asset:", error);
-        alert("Failed to remove asset");
+        alert(`Failed to remove asset: ${error.message || "Unknown error"}`);
       }
     }
   };

@@ -42,7 +42,7 @@ export default function HandoversTable() {
       setHandovers(data || []);
     } catch (error) {
       console.error("Failed to fetch handovers:", error);
-      alert("Failed to fetch handovers");
+      alert(`Failed to fetch handovers: ${error.message || "Unknown error"}`);
     } finally {
       setLoading(false);
     }
@@ -159,7 +159,7 @@ export default function HandoversTable() {
         fetchHandovers();
       } catch (error) {
         console.error("Failed to delete handover:", error);
-        alert("Failed to delete handover");
+        alert(`Failed to delete handover: ${error.message || "Unknown error"}`);
       }
     }
   };
@@ -171,6 +171,7 @@ export default function HandoversTable() {
       fetchHandovers();
     } catch (err) {
       console.error("Bulk delete failed:", err);
+      alert(`Failed to delete selected handovers: ${err.message || "Unknown error"}`);
       throw err;
     }
   };
@@ -183,7 +184,7 @@ export default function HandoversTable() {
         fetchHandoverDetails(selectedHandoverId);
       } catch (error) {
         console.error("Failed to delete detail:", error);
-        alert("Failed to delete detail");
+        alert(`Failed to delete detail: ${error.message || "Unknown error"}`);
       }
     }
   };
