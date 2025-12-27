@@ -3,6 +3,8 @@
   "version": "2.0.0",
   "private": true,
   "dependencies": {
+    "@azure/msal-browser": "^2.38.0",
+    "@azure/msal-react": "^1.4.10",
     "@chakra-ui/hooks": "^2.1.4",
     "@chakra-ui/modal": "^2.2.9",
     "@chakra-ui/popover": "^2.1.8",

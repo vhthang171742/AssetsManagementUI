@@ -1,4 +1,6 @@
 import React from "react";
+import { useMsal } from "@azure/msal-react";
+import { useNavigate } from "react-router-dom";
 import Dropdown from "components/dropdown";
 import { FiAlignJustify } from "react-icons/fi";
 import { Link } from "react-router-dom";
@@ -10,11 +12,33 @@ import {
   IoMdNotificationsOutline,
   IoMdInformationCircleOutline,
 } from "react-icons/io";
-import avatar from "assets/img/avatars/avatar4.png";
+import { useAuth } from "context/AuthContext";
 
 const Navbar = (props) => {
   const { onOpenSidenav, brandText } = props;
-  const [darkmode, setDarkmode] = React.useState(false);
+  const { isDarkMode, toggleDarkMode, userProfile, userPhoto, getUserRole } = useAuth();
+  const { instance } = useMsal();
+  const navigate = useNavigate();
+
+  /**
+   * Handle logout
+   */
+  const handleLogout = async () => {
+    try {
+      await instance.logoutPopup({
+        postLogoutRedirectUri: "/auth/sign-in",
+      });
+      navigate("/auth/sign-in", { replace: true });
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
+  // Use profile data or fallback to defaults
+  const displayName = userProfile?.givenName || userProfile?.displayName || "User";
+  const email = userProfile?.email || "user@example.com";
+  const role = getUserRole();
+  const avatarUrl = userPhoto || "https://via.placeholder.com/40x40?text=User";
 
   return (
     <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 p-2 backdrop-blur-xl dark:bg-[#0b14374d]">
@@ -55,7 +79,7 @@ const Navbar = (props) => {
           <input
             type="text"
             placeholder="Search..."
-            class="block h-full w-full rounded-full bg-lightPrimary text-sm font-medium text-navy-700 outline-none placeholder:!text-gray-400 dark:bg-navy-900 dark:text-white dark:placeholder:!text-white sm:w-fit"
+            className="block h-full w-full rounded-full bg-lightPrimary text-sm font-medium text-navy-700 outline-none placeholder:!text-gray-400 dark:bg-navy-900 dark:text-white dark:placeholder:!text-white sm:w-fit"
           />
         </div>
         <span
@@ -102,17 +126,9 @@ const Navbar = (props) => {
         />
         <div
           className="cursor-pointer text-gray-600"
-          onClick={() => {
-            if (darkmode) {
-              document.body.classList.remove("dark");
-              setDarkmode(false);
-            } else {
-              document.body.classList.add("dark");
-              setDarkmode(true);
-            }
-          }}
+          onClick={toggleDarkMode}
         >
-          {darkmode ? (
+          {isDarkMode ? (
             <RiSunFill className="h-4 w-4 text-gray-600 dark:text-white" />
           ) : (
             <RiMoonFill className="h-4 w-4 text-gray-600 dark:text-white" />
@@ -122,41 +138,46 @@ const Navbar = (props) => {
         <Dropdown
           button={
             <img
-              className="h-10 w-10 rounded-full"
-              src={avatar}
-              alt="Avatar"
+              className="h-10 w-10 rounded-full object-cover"
+              src={avatarUrl}
+              alt={displayName}
+              onError={(e) => {
+                e.target.src = "https://via.placeholder.com/40x40?text=User";
+              }}
             />
           }
           children={
             <div className="flex w-56 flex-col justify-start rounded-[20px] bg-white bg-cover bg-no-repeat shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none">
               <div className="p-4">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-navy-700 dark:text-white">
-                    👋 Hey, User
-                  </p>{" "}
+                  <div>
+                    <p className="text-sm font-bold text-navy-700 dark:text-white">
+                      👋 {displayName}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      {email}
+                    </p>
+                    <p className="mt-1 inline-block rounded bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                      {role.charAt(0).toUpperCase() + role.slice(1)}
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="h-px w-full bg-gray-200 dark:bg-white/20 " />
 
               <div className="flex flex-col p-4">
-                <a
-                  href="#"
+                <Link
+                  to="/admin/profile"
                   className="text-sm text-gray-800 dark:text-white hover:dark:text-white"
                 >
                   Profile Settings
-                </a>
-                <a
-                  href="#"
-                  className="mt-3 text-sm text-gray-800 dark:text-white hover:dark:text-white"
-                >
-                  Newsletter Settings
-                </a>
-                <a
-                  href="#"
-                  className="mt-3 text-sm font-medium text-red-500 hover:text-red-500 transition duration-150 ease-out hover:ease-in"
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="mt-3 text-sm font-medium text-red-500 transition duration-150 ease-out hover:text-red-600 hover:ease-in"
                 >
                   Log Out
-                </a>
+                </button>
               </div>
             </div>
           }
