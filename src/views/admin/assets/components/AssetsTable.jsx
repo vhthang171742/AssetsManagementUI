@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { assetService, assetCategoryService } from "services/api";
 import Card from "components/card";
+import Modal from "components/modal/Modal";
 
 export default function AssetsTable() {
   const [assets, setAssets] = useState([]);
@@ -203,12 +204,33 @@ export default function AssetsTable() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
-            <h3 className="text-lg font-bold mb-4">
-              {editingId ? "Edit Asset" : "Add New Asset"}
-            </h3>
-            <form onSubmit={handleSubmit}>
+        <>
+          {/* using shared Modal component */}
+          <Modal
+            isOpen={showModal}
+            onClose={() => setShowModal(false)}
+            title={editingId ? "Edit Asset" : "Add New Asset"}
+            maxWidth={"max-w-2xl"}
+            footer={
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="assetForm"
+                  className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
+                >
+                  {editingId ? "Update" : "Create"}
+                </button>
+              </>
+            }
+          >
+            <form id="assetForm" onSubmit={handleSubmit}>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <input
                   type="text"
@@ -321,24 +343,9 @@ export default function AssetsTable() {
                   className="col-span-2 p-2 border rounded"
                 />
               </div>
-              <div className="flex gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
-                >
-                  {editingId ? "Update" : "Create"}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
+          </Modal>
+        </>
       )}
     </Card>
   );

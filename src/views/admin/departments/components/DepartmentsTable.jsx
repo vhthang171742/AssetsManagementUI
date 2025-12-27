@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { departmentService } from "services/api";
 import Card from "components/card";
+import Modal from "components/modal/Modal";
 
 export default function DepartmentsTable() {
   const [departments, setDepartments] = useState([]);
@@ -141,58 +142,57 @@ export default function DepartmentsTable() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-bold mb-4">
-              {editingId ? "Edit Department" : "Add New Department"}
-            </h3>
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">
-                  Department Code
-                </label>
-                <input
-                  type="text"
-                  name="departmentCode"
-                  placeholder="Department Code"
-                  value={formData.departmentCode}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">
-                  Department Name
-                </label>
-                <input
-                  type="text"
-                  name="departmentName"
-                  placeholder="Department Name"
-                  value={formData.departmentName}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  required
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
-                >
-                  {editingId ? "Update" : "Create"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <Modal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          title={editingId ? "Edit Department" : "Add New Department"}
+          maxWidth={"max-w-md"}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="departmentForm"
+                className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
+              >
+                {editingId ? "Update" : "Create"}
+              </button>
+            </>
+          }
+        >
+          <form id="departmentForm" onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Department Code</label>
+              <input
+                type="text"
+                name="departmentCode"
+                placeholder="Department Code"
+                value={formData.departmentCode}
+                onChange={handleInputChange}
+                className="w-full p-2 border rounded"
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Department Name</label>
+              <input
+                type="text"
+                name="departmentName"
+                placeholder="Department Name"
+                value={formData.departmentName}
+                onChange={handleInputChange}
+                className="w-full p-2 border rounded"
+                required
+              />
+            </div>
+          </form>
+        </Modal>
       )}
     </Card>
   );

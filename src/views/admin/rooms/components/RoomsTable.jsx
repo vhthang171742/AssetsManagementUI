@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { roomService, departmentService, assetService } from "services/api";
 import Card from "components/card";
+import Modal from "components/modal/Modal";
 
 export default function RoomsTable() {
   const [rooms, setRooms] = useState([]);
@@ -251,100 +252,94 @@ export default function RoomsTable() {
 
       {/* Room Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-bold mb-4">
-              {editingId ? "Edit Room" : "Add New Room"}
-            </h3>
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">
-                  Department
-                </label>
-                <select
-                  name="departmentID"
-                  value={formData.departmentID}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  required
-                >
-                  <option value="">Select Department</option>
-                  {departments.map((dept) => (
-                    <option key={dept.departmentID} value={dept.departmentID}>
-                      {dept.departmentName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">
-                  Room Name
-                </label>
-                <input
-                  type="text"
-                  name="roomName"
-                  placeholder="Room Name"
-                  value={formData.roomName}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  placeholder="Description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded"
-                  rows="3"
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
-                >
-                  {editingId ? "Update" : "Create"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <Modal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          title={editingId ? "Edit Room" : "Add New Room"}
+          maxWidth={"max-w-md"}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="roomForm"
+                className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
+              >
+                {editingId ? "Update" : "Create"}
+              </button>
+            </>
+          }
+        >
+          <form id="roomForm" onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Department</label>
+              <select
+                name="departmentID"
+                value={formData.departmentID}
+                onChange={handleInputChange}
+                className="w-full p-2 border rounded"
+                required
+              >
+                <option value="">Select Department</option>
+                {departments.map((dept) => (
+                  <option key={dept.departmentID} value={dept.departmentID}>
+                    {dept.departmentName}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Room Name</label>
+              <input
+                type="text"
+                name="roomName"
+                placeholder="Room Name"
+                value={formData.roomName}
+                onChange={handleInputChange}
+                className="w-full p-2 border rounded"
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Description</label>
+              <textarea
+                name="description"
+                placeholder="Description"
+                value={formData.description}
+                onChange={handleInputChange}
+                className="w-full p-2 border rounded"
+                rows="3"
+              />
+            </div>
+          </form>
+        </Modal>
       )}
 
       {/* Room Assets Modal */}
       {showAssetModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">Room Assets</h3>
+        <Modal
+          isOpen={showAssetModal}
+          onClose={() => setShowAssetModal(false)}
+          title={"Room Assets"}
+          maxWidth={"max-w-2xl"}
+          footer={
+            <>
               <button
-                onClick={() => {
-                  setAssetFormData({
-                    assetID: "",
-                    serialNumber: "",
-                    currentCondition: "",
-                    remarks: "",
-                  });
-                  setShowAssetModal(false);
-                }}
-                className="text-gray-500 hover:text-gray-700 text-xl"
+                onClick={() => setShowAssetModal(false)}
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
               >
-                ×
+                Close
               </button>
-            </div>
-
+            </>
+          }
+        >
+          <div className="mb-4">
             {/* Add Asset Form */}
             <form onSubmit={handleAddAssetSubmit} className="mb-6 p-4 border rounded bg-gray-50">
               <h4 className="font-semibold mb-3">Add Asset to Room</h4>
@@ -431,17 +426,8 @@ export default function RoomsTable() {
                 </table>
               </div>
             </div>
-
-            <div className="flex gap-2 justify-end mt-4">
-              <button
-                onClick={() => setShowAssetModal(false)}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-              >
-                Close
-              </button>
-            </div>
           </div>
-        </div>
+        </Modal>
       )}
     </>
   );
