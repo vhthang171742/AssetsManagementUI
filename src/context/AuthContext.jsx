@@ -15,6 +15,7 @@ export const AuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [userPhoto, setUserPhoto] = useState(null);
   const [userGroups, setUserGroups] = useState([]);
+  const [userRoles, setUserRoles] = useState([]);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -43,6 +44,44 @@ export const AuthProvider = ({ children }) => {
           homeAccountId: account.homeAccountId,
         });
 
+        // Extract roles from both ID token and API access token
+        let roles = [];
+        
+        // First, check ID token claims
+        if (account.idTokenClaims?.roles) {
+          roles = account.idTokenClaims.roles;
+          console.log("Roles found in ID token:", roles);
+        }
+        
+        // If no roles in ID token, try to get API access token and extract roles from there
+        if (roles.length === 0) {
+          try {
+            const tokenResponse = await acquireTokenForApi(false); // Get API token silently
+            console.log("API token response:", tokenResponse);
+            
+            if (tokenResponse?.accessToken) {
+              // Decode the access token to get roles
+              const tokenParts = tokenResponse.accessToken.split('.');
+              if (tokenParts.length === 3) {
+                const payload = JSON.parse(atob(tokenParts[1]));
+                console.log("Decoded access token payload:", payload);
+                roles = payload.roles || [];
+                console.log("Roles extracted from access token:", roles);
+              }
+            }
+          } catch (error) {
+            console.warn("Could not acquire API token for role extraction:", error.message);
+          }
+        }
+        
+        setUserRoles(roles);
+        console.log("=== AUTHORIZATION DEBUG ===");
+        console.log("User roles from token:", roles);
+        console.log("Required roles from env:", process.env.REACT_APP_REQUIRED_ROLES);
+        console.log("API scopes from env:", process.env.REACT_APP_API_SCOPES);
+        console.log("ID token claims:", account.idTokenClaims);
+        console.log("=========================");
+        
         // FORCE CONSENT: Request API token immediately to trigger consent flow
         try {
           console.log("Requesting API consent on login...");
@@ -71,12 +110,15 @@ export const AuthProvider = ({ children }) => {
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
+          // Set empty groups array on error to prevent blocking
+          setUserGroups([]);
         }
       } else {
         setUser(null);
         setUserProfile(null);
         setUserPhoto(null);
         setUserGroups([]);
+        setUserRoles([]);
       }
     };
 
@@ -113,10 +155,13 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Check if user belongs to a specific group
+   * Checks both displayName and id (since displayName might be null without proper permissions)
    */
-  const isUserInGroup = (groupName) => {
+  const isUserInGroup = (groupNameOrId) => {
     return userGroups.some(
-      (group) => group.displayName?.toLowerCase() === groupName.toLowerCase()
+      (group) => 
+        group.displayName?.toLowerCase() === groupNameOrId.toLowerCase() ||
+        group.id?.toLowerCase() === groupNameOrId.toLowerCase()
     );
   };
 
@@ -130,11 +175,45 @@ export const AuthProvider = ({ children }) => {
     return "user";
   };
 
+  /**
+   * Check if user has at least one required role
+   * Checks if user has any of the required app roles from environment config
+   * Falls back to REACT_APP_API_SCOPES if REACT_APP_REQUIRED_ROLES not set
+   */
+  const hasRequiredRole = () => {
+    // Get required roles from environment (with fallback to API scopes)
+    const requiredRolesEnv = process.env.REACT_APP_REQUIRED_ROLES || process.env.REACT_APP_API_SCOPES;
+    
+    if (!requiredRolesEnv) {
+      console.warn("Neither REACT_APP_REQUIRED_ROLES nor REACT_APP_API_SCOPES configured. Denying access.");
+      return false;
+    }
+
+    const requiredRoles = requiredRolesEnv
+      .split(",")
+      .map((r) => r.trim())
+      .filter(Boolean);
+
+    console.log("User roles from token:", userRoles);
+    console.log("Required roles from config:", requiredRoles);
+
+    // Check if user has any of the required roles
+    const hasRole = userRoles.some((userRole) =>
+      requiredRoles.some(
+        (requiredRole) => userRole.toLowerCase() === requiredRole.toLowerCase()
+      )
+    );
+
+    console.log("Has required role:", hasRole);
+    return hasRole;
+  };
+
   const value = {
     user,
     userProfile,
     userPhoto,
     userGroups,
+    userRoles,
     isAuthenticated,
     isLoading,
     isDarkMode,
@@ -142,6 +221,7 @@ export const AuthProvider = ({ children }) => {
     inProgress,
     isUserInGroup,
     getUserRole,
+    hasRequiredRole,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

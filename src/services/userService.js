@@ -143,8 +143,11 @@ export const getUserGroups = async () => {
     }
 
     const data = await response.json();
-    // Filter for groups only (type will help identify groups vs other membership types)
-    return data.value || [];
+    // Map groups and use id as fallback if displayName is null
+    return (data.value || []).map(group => ({
+      ...group,
+      displayName: group.displayName || group.id
+    }));
   } catch (error) {
     console.warn("Error fetching user groups:", error.message);
     return [];

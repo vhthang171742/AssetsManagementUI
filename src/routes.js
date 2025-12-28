@@ -80,6 +80,7 @@ const routes = [
     path: "sign-in",
     icon: <MdLock className="h-6 w-6" />,
     component: <SignIn />,
+    sidebar: false, // Hide from sidebar
   },
 ];
 export default routes;

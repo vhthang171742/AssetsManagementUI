@@ -1,6 +1,7 @@
 import React from "react";
 import { useAuth } from "context/AuthContext";
 import banner from "assets/img/profile/banner.png";
+import avatarDefault from "assets/img/avatars/user.png";
 import Card from "components/card";
 
 const Banner = () => {
@@ -9,7 +10,7 @@ const Banner = () => {
   // Use profile data or fallback to defaults
   const displayName = userProfile?.displayName || "User";
   const department = userProfile?.department || "Department";
-  const avatarUrl = userPhoto || "https://via.placeholder.com/87x87?text=User";
+  const avatarUrl = userPhoto || avatarDefault;
 
   return (
     <Card extra={"items-center w-full h-full p-[16px] bg-cover"}>
@@ -24,7 +25,7 @@ const Banner = () => {
             src={avatarUrl} 
             alt={displayName} 
             onError={(e) => {
-              e.target.src = "https://via.placeholder.com/87x87?text=User";
+              e.target.src = avatarDefault;
             }}
           />
         </div>

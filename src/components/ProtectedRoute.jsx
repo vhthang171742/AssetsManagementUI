@@ -2,15 +2,17 @@ import React from "react";
 import { Navigate } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
 import { useAuth } from "context/AuthContext";
+import UnauthorizedAccess from "./UnauthorizedAccess";
 
 /**
  * ProtectedRoute Component
  * Redirects to login page if user is not authenticated
+ * Shows unauthorized page if user is authenticated but doesn't have required roles
  * Shows loading spinner while authentication is in progress
  */
 export default function ProtectedRoute({ children }) {
   const { accounts, inProgress } = useMsal();
-  const { isLoading } = useAuth();
+  const { isLoading, hasRequiredRole, userGroups } = useAuth();
 
   // Show loading state while MSAL is initializing or processing login
   if (isLoading || inProgress !== "none") {
@@ -27,6 +29,12 @@ export default function ProtectedRoute({ children }) {
   // Redirect to login if not authenticated
   if (accounts.length === 0) {
     return <Navigate to="/auth/sign-in" replace />;
+  }
+
+  // Show unauthorized page if user doesn't have required roles
+  // Wait until userGroups are loaded (empty array is valid but undefined means still loading)
+  if (userGroups !== undefined && !hasRequiredRole()) {
+    return <UnauthorizedAccess />;
   }
 
   return children;

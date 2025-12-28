@@ -100,7 +100,7 @@ export const acquireTokenForApi = async (forceInteractive = false) => {
           scopes: tokenRequest.scopes,
           account: accounts[0],
         });
-        return response.accessToken;
+        return response; // Return full response, not just accessToken
       } catch (error) {
         console.warn("Popup token request failed:", error.message);
         return null;
@@ -113,7 +113,7 @@ export const acquireTokenForApi = async (forceInteractive = false) => {
         scopes: tokenRequest.scopes,
         account: accounts[0],
       });
-      return response.accessToken;
+      return response; // Return full response, not just accessToken
     } catch (error) {
       // If consent is required, switch to interactive
       if (
@@ -128,7 +128,7 @@ export const acquireTokenForApi = async (forceInteractive = false) => {
             scopes: tokenRequest.scopes,
             account: accounts[0],
           });
-          return response.accessToken;
+          return response; // Return full response
         } catch (popupError) {
           console.error("Interactive popup failed:", popupError.message);
           return null;
@@ -141,7 +141,7 @@ export const acquireTokenForApi = async (forceInteractive = false) => {
           scopes: tokenRequestWithAudience.scopes,
           account: accounts[0],
         });
-        return response.accessToken;
+        return response; // Return full response
       } catch (defaultError) {
         if (
           defaultError.errorCode === "consent_required" ||
@@ -152,7 +152,7 @@ export const acquireTokenForApi = async (forceInteractive = false) => {
               scopes: tokenRequestWithAudience.scopes,
               account: accounts[0],
             });
-            return response.accessToken;
+            return response; // Return full response
           } catch (popupError) {
             console.error("Interactive popup with .default failed:", popupError.message);
             return null;

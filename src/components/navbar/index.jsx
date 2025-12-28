@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Dropdown from "components/dropdown";
 import { FiAlignJustify } from "react-icons/fi";
 import { Link } from "react-router-dom";
-import navbarimage from "assets/img/layout/Navbar.png";
+import avatarDefault from "assets/img/avatars/user.png";
 import { BsArrowBarUp } from "react-icons/bs";
 import { FiSearch } from "react-icons/fi";
 import { RiMoonFill, RiSunFill } from "react-icons/ri";
@@ -35,10 +35,10 @@ const Navbar = (props) => {
   };
 
   // Use profile data or fallback to defaults
-  const displayName = userProfile?.givenName || userProfile?.displayName || "User";
+  const displayName = userProfile?.displayName || userProfile?.givenName || "User";
   const email = userProfile?.email || "user@example.com";
   const role = getUserRole();
-  const avatarUrl = userPhoto || "https://via.placeholder.com/40x40?text=User";
+  const avatarUrl = userPhoto || avatarDefault;
 
   return (
     <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 p-2 backdrop-blur-xl dark:bg-[#0b14374d]">
@@ -142,7 +142,7 @@ const Navbar = (props) => {
               src={avatarUrl}
               alt={displayName}
               onError={(e) => {
-                e.target.src = "https://via.placeholder.com/40x40?text=User";
+                e.target.src = avatarDefault;
               }}
             />
           }
@@ -152,13 +152,10 @@ const Navbar = (props) => {
                 <div className="flex items-center gap-2">
                   <div>
                     <p className="text-sm font-bold text-navy-700 dark:text-white">
-                      👋 {displayName}
+                      {displayName}
                     </p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       {email}
-                    </p>
-                    <p className="mt-1 inline-block rounded bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                      {role.charAt(0).toUpperCase() + role.slice(1)}
                     </p>
                   </div>
                 </div>
