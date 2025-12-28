@@ -26,19 +26,58 @@ const getMsalInstance = () => {
  */
 const extractErrorMessage = async (response) => {
   try {
-    const errorData = await response.json();
-    // Extract error message from various possible response formats
-    // Priority: detail > message > title > statusText
-    return (
-      errorData.detail ||
-      errorData.message ||
-      errorData.title ||
-      response.statusText ||
-      "Unknown error"
-    );
+    // Try to read response text first
+    const responseText = await response.text();
+    
+    // If there's no response body, provide a status-based message
+    if (!responseText || responseText.trim() === '') {
+      return getStatusMessage(response.status);
+    }
+    
+    // Try to parse as JSON
+    try {
+      const errorData = JSON.parse(responseText);
+      // Extract error message from various possible response formats
+      // Priority: detail > message > title > statusText
+      return (
+        errorData.detail ||
+        errorData.message ||
+        errorData.title ||
+        getStatusMessage(response.status)
+      );
+    } catch (parseError) {
+      // If JSON parsing fails but we have text, return the text
+      return responseText || getStatusMessage(response.status);
+    }
   } catch (e) {
-    // If JSON parsing fails, use status text
-    return response.statusText || "Unknown error";
+    // If reading response fails, use status-based message
+    return getStatusMessage(response.status);
+  }
+};
+
+/**
+ * Get user-friendly error message based on HTTP status code
+ * @param {number} status - HTTP status code
+ * @returns {string} User-friendly error message
+ */
+const getStatusMessage = (status) => {
+  switch (status) {
+    case 400:
+      return "Bad request. Please check your input.";
+    case 401:
+      return "Unauthorized. Please log in again.";
+    case 403:
+      return "Access denied. You don't have permission to perform this action.";
+    case 404:
+      return "Resource not found.";
+    case 409:
+      return "Conflict. The resource may already exist or is in use.";
+    case 500:
+      return "Internal server error. Please try again later.";
+    case 503:
+      return "Service unavailable. Please try again later.";
+    default:
+      return `Request failed with status ${status}`;
   }
 };
 
