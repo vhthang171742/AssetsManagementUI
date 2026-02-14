@@ -2,7 +2,7 @@
   "name": "horizon-ui-tailwind-react",
   "version": "2.0.0",
   "private": true,
-  "homepage": ".",
+  "homepage": "/",
   "dependencies": {
     "@azure/msal-browser": "^2.38.0",
     "@azure/msal-react": "^1.4.10",
