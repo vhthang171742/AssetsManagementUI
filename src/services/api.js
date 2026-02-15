@@ -26,4 +26,10 @@ export { productionLineService } from "./productionLineService";
 export { workerEquipmentService } from "./workerEquipmentService";
 export { equipmentUsageService } from "./equipmentUsageService";
 
+// Phase 8: Training Mode Services
+export { courseService } from "./courseService";
+export { classService } from "./classService";
+export { studentEquipmentAssignmentService } from "./studentEquipmentAssignmentService";
+export { assetCourseMappingService } from "./assetCourseMappingService";
+
 export const userService = userServiceDefault;

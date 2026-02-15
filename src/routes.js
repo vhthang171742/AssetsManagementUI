@@ -14,6 +14,12 @@ import ProductionLines from "views/admin/productionLines";
 import WorkerEquipment from "views/admin/workerEquipment";
 import EquipmentUsage from "views/admin/equipmentUsage";
 
+// Training Mode Imports
+import Courses from "views/admin/courses";
+import Classes from "views/admin/classes";
+import StudentEquipmentAssignments from "views/admin/studentEquipmentAssignments";
+import AssetCourseMappings from "views/admin/assetCourseMappings";
+
 // Auth Imports
 import SignIn from "views/auth/SignIn";
 
@@ -32,6 +38,7 @@ import {
   MdFactory,
   MdPerson2,
   MdDataUsage,
+  MdSchool,
 } from "react-icons/md";
 
 const routes = [
@@ -111,6 +118,34 @@ const routes = [
     path: "equipment-usage",
     icon: <MdDataUsage className="h-6 w-6" />,
     component: <EquipmentUsage />,
+  },
+  {
+    name: "Courses",
+    layout: "/admin",
+    path: "courses",
+    icon: <MdSchool className="h-6 w-6" />,
+    component: <Courses />,
+  },
+  {
+    name: "Classes",
+    layout: "/admin",
+    path: "classes",
+    icon: <MdSchool className="h-6 w-6" />,
+    component: <Classes />,
+  },
+  {
+    name: "Student Assignments",
+    layout: "/admin",
+    path: "student-equipment-assignments",
+    icon: <MdSchool className="h-6 w-6" />,
+    component: <StudentEquipmentAssignments />,
+  },
+  {
+    name: "Asset Mappings",
+    layout: "/admin",
+    path: "asset-course-mappings",
+    icon: <MdSchool className="h-6 w-6" />,
+    component: <AssetCourseMappings />,
   },
   {
     name: "Profile",
