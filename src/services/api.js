@@ -18,3 +18,5 @@ export { assetService } from "./assetService";
 export { departmentService } from "./departmentService";
 export { roomService } from "./roomService";
 export { handoverService } from "./handoverService";
+export { dropdownService } from "./dropdownService";
+export { configurationService } from "./configurationService";

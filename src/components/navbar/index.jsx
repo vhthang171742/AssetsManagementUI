@@ -13,6 +13,7 @@ import {
   IoMdInformationCircleOutline,
 } from "react-icons/io";
 import { useAuth } from "context/AuthContext";
+import LanguageSwitcher from "components/languageSwitcher/LanguageSwitcher";
 
 const Navbar = (props) => {
   const { onOpenSidenav, brandText } = props;
@@ -124,6 +125,7 @@ const Navbar = (props) => {
           }
           classNames={"py-2 top-4 -left-[230px] md:-left-[440px] w-max"}
         />
+        <LanguageSwitcher className="" />
         <div
           className="cursor-pointer text-gray-600"
           onClick={toggleDarkMode}

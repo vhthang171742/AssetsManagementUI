@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { assetService, assetCategoryService } from "services/api";
+import { dropdownService } from "services/dropdownService";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Card from "components/card";
@@ -57,7 +58,7 @@ export default function AssetsTable() {
 
   const fetchUnits = async () => {
     try {
-      const data = await assetService.getUnits();
+      const data = await dropdownService.getAssetUnits();
       setUnits(data || []);
     } catch (error) {
       console.error("Failed to fetch units:", error);
@@ -325,8 +326,8 @@ export default function AssetsTable() {
                 >
                   <option value="">Select Unit</option>
                   {units.map((unit) => (
-                    <option key={unit.value} value={unit.value}>
-                      {unit.name}
+                    <option key={unit.itemCode} value={unit.itemCode}>
+                      {unit.label}
                     </option>
                   ))}
                 </select>

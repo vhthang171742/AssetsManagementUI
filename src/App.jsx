@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "context/AuthContext";
 import AdminLayout from "layouts/admin";
 import AuthLayout from "layouts/auth";
 import ProtectedRoute from "components/ProtectedRoute";
+import { LanguageProvider } from "context/LanguageContext";
 
 // Initialize MSAL instance
 const msalInstance = new PublicClientApplication(msalConfig);
@@ -51,7 +52,9 @@ const App = () => {
   return (
     <MsalProvider instance={msalInstance}>
       <AuthProvider>
-        <AppContent />
+        <LanguageProvider>
+          <AppContent />
+        </LanguageProvider>
       </AuthProvider>
     </MsalProvider>
   );

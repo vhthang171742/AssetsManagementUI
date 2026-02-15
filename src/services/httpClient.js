@@ -170,9 +170,14 @@ export const httpClient = async (endpoint, options = {}) => {
   
   // Get access token and add to headers
   const accessToken = await getAccessToken();
+
+  // Read language preference from localStorage (set by LanguageContext)
+  const language = localStorage.getItem("app_language") || "en-US";
+
   const defaultOptions = {
     headers: {
       "Content-Type": "application/json",
+      "Accept-Language": language,
       ...options.headers,
     },
   };
