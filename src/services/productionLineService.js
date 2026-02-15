@@ -9,14 +9,14 @@ export const productionLineService = {
    * Get all production lines
    * @returns {Promise<Array>} List of production lines
    */
-  getAll: () => httpClient("/ProductionLines"),
+  getAll: () => httpClient("/production-lines"),
 
   /**
    * Get a specific production line by ID
    * @param {number} id - Production Line ID
    * @returns {Promise<object>} Production line details
    */
-  getById: (id) => httpClient(`/ProductionLines/${id}`),
+  getById: (id) => httpClient(`/production-lines/${id}`),
 
   /**
    * Get production lines by department
@@ -24,7 +24,7 @@ export const productionLineService = {
    * @returns {Promise<Array>} List of production lines in department
    */
   getByDepartment: (departmentId) =>
-    httpClient(`/ProductionLines/by-department/${departmentId}`),
+    httpClient(`/production-lines/by-department/${departmentId}`),
 
   /**
    * Create a new production line
@@ -32,7 +32,7 @@ export const productionLineService = {
    * @returns {Promise<object>} Created production line
    */
   create: (data) =>
-    httpClient("/ProductionLines", {
+    httpClient("/production-lines", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -44,7 +44,7 @@ export const productionLineService = {
    * @returns {Promise<object>} Updated production line
    */
   update: (id, data) =>
-    httpClient(`/ProductionLines/${id}`, {
+    httpClient(`/production-lines/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -55,7 +55,7 @@ export const productionLineService = {
    * @returns {Promise<null>} No content response
    */
   delete: (id) =>
-    httpClient(`/ProductionLines/${id}`, {
+    httpClient(`/production-lines/${id}`, {
       method: "DELETE",
     }),
 
@@ -65,7 +65,7 @@ export const productionLineService = {
    * @returns {Promise<object>} Deletion result
    */
   bulkDelete: (ids) =>
-    httpClient("/ProductionLines/bulk-delete", {
+    httpClient("/production-lines/bulk-delete", {
       method: "POST",
       body: JSON.stringify({ ids }),
     }),
@@ -76,7 +76,7 @@ export const productionLineService = {
    * @returns {Promise<Array>} List of worker assignments
    */
   getAssignedWorkers: (lineId) =>
-    httpClient(`/ProductionLines/${lineId}/workers`),
+    httpClient(`/production-lines/${lineId}/workers`),
 
   /**
    * Update production line status
@@ -85,7 +85,7 @@ export const productionLineService = {
    * @returns {Promise<object>} Updated production line
    */
   updateStatus: (id, isActive) =>
-    httpClient(`/ProductionLines/${id}/status`, {
+    httpClient(`/production-lines/${id}/status`, {
       method: "PATCH",
       body: JSON.stringify({ isActive }),
     }),

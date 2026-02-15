@@ -9,14 +9,14 @@ export const assetCategoryService = {
    * Get all asset categories
    * @returns {Promise<Array>} List of categories
    */
-  getAll: () => httpClient("/AssetCategories"),
+  getAll: () => httpClient("/asset-categories"),
 
   /**
    * Get a specific asset category by ID
    * @param {number} id - Category ID
    * @returns {Promise<object>} Category details
    */
-  getById: (id) => httpClient(`/AssetCategories/${id}`),
+  getById: (id) => httpClient(`/asset-categories/${id}`),
 
   /**
    * Create a new asset category
@@ -24,7 +24,7 @@ export const assetCategoryService = {
    * @returns {Promise<object>} Created category
    */
   create: (data) =>
-    httpClient("/AssetCategories", {
+    httpClient("/asset-categories", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -36,7 +36,7 @@ export const assetCategoryService = {
    * @returns {Promise<object>} Updated category
    */
   update: (id, data) =>
-    httpClient(`/AssetCategories/${id}`, {
+    httpClient(`/asset-categories/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -47,7 +47,7 @@ export const assetCategoryService = {
    * @returns {Promise<null>} No content response
    */
   delete: (id) =>
-    httpClient(`/AssetCategories/${id}`, {
+    httpClient(`/asset-categories/${id}`, {
       method: "DELETE",
     }),
 
@@ -57,7 +57,7 @@ export const assetCategoryService = {
    * @returns {Promise<Array>} List of assets in category
    */
   getAssets: (categoryId) =>
-    httpClient(`/AssetCategories/${categoryId}/assets`),
+    httpClient(`/asset-categories/${categoryId}/assets`),
 
   /**
    * Delete multiple asset categories
@@ -65,7 +65,7 @@ export const assetCategoryService = {
    * @returns {Promise<null>} No content response
    */
   bulkDelete: (ids) =>
-    httpClient(`/AssetCategories/bulk`, {
+    httpClient(`/asset-categories/bulk`, {
       method: "DELETE",
       body: JSON.stringify({ ids }),
     }),

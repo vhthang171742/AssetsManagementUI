@@ -9,14 +9,14 @@ export const departmentService = {
    * Get all departments
    * @returns {Promise<Array>} List of departments
    */
-  getAll: () => httpClient("/Departments"),
+  getAll: () => httpClient("/departments"),
 
   /**
    * Get a specific department by ID
    * @param {number} id - Department ID
    * @returns {Promise<object>} Department details
    */
-  getById: (id) => httpClient(`/Departments/${id}`),
+  getById: (id) => httpClient(`/departments/${id}`),
 
   /**
    * Create a new department
@@ -24,7 +24,7 @@ export const departmentService = {
    * @returns {Promise<object>} Created department
    */
   create: (data) =>
-    httpClient("/Departments", {
+    httpClient("/departments", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -36,7 +36,7 @@ export const departmentService = {
    * @returns {Promise<object>} Updated department
    */
   update: (id, data) =>
-    httpClient(`/Departments/${id}`, {
+    httpClient(`/departments/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -47,7 +47,7 @@ export const departmentService = {
    * @returns {Promise<null>} No content response
    */
   delete: (id) =>
-    httpClient(`/Departments/${id}`, {
+    httpClient(`/departments/${id}`, {
       method: "DELETE",
     }),
 
@@ -57,7 +57,7 @@ export const departmentService = {
    * @returns {Promise<Array>} List of rooms in department
    */
   getRooms: (departmentId) =>
-    httpClient(`/Departments/${departmentId}/rooms`),
+    httpClient(`/departments/${departmentId}/rooms`),
 
   /**
    * Delete multiple departments
@@ -65,7 +65,7 @@ export const departmentService = {
    * @returns {Promise<null>} No content response
    */
   bulkDelete: (ids) =>
-    httpClient(`/Departments/bulk`, {
+    httpClient(`/departments/bulk`, {
       method: "DELETE",
       body: JSON.stringify({ ids }),
     }),

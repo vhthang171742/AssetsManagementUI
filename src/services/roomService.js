@@ -9,14 +9,14 @@ export const roomService = {
    * Get all rooms
    * @returns {Promise<Array>} List of rooms
    */
-  getAll: () => httpClient("/Rooms"),
+  getAll: () => httpClient("/rooms"),
 
   /**
    * Get a specific room by ID
    * @param {number} id - Room ID
    * @returns {Promise<object>} Room details
    */
-  getById: (id) => httpClient(`/Rooms/${id}`),
+  getById: (id) => httpClient(`/rooms/${id}`),
 
   /**
    * Create a new room
@@ -24,7 +24,7 @@ export const roomService = {
    * @returns {Promise<object>} Created room
    */
   create: (data) =>
-    httpClient("/Rooms", {
+    httpClient("/rooms", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -36,7 +36,7 @@ export const roomService = {
    * @returns {Promise<object>} Updated room
    */
   update: (id, data) =>
-    httpClient(`/Rooms/${id}`, {
+    httpClient(`/rooms/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -47,7 +47,7 @@ export const roomService = {
    * @returns {Promise<null>} No content response
    */
   delete: (id) =>
-    httpClient(`/Rooms/${id}`, {
+    httpClient(`/rooms/${id}`, {
       method: "DELETE",
     }),
 
@@ -56,7 +56,7 @@ export const roomService = {
    * @param {number} roomId - Room ID
    * @returns {Promise<Array>} List of assets in room
    */
-  getAssets: (roomId) => httpClient(`/Rooms/${roomId}/assets`),
+  getAssets: (roomId) => httpClient(`/rooms/${roomId}/assets`),
 
   /**
    * Add an asset to a room
@@ -65,7 +65,7 @@ export const roomService = {
    * @returns {Promise<object>} Created room-asset association
    */
   addAsset: (roomId, data) =>
-    httpClient(`/Rooms/${roomId}/assets`, {
+    httpClient(`/rooms/${roomId}/assets`, {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -77,7 +77,7 @@ export const roomService = {
    * @returns {Promise<null>} No content response
    */
   removeAsset: (roomId, assetId) =>
-    httpClient(`/Rooms/${roomId}/assets/${assetId}`, {
+    httpClient(`/rooms/${roomId}/assets/${assetId}`, {
       method: "DELETE",
     }),
 
@@ -87,7 +87,7 @@ export const roomService = {
    * @returns {Promise<Array>} List of rooms in department
    */
   getByDepartment: (departmentId) =>
-    httpClient(`/Rooms/department/${departmentId}`),
+    httpClient(`/rooms/department/${departmentId}`),
 
   /**
    * Delete multiple rooms
@@ -95,7 +95,7 @@ export const roomService = {
    * @returns {Promise<null>} No content response
    */
   bulkDelete: (ids) =>
-    httpClient(`/Rooms/bulk`, {
+    httpClient(`/rooms/bulk`, {
       method: "DELETE",
       body: JSON.stringify({ ids }),
     }),

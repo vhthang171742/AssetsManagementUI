@@ -32,4 +32,10 @@ export { classService } from "./classService";
 export { studentEquipmentAssignmentService } from "./studentEquipmentAssignmentService";
 export { assetCourseMappingService } from "./assetCourseMappingService";
 
+// Phase 9: Maintenance Management Services
+export { maintenanceScheduleService } from "./maintenanceScheduleService";
+export { maintenanceRecordService } from "./maintenanceRecordService";
+export { sparePartService } from "./sparePartService";
+export { maintenanceSparePartUsageService } from "./maintenanceSparePartUsageService";
+
 export const userService = userServiceDefault;

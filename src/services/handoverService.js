@@ -9,14 +9,14 @@ export const handoverService = {
    * Get all handovers
    * @returns {Promise<Array>} List of handovers
    */
-  getAll: () => httpClient("/Handovers"),
+  getAll: () => httpClient("/handovers"),
 
   /**
    * Get a specific handover by ID
    * @param {number} id - Handover ID
    * @returns {Promise<object>} Handover details
    */
-  getById: (id) => httpClient(`/Handovers/${id}`),
+  getById: (id) => httpClient(`/handovers/${id}`),
 
   /**
    * Create a new handover
@@ -24,7 +24,7 @@ export const handoverService = {
    * @returns {Promise<object>} Created handover
    */
   create: (data) =>
-    httpClient("/Handovers", {
+    httpClient("/handovers", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -36,7 +36,7 @@ export const handoverService = {
    * @returns {Promise<object>} Updated handover
    */
   update: (id, data) =>
-    httpClient(`/Handovers/${id}`, {
+    httpClient(`/handovers/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -47,7 +47,7 @@ export const handoverService = {
    * @returns {Promise<null>} No content response
    */
   delete: (id) =>
-    httpClient(`/Handovers/${id}`, {
+    httpClient(`/handovers/${id}`, {
       method: "DELETE",
     }),
 
@@ -56,7 +56,7 @@ export const handoverService = {
    * @param {number} roomId - Room ID
    * @returns {Promise<Array>} List of handovers for room
    */
-  getByRoom: (roomId) => httpClient(`/Handovers/by-room/${roomId}`),
+  getByRoom: (roomId) => httpClient(`/handovers/by-room/${roomId}`),
 
   /**
    * Get all details for a handover
@@ -64,7 +64,7 @@ export const handoverService = {
    * @returns {Promise<Array>} List of handover details
    */
   getDetails: (handoverId) =>
-    httpClient(`/Handovers/${handoverId}/details`),
+    httpClient(`/handovers/${handoverId}/details`),
 
   /**
    * Add a detail to a handover
@@ -73,7 +73,7 @@ export const handoverService = {
    * @returns {Promise<object>} Created handover detail
    */
   addDetail: (handoverId, data) =>
-    httpClient(`/Handovers/${handoverId}/details`, {
+    httpClient(`/handovers/${handoverId}/details`, {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -84,7 +84,7 @@ export const handoverService = {
    * @returns {Promise<object>} Handover detail
    */
   getDetailById: (detailId) =>
-    httpClient(`/Handovers/details/${detailId}`),
+    httpClient(`/handovers/details/${detailId}`),
 
   /**
    * Update a handover detail
@@ -93,7 +93,7 @@ export const handoverService = {
    * @returns {Promise<object>} Updated handover detail
    */
   updateDetail: (detailId, data) =>
-    httpClient(`/Handovers/details/${detailId}`, {
+    httpClient(`/handovers/details/${detailId}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -104,7 +104,7 @@ export const handoverService = {
    * @returns {Promise<null>} No content response
    */
   deleteDetail: (detailId) =>
-    httpClient(`/Handovers/details/${detailId}`, {
+    httpClient(`/handovers/details/${detailId}`, {
       method: "DELETE",
     }),
 
@@ -114,7 +114,7 @@ export const handoverService = {
    * @returns {Promise<null>} No content response
    */
   bulkDelete: (ids) =>
-    httpClient(`/Handovers/bulk`, {
+    httpClient(`/handovers/bulk`, {
       method: "DELETE",
       body: JSON.stringify({ ids }),
     }),

@@ -9,14 +9,14 @@ export const equipmentUsageService = {
    * Get all equipment usage logs
    * @returns {Promise<Array>} List of usage logs
    */
-  getAll: () => httpClient("/EquipmentUsage"),
+  getAll: () => httpClient("/equipment-usage"),
 
   /**
    * Get a specific usage log by ID
    * @param {number} id - Usage Log ID
    * @returns {Promise<object>} Usage log details
    */
-  getById: (id) => httpClient(`/EquipmentUsage/${id}`),
+  getById: (id) => httpClient(`/equipment-usage/${id}`),
 
   /**
    * Get usage logs for a specific equipment
@@ -24,7 +24,7 @@ export const equipmentUsageService = {
    * @returns {Promise<Array>} List of usage logs for equipment
    */
   getByEquipment: (roomAssetId) =>
-    httpClient(`/EquipmentUsage/by-equipment/${roomAssetId}`),
+    httpClient(`/equipment-usage/by-equipment/${roomAssetId}`),
 
   /**
    * Get usage logs for a specific worker
@@ -32,7 +32,7 @@ export const equipmentUsageService = {
    * @returns {Promise<Array>} List of usage logs for worker
    */
   getByWorker: (workerId) =>
-    httpClient(`/EquipmentUsage/by-worker/${workerId}`),
+    httpClient(`/equipment-usage/by-worker/${workerId}`),
 
   /**
    * Get usage logs for a production line
@@ -40,7 +40,7 @@ export const equipmentUsageService = {
    * @returns {Promise<Array>} List of usage logs for line
    */
   getByLine: (lineId) =>
-    httpClient(`/EquipmentUsage/by-line/${lineId}`),
+    httpClient(`/equipment-usage/by-line/${lineId}`),
 
   /**
    * Get usage logs for a date range
@@ -49,7 +49,7 @@ export const equipmentUsageService = {
    * @returns {Promise<Array>} List of usage logs in range
    */
   getByDateRange: (startDate, endDate) =>
-    httpClient(`/EquipmentUsage/by-date-range?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`),
+    httpClient(`/equipment-usage/by-date-range?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`),
 
   /**
    * Create a new equipment usage log
@@ -57,7 +57,7 @@ export const equipmentUsageService = {
    * @returns {Promise<object>} Created usage log
    */
   create: (data) =>
-    httpClient("/EquipmentUsage", {
+    httpClient("/equipment-usage", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -68,7 +68,7 @@ export const equipmentUsageService = {
    * @returns {Promise<object>} Usage log with session started
    */
   startSession: (data) =>
-    httpClient("/EquipmentUsage/start-session", {
+    httpClient("/equipment-usage/start-session", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -80,7 +80,7 @@ export const equipmentUsageService = {
    * @returns {Promise<object>} Completed usage log
    */
   endSession: (logId, data) =>
-    httpClient(`/EquipmentUsage/${logId}/end-session`, {
+    httpClient(`/equipment-usage/${logId}/end-session`, {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
@@ -92,7 +92,7 @@ export const equipmentUsageService = {
    * @returns {Promise<object>} Updated usage log
    */
   update: (id, data) =>
-    httpClient(`/EquipmentUsage/${id}`, {
+    httpClient(`/equipment-usage/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -103,7 +103,7 @@ export const equipmentUsageService = {
    * @returns {Promise<null>} No content response
    */
   delete: (id) =>
-    httpClient(`/EquipmentUsage/${id}`, {
+    httpClient(`/equipment-usage/${id}`, {
       method: "DELETE",
     }),
 
@@ -113,7 +113,7 @@ export const equipmentUsageService = {
    * @returns {Promise<object>} Utilization metrics
    */
   getUtilizationSummary: (lineId) =>
-    httpClient(`/EquipmentUsage/summary${lineId ? `?lineId=${lineId}` : ""}`),
+    httpClient(`/equipment-usage/summary${lineId ? `?lineId=${lineId}` : ""}`),
 
   /**
    * Get equipment running hours
@@ -127,7 +127,7 @@ export const equipmentUsageService = {
     if (startDate) params.append("startDate", startDate);
     if (endDate) params.append("endDate", endDate);
     return httpClient(
-      `/EquipmentUsage/${roomAssetId}/running-hours${params.toString() ? `?${params.toString()}` : ""}`
+      `/equipment-usage/${roomAssetId}/running-hours${params.toString() ? `?${params.toString()}` : ""}`
     );
   },
 };

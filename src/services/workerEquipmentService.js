@@ -9,14 +9,14 @@ export const workerEquipmentService = {
    * Get all worker equipment assignments
    * @returns {Promise<Array>} List of assignments
    */
-  getAll: () => httpClient("/WorkerEquipment"),
+  getAll: () => httpClient("/worker-equipment"),
 
   /**
    * Get a specific assignment by ID
    * @param {number} id - Assignment ID
    * @returns {Promise<object>} Assignment details
    */
-  getById: (id) => httpClient(`/WorkerEquipment/${id}`),
+  getById: (id) => httpClient(`/worker-equipment/${id}`),
 
   /**
    * Get assignments for a specific worker
@@ -24,7 +24,7 @@ export const workerEquipmentService = {
    * @returns {Promise<Array>} List of assignments for worker
    */
   getByWorker: (workerId) =>
-    httpClient(`/WorkerEquipment/by-worker/${workerId}`),
+    httpClient(`/worker-equipment/by-worker/${workerId}`),
 
   /**
    * Get assignments for a specific equipment
@@ -32,7 +32,7 @@ export const workerEquipmentService = {
    * @returns {Promise<Array>} List of assignments for equipment
    */
   getByEquipment: (roomAssetId) =>
-    httpClient(`/WorkerEquipment/by-equipment/${roomAssetId}`),
+    httpClient(`/worker-equipment/by-equipment/${roomAssetId}`),
 
   /**
    * Get active assignments for a production line
@@ -40,7 +40,7 @@ export const workerEquipmentService = {
    * @returns {Promise<Array>} List of active assignments
    */
   getByLine: (lineId) =>
-    httpClient(`/WorkerEquipment/by-line/${lineId}`),
+    httpClient(`/worker-equipment/by-line/${lineId}`),
 
   /**
    * Create a new worker equipment assignment
@@ -48,7 +48,7 @@ export const workerEquipmentService = {
    * @returns {Promise<object>} Created assignment
    */
   create: (data) =>
-    httpClient("/WorkerEquipment", {
+    httpClient("/worker-equipment", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -60,7 +60,7 @@ export const workerEquipmentService = {
    * @returns {Promise<object>} Updated assignment
    */
   update: (id, data) =>
-    httpClient(`/WorkerEquipment/${id}`, {
+    httpClient(`/worker-equipment/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -72,7 +72,7 @@ export const workerEquipmentService = {
    * @returns {Promise<object>} Updated assignment
    */
   unassign: (id, unassignedDate) =>
-    httpClient(`/WorkerEquipment/${id}/unassign`, {
+    httpClient(`/worker-equipment/${id}/unassign`, {
       method: "PATCH",
       body: JSON.stringify({ unassignedDate }),
     }),
@@ -83,7 +83,7 @@ export const workerEquipmentService = {
    * @returns {Promise<null>} No content response
    */
   delete: (id) =>
-    httpClient(`/WorkerEquipment/${id}`, {
+    httpClient(`/worker-equipment/${id}`, {
       method: "DELETE",
     }),
 
@@ -93,7 +93,7 @@ export const workerEquipmentService = {
    * @returns {Promise<object>} Deletion result
    */
   bulkDelete: (ids) =>
-    httpClient("/WorkerEquipment/bulk-delete", {
+    httpClient("/worker-equipment/bulk-delete", {
       method: "POST",
       body: JSON.stringify({ ids }),
     }),

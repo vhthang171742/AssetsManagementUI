@@ -9,35 +9,35 @@ export const assetCourseMappingService = {
    * Get all mappings
    * @returns {Promise<Array>} List of mappings
    */
-  getAll: () => httpClient("/AssetCourseMappings"),
+  getAll: () => httpClient("/asset-course-mappings"),
 
   /**
    * Get a specific mapping by ID
    * @param {number} id - Mapping ID
    * @returns {Promise<object>} Mapping details
    */
-  getById: (id) => httpClient(`/AssetCourseMappings/${id}`),
+  getById: (id) => httpClient(`/asset-course-mappings/${id}`),
 
   /**
    * Get mappings by course
    * @param {number} courseId - Course ID
    * @returns {Promise<Array>} List of mappings for the course
    */
-  getByCourse: (courseId) => httpClient(`/AssetCourseMappings/by-course/${courseId}`),
+  getByCourse: (courseId) => httpClient(`/asset-course-mappings/by-course/${courseId}`),
 
   /**
    * Get mappings by asset
    * @param {number} assetId - Asset ID
    * @returns {Promise<Array>} List of mappings for the asset
    */
-  getByAsset: (assetId) => httpClient(`/AssetCourseMappings/by-asset/${assetId}`),
+  getByAsset: (assetId) => httpClient(`/asset-course-mappings/by-asset/${assetId}`),
 
   /**
    * Get required assets by course
    * @param {number} courseId - Course ID
    * @returns {Promise<Array>} List of required assets for the course
    */
-  getRequiredAssets: (courseId) => httpClient(`/AssetCourseMappings/by-course/${courseId}/required`),
+  getRequiredAssets: (courseId) => httpClient(`/asset-course-mappings/by-course/${courseId}/required`),
 
   /**
    * Create a new mapping
@@ -45,7 +45,7 @@ export const assetCourseMappingService = {
    * @returns {Promise<object>} Created mapping
    */
   create: (data) =>
-    httpClient("/AssetCourseMappings", {
+    httpClient("/asset-course-mappings", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -57,7 +57,7 @@ export const assetCourseMappingService = {
    * @returns {Promise<object>} Updated mapping
    */
   update: (id, data) =>
-    httpClient(`/AssetCourseMappings/${id}`, {
+    httpClient(`/asset-course-mappings/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -68,7 +68,7 @@ export const assetCourseMappingService = {
    * @returns {Promise<void>}
    */
   delete: (id) =>
-    httpClient(`/AssetCourseMappings/${id}`, {
+    httpClient(`/asset-course-mappings/${id}`, {
       method: "DELETE",
     }),
 
@@ -78,7 +78,7 @@ export const assetCourseMappingService = {
    * @returns {Promise<void>}
    */
   bulkDelete: (ids) =>
-    httpClient("/AssetCourseMappings/bulk", {
+    httpClient("/asset-course-mappings/bulk", {
       method: "DELETE",
       body: JSON.stringify(ids),
     }),

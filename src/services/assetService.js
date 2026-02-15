@@ -9,21 +9,21 @@ export const assetService = {
    * Get all assets
    * @returns {Promise<Array>} List of assets
    */
-  getAll: () => httpClient("/Assets"),
+  getAll: () => httpClient("/assets"),
 
   /**
    * Get a specific asset by ID
    * @param {number} id - Asset ID
    * @returns {Promise<object>} Asset details
    */
-  getById: (id) => httpClient(`/Assets/${id}`),
+  getById: (id) => httpClient(`/assets/${id}`),
 
   /**
    * Get asset by asset code
    * @param {string} assetCode - Asset code
    * @returns {Promise<object>} Asset details
    */
-  getByCode: (assetCode) => httpClient(`/Assets/by-code/${assetCode}`),
+  getByCode: (assetCode) => httpClient(`/assets/by-code/${assetCode}`),
 
   /**
    * Get all assets in a category
@@ -31,13 +31,13 @@ export const assetService = {
    * @returns {Promise<Array>} List of assets in category
    */
   getByCategory: (categoryId) =>
-    httpClient(`/Assets/by-category/${categoryId}`),
+    httpClient(`/assets/by-category/${categoryId}`),
 
   /**
    * Get all available units
    * @returns {Promise<Array>} List of units
    */
-  getUnits: () => httpClient("/Assets/units"),
+  getUnits: () => httpClient("/assets/units"),
 
   /**
    * Create a new asset
@@ -45,7 +45,7 @@ export const assetService = {
    * @returns {Promise<object>} Created asset
    */
   create: (data) =>
-    httpClient("/Assets", {
+    httpClient("/assets", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -57,7 +57,7 @@ export const assetService = {
    * @returns {Promise<object>} Updated asset
    */
   update: (id, data) =>
-    httpClient(`/Assets/${id}`, {
+    httpClient(`/assets/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -68,7 +68,7 @@ export const assetService = {
    * @returns {Promise<null>} No content response
    */
   delete: (id) =>
-    httpClient(`/Assets/${id}`, {
+    httpClient(`/assets/${id}`, {
       method: "DELETE",
     }),
 
@@ -79,7 +79,7 @@ export const assetService = {
    * @returns {Promise<object>} Updated asset
    */
   updateQuantity: (id, quantityChange) =>
-    httpClient(`/Assets/${id}/quantity`, {
+    httpClient(`/assets/${id}/quantity`, {
       method: "PATCH",
       body: JSON.stringify({ quantityChange }),
     }),
@@ -90,7 +90,7 @@ export const assetService = {
    * @returns {Promise<null>} No content response
    */
   bulkDelete: (ids) =>
-    httpClient(`/Assets/bulk`, {
+    httpClient(`/assets/bulk`, {
       method: "DELETE",
       body: JSON.stringify({ ids }),
     }),

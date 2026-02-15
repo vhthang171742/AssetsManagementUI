@@ -9,20 +9,20 @@ export const courseService = {
    * Get all courses
    * @returns {Promise<Array>} List of courses
    */
-  getAll: () => httpClient("/Courses"),
+  getAll: () => httpClient("/courses"),
 
   /**
    * Get a specific course by ID
    * @param {number} id - Course ID
    * @returns {Promise<object>} Course details
    */
-  getById: (id) => httpClient(`/Courses/${id}`),
+  getById: (id) => httpClient(`/courses/${id}`),
 
   /**
    * Get active courses
    * @returns {Promise<Array>} List of active courses
    */
-  getActive: () => httpClient("/Courses/active"),
+  getActive: () => httpClient("/courses/active"),
 
   /**
    * Create a new course
@@ -30,7 +30,7 @@ export const courseService = {
    * @returns {Promise<object>} Created course
    */
   create: (data) =>
-    httpClient("/Courses", {
+    httpClient("/courses", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -42,7 +42,7 @@ export const courseService = {
    * @returns {Promise<object>} Updated course
    */
   update: (id, data) =>
-    httpClient(`/Courses/${id}`, {
+    httpClient(`/courses/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -53,7 +53,7 @@ export const courseService = {
    * @returns {Promise<void>}
    */
   delete: (id) =>
-    httpClient(`/Courses/${id}`, {
+    httpClient(`/courses/${id}`, {
       method: "DELETE",
     }),
 
@@ -63,7 +63,7 @@ export const courseService = {
    * @returns {Promise<void>}
    */
   bulkDelete: (ids) =>
-    httpClient("/Courses/bulk", {
+    httpClient("/courses/bulk", {
       method: "DELETE",
       body: JSON.stringify(ids),
     }),

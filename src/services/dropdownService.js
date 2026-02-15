@@ -53,6 +53,37 @@ export const dropdownService = {
     httpClient(`/dropdown/AssetCondition${langQuery(language)}`),
 
   /**
+   * Get maintenance type dropdown options (TIME_BASED, RUNTIME_BASED, CONDITION_BASED, etc.)
+   * @param {string|null} language - Optional language code
+   * @returns {Promise<Array>} List of maintenance type items
+   */
+  getMaintenanceTypes: (language = null) =>
+    httpClient(`/dropdown/MaintenanceType${langQuery(language)}`),
+
+  /**
+   * Get failure category dropdown options (MECHANICAL, ELECTRICAL, SOFTWARE, etc.)
+   * @param {string|null} language - Optional language code
+   * @returns {Promise<Array>} List of failure category items
+   */
+  getFailureCategories: (language = null) =>
+    httpClient(`/dropdown/FailureCategory${langQuery(language)}`),
+
+  /**
+   * Get completion status dropdown options (COMPLETED, IN_PROGRESS, PENDING, etc.)
+   * @param {string|null} language - Optional language code
+   * @returns {Promise<Array>} List of completion status items
+   */
+  getCompletionStatuses: (language = null) =>
+    httpClient(`/dropdown/CompletionStatus${langQuery(language)}`),
+
+  /**
+   * Get technicians dropdown options
+   * @returns {Promise<Array>} List of technicians with {technicianID, fullName}
+   */
+  getTechnicians: () =>
+    httpClient(`/technicians/dropdown`),
+
+  /**
    * Get dropdown options for any configuration category by its code
    * @param {string} categoryCode - Category code (e.g., "AssetUnit", "AssetCondition")
    * @param {string|null} language - Optional language code

@@ -9,41 +9,41 @@ export const studentEquipmentAssignmentService = {
    * Get all assignments
    * @returns {Promise<Array>} List of assignments
    */
-  getAll: () => httpClient("/StudentEquipmentAssignments"),
+  getAll: () => httpClient("/student-equipment-assignments"),
 
   /**
    * Get a specific assignment by ID
    * @param {number} id - Assignment ID
    * @returns {Promise<object>} Assignment details
    */
-  getById: (id) => httpClient(`/StudentEquipmentAssignments/${id}`),
+  getById: (id) => httpClient(`/student-equipment-assignments/${id}`),
 
   /**
    * Get assignments by student
    * @param {number} studentId - Student ID
    * @returns {Promise<Array>} List of assignments for the student
    */
-  getByStudent: (studentId) => httpClient(`/StudentEquipmentAssignments/by-student/${studentId}`),
+  getByStudent: (studentId) => httpClient(`/student-equipment-assignments/by-student/${studentId}`),
 
   /**
    * Get assignments by class
    * @param {number} classId - Class ID
    * @returns {Promise<Array>} List of assignments in the class
    */
-  getByClass: (classId) => httpClient(`/StudentEquipmentAssignments/by-class/${classId}`),
+  getByClass: (classId) => httpClient(`/student-equipment-assignments/by-class/${classId}`),
 
   /**
    * Get assignments by asset
    * @param {number} roomAssetId - Room Asset ID
    * @returns {Promise<Array>} List of assignments for the asset
    */
-  getByAsset: (roomAssetId) => httpClient(`/StudentEquipmentAssignments/by-asset/${roomAssetId}`),
+  getByAsset: (roomAssetId) => httpClient(`/student-equipment-assignments/by-asset/${roomAssetId}`),
 
   /**
    * Get active assignments
    * @returns {Promise<Array>} List of active assignments
    */
-  getActive: () => httpClient("/StudentEquipmentAssignments/active"),
+  getActive: () => httpClient("/student-equipment-assignments/active"),
 
   /**
    * Create a new assignment
@@ -51,7 +51,7 @@ export const studentEquipmentAssignmentService = {
    * @returns {Promise<object>} Created assignment
    */
   create: (data) =>
-    httpClient("/StudentEquipmentAssignments", {
+    httpClient("/student-equipment-assignments", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -63,7 +63,7 @@ export const studentEquipmentAssignmentService = {
    * @returns {Promise<object>} Updated assignment
    */
   update: (id, data) =>
-    httpClient(`/StudentEquipmentAssignments/${id}`, {
+    httpClient(`/student-equipment-assignments/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -74,7 +74,7 @@ export const studentEquipmentAssignmentService = {
    * @returns {Promise<void>}
    */
   unassign: (id) =>
-    httpClient(`/StudentEquipmentAssignments/${id}/unassign`, {
+    httpClient(`/student-equipment-assignments/${id}/unassign`, {
       method: "POST",
     }),
 
@@ -84,7 +84,7 @@ export const studentEquipmentAssignmentService = {
    * @returns {Promise<void>}
    */
   delete: (id) =>
-    httpClient(`/StudentEquipmentAssignments/${id}`, {
+    httpClient(`/student-equipment-assignments/${id}`, {
       method: "DELETE",
     }),
 
@@ -94,7 +94,7 @@ export const studentEquipmentAssignmentService = {
    * @returns {Promise<void>}
    */
   bulkDelete: (ids) =>
-    httpClient("/StudentEquipmentAssignments/bulk", {
+    httpClient("/student-equipment-assignments/bulk", {
       method: "DELETE",
       body: JSON.stringify(ids),
     }),

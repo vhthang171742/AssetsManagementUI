@@ -9,41 +9,41 @@ export const classService = {
    * Get all classes
    * @returns {Promise<Array>} List of classes
    */
-  getAll: () => httpClient("/Classes"),
+  getAll: () => httpClient("/classes"),
 
   /**
    * Get a specific class by ID
    * @param {number} id - Class ID
    * @returns {Promise<object>} Class details
    */
-  getById: (id) => httpClient(`/Classes/${id}`),
+  getById: (id) => httpClient(`/classes/${id}`),
 
   /**
    * Get classes by course
    * @param {number} courseId - Course ID
    * @returns {Promise<Array>} List of classes for the course
    */
-  getByCourse: (courseId) => httpClient(`/Classes/by-course/${courseId}`),
+  getByCourse: (courseId) => httpClient(`/classes/by-course/${courseId}`),
 
   /**
    * Get classes by instructor
    * @param {number} instructorId - Instructor ID
    * @returns {Promise<Array>} List of classes taught by the instructor
    */
-  getByInstructor: (instructorId) => httpClient(`/Classes/by-instructor/${instructorId}`),
+  getByInstructor: (instructorId) => httpClient(`/classes/by-instructor/${instructorId}`),
 
   /**
    * Get active classes
    * @returns {Promise<Array>} List of active classes
    */
-  getActive: () => httpClient("/Classes/active"),
+  getActive: () => httpClient("/classes/active"),
 
   /**
    * Get enrolled student count for a class
    * @param {number} classId - Class ID
    * @returns {Promise<number>} Count of enrolled students
    */
-  getStudentCount: (classId) => httpClient(`/Classes/${classId}/student-count`),
+  getStudentCount: (classId) => httpClient(`/classes/${classId}/student-count`),
 
   /**
    * Create a new class
@@ -51,7 +51,7 @@ export const classService = {
    * @returns {Promise<object>} Created class
    */
   create: (data) =>
-    httpClient("/Classes", {
+    httpClient("/classes", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -63,7 +63,7 @@ export const classService = {
    * @returns {Promise<object>} Updated class
    */
   update: (id, data) =>
-    httpClient(`/Classes/${id}`, {
+    httpClient(`/classes/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -74,7 +74,7 @@ export const classService = {
    * @returns {Promise<void>}
    */
   delete: (id) =>
-    httpClient(`/Classes/${id}`, {
+    httpClient(`/classes/${id}`, {
       method: "DELETE",
     }),
 
@@ -84,7 +84,7 @@ export const classService = {
    * @returns {Promise<void>}
    */
   bulkDelete: (ids) =>
-    httpClient("/Classes/bulk", {
+    httpClient("/classes/bulk", {
       method: "DELETE",
       body: JSON.stringify(ids),
     }),

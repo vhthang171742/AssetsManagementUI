@@ -20,6 +20,12 @@ import Classes from "views/admin/classes";
 import StudentEquipmentAssignments from "views/admin/studentEquipmentAssignments";
 import AssetCourseMappings from "views/admin/assetCourseMappings";
 
+// Maintenance Management Imports (Phase 9)
+import MaintenanceSchedules from "views/admin/maintenanceSchedules";
+import MaintenanceRecords from "views/admin/maintenanceRecords";
+import SpareParts from "views/admin/spareParts";
+import MaintenanceSparePartUsages from "views/admin/maintenanceSparePartUsages";
+
 // Auth Imports
 import SignIn from "views/auth/SignIn";
 
@@ -39,6 +45,7 @@ import {
   MdPerson2,
   MdDataUsage,
   MdSchool,
+  MdBuild,
 } from "react-icons/md";
 
 const routes = [
@@ -146,6 +153,27 @@ const routes = [
     path: "asset-course-mappings",
     icon: <MdSchool className="h-6 w-6" />,
     component: <AssetCourseMappings />,
+  },
+  {
+    name: "Maintenance Schedules",
+    layout: "/admin",
+    path: "maintenance-schedules",
+    icon: <MdBuild className="h-6 w-6" />,
+    component: <MaintenanceSchedules />,
+  },
+  {
+    name: "Maintenance Records",
+    layout: "/admin",
+    path: "maintenance-records",
+    icon: <MdBuild className="h-6 w-6" />,
+    component: <MaintenanceRecords />,
+  },
+  {
+    name: "Spare Parts",
+    layout: "/admin",
+    path: "spare-parts",
+    icon: <MdBuild className="h-6 w-6" />,
+    component: <SpareParts />,
   },
   {
     name: "Profile",
