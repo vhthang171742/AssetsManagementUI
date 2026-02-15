@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
 import { loginRequest } from "config/msalConfig";
+import { ReactComponent as MicrosoftLogo } from "assets/svg/microsoft_logo.svg";
 
 export default function SignIn() {
   const { instance, accounts, inProgress } = useMsal();
@@ -46,16 +47,7 @@ export default function SignIn() {
           disabled={inProgress === "login"}
           className="mb-6 flex h-[50px] w-full items-center justify-center gap-3 rounded-xl bg-blue-600 transition duration-200 hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-400 dark:bg-blue-700 dark:hover:bg-blue-600"
         >
-          <svg
-            className="h-6 w-6 fill-white"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 23 23"
-          >
-            <path d="M11.4 5.5h5.8v5.8h-5.8z" />
-            <path d="M.8 5.5h5.8v5.8H.8z" />
-            <path d="M11.4 17.4h5.8v5.8h-5.8z" />
-            <path d="M.8 17.4h5.8v5.8H.8z" />
-          </svg>
+          <MicrosoftLogo className="h-5 w-5" />
           <span className="text-sm font-medium text-white">
             {inProgress === "login" ? "Signing in..." : "Sign In with Microsoft"}
           </span>
