@@ -10,6 +10,9 @@ import Rooms from "views/admin/rooms";
 import Handovers from "views/admin/handovers";
 import Configuration from "views/admin/configuration";
 import Users from "views/admin/users";
+import ProductionLines from "views/admin/productionLines";
+import WorkerEquipment from "views/admin/workerEquipment";
+import EquipmentUsage from "views/admin/equipmentUsage";
 
 // Auth Imports
 import SignIn from "views/auth/SignIn";
@@ -26,6 +29,9 @@ import {
   MdAssignment,
   MdSettings,
   MdPeople,
+  MdFactory,
+  MdPerson2,
+  MdDataUsage,
 } from "react-icons/md";
 
 const routes = [
@@ -84,6 +90,27 @@ const routes = [
     path: "users",
     icon: <MdPeople className="h-6 w-6" />,
     component: <Users />,
+  },
+  {
+    name: "Production Lines",
+    layout: "/admin",
+    path: "production-lines",
+    icon: <MdFactory className="h-6 w-6" />,
+    component: <ProductionLines />,
+  },
+  {
+    name: "Worker Equipment",
+    layout: "/admin",
+    path: "worker-equipment",
+    icon: <MdPerson2 className="h-6 w-6" />,
+    component: <WorkerEquipment />,
+  },
+  {
+    name: "Equipment Usage",
+    layout: "/admin",
+    path: "equipment-usage",
+    icon: <MdDataUsage className="h-6 w-6" />,
+    component: <EquipmentUsage />,
   },
   {
     name: "Profile",

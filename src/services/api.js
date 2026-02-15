@@ -13,6 +13,8 @@
  *   import assetService from 'services/assetService';
  */
 
+import userServiceDefault from "./userService";
+
 export { assetCategoryService } from "./assetCategoryService";
 export { assetService } from "./assetService";
 export { departmentService } from "./departmentService";
@@ -20,3 +22,8 @@ export { roomService } from "./roomService";
 export { handoverService } from "./handoverService";
 export { dropdownService } from "./dropdownService";
 export { configurationService } from "./configurationService";
+export { productionLineService } from "./productionLineService";
+export { workerEquipmentService } from "./workerEquipmentService";
+export { equipmentUsageService } from "./equipmentUsageService";
+
+export const userService = userServiceDefault;
