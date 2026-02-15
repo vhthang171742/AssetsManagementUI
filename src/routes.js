@@ -9,6 +9,7 @@ import Departments from "views/admin/departments";
 import Rooms from "views/admin/rooms";
 import Handovers from "views/admin/handovers";
 import Configuration from "views/admin/configuration";
+import Users from "views/admin/users";
 
 // Auth Imports
 import SignIn from "views/auth/SignIn";
@@ -24,6 +25,7 @@ import {
   MdMeetingRoom,
   MdAssignment,
   MdSettings,
+  MdPeople,
 } from "react-icons/md";
 
 const routes = [
@@ -75,6 +77,13 @@ const routes = [
     path: "configuration",
     icon: <MdSettings className="h-6 w-6" />,
     component: <Configuration />,
+  },
+  {
+    name: "Users",
+    layout: "/admin",
+    path: "users",
+    icon: <MdPeople className="h-6 w-6" />,
+    component: <Users />,
   },
   {
     name: "Profile",

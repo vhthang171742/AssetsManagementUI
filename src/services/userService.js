@@ -1,8 +1,9 @@
 import { PublicClientApplication } from "@azure/msal-browser";
 import msalConfig from "config/msalConfig";
+import { httpClient } from "./httpClient";
 
 /**
- * User Service - Manages user profile data from Microsoft Graph
+ * User Service - Manages user profile data from Microsoft Graph and backend API
  */
 
 let msalInstance = null;
@@ -154,8 +155,82 @@ export const getUserGroups = async () => {
   }
 };
 
+// ============================================================
+// Backend API User Management (JIT Provisioning)
+// ============================================================
+
+/**
+ * Get current authenticated user's profile from backend API
+ * @returns {Promise<Object>} User profile with roles
+ */
+export const getCurrentUser = async () => {
+  return await httpClient("/users/me");
+};
+
+/**
+ * Get all users (Admin only)
+ * @returns {Promise<Array>} List of all users with roles
+ */
+export const getAllUsers = async () => {
+  return await httpClient("/users");
+};
+
+/**
+ * Assign a role to a user (Admin only)
+ * @param {number} userId - User ID
+ * @param {string} role - Role name (Student, Worker, Instructor, Technician)
+ * @param {string} roleCode - Optional business code
+ * @param {Object} roleData - Optional role-specific data
+ * @returns {Promise<Object>} Success response
+ */
+export const assignRole = async (userId, role, roleCode = null, roleData = null) => {
+  return await httpClient(`/users/${userId}/roles`, {
+    method: "POST",
+    body: JSON.stringify({
+      userID: userId,
+      role,
+      roleCode,
+      roleData,
+    }),
+  });
+};
+
+/**
+ * Remove a role from a user (Admin only)
+ * @param {number} userId - User ID
+ * @param {string} role - Role name
+ * @returns {Promise<Object>} Success response
+ */
+export const removeRole = async (userId, role) => {
+  return await httpClient(`/users/${userId}/roles/${role}`, {
+    method: "DELETE",
+  });
+};
+
+/**
+ * Update user's business code (Admin only)
+ * @param {number} userId - User ID
+ * @param {string} role - Role name
+ * @param {string} code - New code value
+ * @returns {Promise<Object>} Success response
+ */
+export const updateUserCode = async (userId, role, code) => {
+  return await httpClient(`/users/${userId}/code`, {
+    method: "PUT",
+    body: JSON.stringify({
+      role,
+      code,
+    }),
+  });
+};
+
 export default {
   getUserProfile,
   getUserPhoto,
   getUserGroups,
+  getCurrentUser,
+  getAllUsers,
+  assignRole,
+  removeRole,
+  updateUserCode,
 };
