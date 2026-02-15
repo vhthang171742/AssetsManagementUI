@@ -109,7 +109,8 @@ export default function RoomsTable() {
       fetchRooms();
     } catch (error) {
       console.error("Failed to save room:", error);
-      alert("Failed to save room: " + error.message);
+      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
+      alert("Failed to save room: " + error.message + details);
     }
   };
 
@@ -128,7 +129,8 @@ export default function RoomsTable() {
       fetchRoomAssets(selectedRoomId);
     } catch (error) {
       console.error("Failed to add asset:", error);
-      alert("Failed to add asset: " + error.message);
+      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
+      alert("Failed to add asset: " + error.message + details);
     }
   };
 

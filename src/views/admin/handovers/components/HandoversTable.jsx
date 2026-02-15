@@ -113,7 +113,8 @@ export default function HandoversTable() {
       fetchHandovers();
     } catch (error) {
       console.error("Failed to save handover:", error);
-      alert("Failed to save handover: " + error.message);
+      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
+      alert("Failed to save handover: " + error.message + details);
     }
   };
 
@@ -131,7 +132,8 @@ export default function HandoversTable() {
       fetchHandoverDetails(selectedHandoverId);
     } catch (error) {
       console.error("Failed to add detail:", error);
-      alert("Failed to add detail: " + error.message);
+      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
+      alert("Failed to add detail: " + error.message + details);
     }
   };
 

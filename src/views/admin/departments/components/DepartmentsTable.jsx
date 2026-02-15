@@ -59,7 +59,8 @@ export default function DepartmentsTable() {
       fetchDepartments();
     } catch (error) {
       console.error("Failed to save department:", error);
-      alert("Failed to save department: " + error.message);
+      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
+      alert("Failed to save department: " + error.message + details);
     }
   };
 

@@ -59,7 +59,8 @@ export default function CategoriesTable() {
       fetchCategories();
     } catch (error) {
       console.error("Failed to save category:", error);
-      alert("Failed to save category: " + error.message);
+      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
+      alert("Failed to save category: " + error.message + details);
     }
   };
 

@@ -101,7 +101,8 @@ export default function AssetsTable() {
       fetchAssets();
     } catch (error) {
       console.error("Failed to save asset:", error);
-      alert("Failed to save asset: " + error.message);
+      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
+      alert("Failed to save asset: " + error.message + details);
     }
   };
 

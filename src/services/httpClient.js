@@ -20,38 +20,26 @@ const getMsalInstance = () => {
 };
 
 /**
- * Extract meaningful error message from API response
+ * Parse unified API error envelope from response
+ * All error responses follow: { success, statusCode, message, errors, data }
  * @param {Response} response - Fetch response object
- * @returns {Promise<string>} Error message
+ * @returns {Promise<{message: string, errors: string[], statusCode: number}>}
  */
-const extractErrorMessage = async (response) => {
+const parseErrorResponse = async (response) => {
   try {
-    // Try to read response text first
-    const responseText = await response.text();
-    
-    // If there's no response body, provide a status-based message
-    if (!responseText || responseText.trim() === '') {
-      return getStatusMessage(response.status);
-    }
-    
-    // Try to parse as JSON
-    try {
-      const errorData = JSON.parse(responseText);
-      // Extract error message from various possible response formats
-      // Priority: detail > message > title > statusText
-      return (
-        errorData.detail ||
-        errorData.message ||
-        errorData.title ||
-        getStatusMessage(response.status)
-      );
-    } catch (parseError) {
-      // If JSON parsing fails but we have text, return the text
-      return responseText || getStatusMessage(response.status);
-    }
-  } catch (e) {
-    // If reading response fails, use status-based message
-    return getStatusMessage(response.status);
+    const body = await response.json();
+    return {
+      message: body?.message || getStatusMessage(response.status),
+      errors: Array.isArray(body?.errors) ? body.errors : [],
+      statusCode: body?.statusCode || response.status,
+    };
+  } catch {
+    // Non-JSON response (e.g., gateway/proxy errors)
+    return {
+      message: getStatusMessage(response.status),
+      errors: [],
+      statusCode: response.status,
+    };
   }
 };
 
@@ -197,27 +185,30 @@ export const httpClient = async (endpoint, options = {}) => {
   try {
     const response = await fetch(url, { ...defaultOptions, ...options });
 
-    if (!response.ok) {
-      // Handle 401 - possibly consent required
-      if (response.status === 401) {
-        const errorMessage = await extractErrorMessage(response);
-        
-        // Check if this is a consent error
-        if (errorMessage.includes("consent") || errorMessage.includes("AADSTS65001")) {
-          console.warn("API returned 401 - consent required");
-        }
-      }
-      
-      const errorMessage = await extractErrorMessage(response);
-      throw new Error(errorMessage);
-    }
-
-    // Handle 204 No Content responses
+    // Handle 204 No Content responses (e.g., DELETE)
     if (response.status === 204) {
       return null;
     }
 
-    return await response.json();
+    if (!response.ok) {
+      // Handle 401 - possibly consent required
+      if (response.status === 401) {
+        const { message } = await parseErrorResponse(response.clone());
+        if (message.includes("consent") || message.includes("AADSTS65001")) {
+          console.warn("API returned 401 - consent required");
+        }
+      }
+
+      const { message, errors, statusCode } = await parseErrorResponse(response);
+      const error = new Error(message);
+      error.statusCode = statusCode;
+      error.errors = errors;
+      throw error;
+    }
+
+    // Parse unified envelope: { success, statusCode, message, errors, data }
+    const body = await response.json();
+    return body.data;
   } catch (error) {
     // Log error for debugging
     console.error(`API Error [${options.method || 'GET'} ${endpoint}]:`, error.message);
