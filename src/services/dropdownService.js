@@ -45,6 +45,14 @@ export const dropdownService = {
     httpClient(`/dropdown/machine-types${langQuery(language)}`),
 
   /**
+   * Get asset condition dropdown options (NEW, GOOD, FAIR, POOR, DAMAGED)
+   * @param {string|null} language - Optional language code
+   * @returns {Promise<Array>} List of asset condition items
+   */
+  getAssetConditions: (language = null) =>
+    httpClient(`/dropdown/AssetCondition${langQuery(language)}`),
+
+  /**
    * Get dropdown options for any configuration category by its code
    * @param {string} categoryCode - Category code (e.g., "AssetUnit", "AssetCondition")
    * @param {string|null} language - Optional language code

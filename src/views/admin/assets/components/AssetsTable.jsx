@@ -10,6 +10,7 @@ export default function AssetsTable() {
   const [assets, setAssets] = useState([]);
   const [categories, setCategories] = useState([]);
   const [units, setUnits] = useState([]);
+  const [statuses, setStatuses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -23,6 +24,7 @@ export default function AssetsTable() {
     countryOfOrigin: "",
     quantity: 0,
     unit: "",
+    status: "",
     unitPrice: "",
     purchaseDate: "",
     notes: "",
@@ -32,6 +34,7 @@ export default function AssetsTable() {
     fetchAssets();
     fetchCategories();
     fetchUnits();
+    fetchStatuses();
   }, []);
 
   const fetchAssets = async () => {
@@ -65,6 +68,15 @@ export default function AssetsTable() {
     }
   };
 
+  const fetchStatuses = async () => {
+    try {
+      const data = await dropdownService.getEquipmentStatus();
+      setStatuses(data || []);
+    } catch (error) {
+      console.error("Failed to fetch statuses:", error);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -95,6 +107,7 @@ export default function AssetsTable() {
         countryOfOrigin: "",
         quantity: 0,
         unit: "",
+        status: "",
         unitPrice: "",
         purchaseDate: "",
         notes: "",
@@ -159,6 +172,7 @@ export default function AssetsTable() {
               countryOfOrigin: "",
               quantity: 0,
               unit: "",
+              status: "",
               unitPrice: "",
               purchaseDate: "",
               notes: "",
@@ -184,6 +198,7 @@ export default function AssetsTable() {
             { header: 'Code', accessor: 'assetCode' },
             { header: 'Name', accessor: 'assetName' },
             { header: 'Category', accessor: 'categoryID', render: (row) => getCategoryName(row.categoryID) },
+            { header: 'Status', accessor: 'status', render: (row) => row.status || 'N/A' },
             { header: 'Brand', accessor: 'brand' },
             { header: 'Quantity', accessor: 'quantity' },
             { header: 'Unit Price', accessor: 'unitPrice', render: (row) => (row.unitPrice != null ? `$${parseFloat(row.unitPrice).toFixed(2)}` : '') },
@@ -328,6 +343,19 @@ export default function AssetsTable() {
                   {units.map((unit) => (
                     <option key={unit.itemCode} value={unit.itemCode}>
                       {unit.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                >
+                  <option value="">Select Status (Optional)</option>
+                  {statuses.map((status) => (
+                    <option key={status.itemCode} value={status.itemCode}>
+                      {status.label}
                     </option>
                   ))}
                 </select>

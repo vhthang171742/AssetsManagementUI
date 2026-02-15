@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { roomService, departmentService, assetService } from "services/api";
+import { dropdownService } from "services/dropdownService";
 import Card from "components/card";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete, MdInventory2, MdRemoveCircle } from "react-icons/md";
@@ -15,15 +16,17 @@ export default function RoomsTable() {
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [roomAssets, setRoomAssets] = useState([]);
   const [allAssets, setAllAssets] = useState([]);
+  const [conditions, setConditions] = useState([]);
   const [formData, setFormData] = useState({
     departmentID: "",
     roomName: "",
     description: "",
   });
   const [assetFormData, setAssetFormData] = useState({
+    roomID: "",
     assetID: "",
     serialNumber: "",
-    currentCondition: "",
+    condition: "",
     remarks: "",
   });
 
@@ -31,6 +34,7 @@ export default function RoomsTable() {
     fetchRooms();
     fetchDepartments();
     fetchAssets();
+    fetchConditions();
   }, []);
 
   const fetchRooms = async () => {
@@ -61,6 +65,15 @@ export default function RoomsTable() {
       setAllAssets(data || []);
     } catch (error) {
       console.error("Failed to fetch assets:", error);
+    }
+  };
+
+  const fetchConditions = async () => {
+    try {
+      const data = await dropdownService.getAssetConditions();
+      setConditions(data || []);
+    } catch (error) {
+      console.error("Failed to fetch conditions:", error);
     }
   };
 
@@ -121,9 +134,10 @@ export default function RoomsTable() {
       alert("Asset added to room successfully");
       setShowAssetModal(false);
       setAssetFormData({
+        roomID: "",
         assetID: "",
         serialNumber: "",
-        currentCondition: "",
+        condition: "",
         remarks: "",
       });
       fetchRoomAssets(selectedRoomId);
@@ -393,15 +407,20 @@ export default function RoomsTable() {
                   />
                 </div>
                 <div className="col-span-1">
-                  <label className="block text-sm font-medium mb-1 dark:text-white">Current Condition</label>
-                  <input
-                    type="text"
-                    name="currentCondition"
-                    placeholder="e.g., Good, Fair, Poor"
-                    value={assetFormData.currentCondition}
+                  <label className="block text-sm font-medium mb-1 dark:text-white">Condition</label>
+                  <select
+                    name="condition"
+                    value={assetFormData.condition}
                     onChange={handleAssetInputChange}
-                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:placeholder-gray-300"
-                  />
+                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                  >
+                    <option value="">Select Condition (Optional)</option>
+                    {conditions.map((cond) => (
+                      <option key={cond.itemCode} value={cond.itemCode}>
+                        {cond.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium mb-1 dark:text-white">Remarks</label>
@@ -441,7 +460,7 @@ export default function RoomsTable() {
                       <tr key={asset.roomAssetID} className="border-b dark:border-gray-600 dark:text-white">
                         <td className="p-2">{asset.assetName}</td>
                         <td className="p-2">{asset.serialNumber}</td>
-                        <td className="p-2">{asset.currentCondition}</td>
+                        <td className="p-2">{asset.condition || 'N/A'}</td>
                         <td className="p-2">
                           <button
                             onClick={() =>
