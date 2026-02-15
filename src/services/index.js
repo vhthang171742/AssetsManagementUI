@@ -28,3 +28,18 @@ export { maintenanceScheduleService } from "./maintenanceScheduleService";
 export { maintenanceRecordService } from "./maintenanceRecordService";
 export { sparePartService } from "./sparePartService";
 export { maintenanceSparePartUsageService } from "./maintenanceSparePartUsageService";
+
+// Phase 11: Practice Session Logging Services
+export { 
+  practiceSessionService, 
+  practiceErrorLogService, 
+  sessionEvaluationService 
+} from "./practiceSessionService";
+
+// Phase 12: Competency Evaluation & Certification Services
+export {
+  competencyProfileService,
+  equipmentCompetencyService,
+  certificationService,
+  skillRankingService
+} from "./competencyService";
