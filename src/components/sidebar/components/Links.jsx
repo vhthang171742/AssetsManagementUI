@@ -2,11 +2,13 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import DashIcon from "components/icons/DashIcon";
+import { useAuth } from "context/AuthContext";
 // chakra imports
 
 export function SidebarLinks(props) {
   // Chakra color mode
   let location = useLocation();
+  const { userRoles } = useAuth();
 
   const { routes } = props;
 
@@ -17,11 +19,22 @@ export function SidebarLinks(props) {
 
   const createLinks = (routes) => {
     return routes.map((route, index) => {
+      const requiredRoles = Array.isArray(route.requiredRoles) ? route.requiredRoles : [];
+      const canAccess =
+        requiredRoles.length === 0 ||
+        (userRoles || []).some((userRole) =>
+          requiredRoles.some(
+            (requiredRole) =>
+              (requiredRole || "").toLowerCase() === (userRole || "").toLowerCase()
+          )
+        );
+
       if (
         (route.layout === "/admin" ||
         route.layout === "/auth" ||
         route.layout === "/rtl") &&
-        route.sidebar !== false
+        route.sidebar !== false &&
+        canAccess
       ) {
         return (
           <Link key={index} to={route.layout + "/" + route.path}>

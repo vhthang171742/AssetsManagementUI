@@ -1,7 +1,7 @@
 /**
  * Configuration Service
  * Admin-only endpoints for managing system configuration categories,
- * items, and translations. Requires "RequireSystemAdmin" policy on the BE.
+ * items, and translations. Requires "RequireAdmin" policy on the BE.
  *
  * For read-only dropdown population, use dropdownService instead.
  */

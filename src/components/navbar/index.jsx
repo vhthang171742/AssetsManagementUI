@@ -17,7 +17,7 @@ import LanguageSwitcher from "components/languageSwitcher/LanguageSwitcher";
 
 const Navbar = (props) => {
   const { onOpenSidenav, brandText } = props;
-  const { isDarkMode, toggleDarkMode, userProfile, userPhoto, getUserRole } = useAuth();
+  const { isDarkMode, toggleDarkMode, userProfile, userPhoto, getAvailablePortals } = useAuth();
   const { instance } = useMsal();
   const navigate = useNavigate();
 
@@ -38,8 +38,9 @@ const Navbar = (props) => {
   // Use profile data or fallback to defaults
   const displayName = userProfile?.displayName || userProfile?.givenName || "User";
   const email = userProfile?.email || "user@example.com";
-  const role = getUserRole();
   const avatarUrl = userPhoto || avatarDefault;
+  const availablePortals = getAvailablePortals();
+  const canSwitchPortal = availablePortals.length > 1;
 
   return (
     <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 p-2 backdrop-blur-xl dark:bg-[#0b14374d]">
@@ -72,7 +73,7 @@ const Navbar = (props) => {
         </p>
       </div>
 
-      <div className="relative mt-[3px] flex h-[61px] w-[355px] flex-grow items-center justify-around gap-2 rounded-full bg-white px-2 py-2 shadow-xl shadow-shadow-500 dark:!bg-navy-800 dark:shadow-none md:w-[365px] md:flex-grow-0 md:gap-1 xl:w-[365px] xl:gap-2">
+      <div className="relative mt-[3px] flex h-[61px] w-[430px] flex-grow items-center justify-around gap-2 rounded-full bg-white px-2 py-2 shadow-xl shadow-shadow-500 dark:!bg-navy-800 dark:shadow-none md:w-[470px] md:flex-grow-0 md:gap-1 xl:w-[520px] xl:gap-2">
         <div className="flex h-full items-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white xl:w-[225px]">
           <p className="pl-3 pr-2 text-xl">
             <FiSearch className="h-4 w-4 text-gray-400 dark:text-white" />
@@ -126,6 +127,14 @@ const Navbar = (props) => {
           classNames={"py-2 top-4 -left-[230px] md:-left-[440px] w-max"}
         />
         <LanguageSwitcher className="" />
+        {canSwitchPortal ? (
+          <Link
+            to="/portals"
+            className="rounded-xl bg-lightPrimary px-3 py-2 text-xs font-medium text-navy-700 dark:bg-navy-900 dark:text-white"
+          >
+            Switch Portal
+          </Link>
+        ) : null}
         <div
           className="cursor-pointer text-gray-600"
           onClick={toggleDarkMode}
@@ -165,6 +174,14 @@ const Navbar = (props) => {
               <div className="h-px w-full bg-gray-200 dark:bg-white/20 " />
 
               <div className="flex flex-col p-4">
+                {canSwitchPortal ? (
+                  <Link
+                    to="/portals"
+                    className="mb-3 text-sm text-gray-800 dark:text-white hover:dark:text-white"
+                  >
+                    Switch Portal
+                  </Link>
+                ) : null}
                 <Link
                   to="/admin/profile"
                   className="text-sm text-gray-800 dark:text-white hover:dark:text-white"

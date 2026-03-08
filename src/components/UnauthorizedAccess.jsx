@@ -12,7 +12,7 @@ export default function UnauthorizedAccess() {
   const { user, userRoles } = useAuth();
 
   // Get required roles from environment (with fallback)
-  const requiredRolesEnv = process.env.REACT_APP_REQUIRED_ROLES || process.env.REACT_APP_API_SCOPES || "Asset.Reader,Asset.Manager";
+  const requiredRolesEnv = process.env.REACT_APP_REQUIRED_ROLES || process.env.REACT_APP_API_SCOPES || "Admin,Assets.User,Assets.Manager";
   const requiredRoles = requiredRolesEnv.split(",").map((r) => r.trim()).filter(Boolean);
 
   const handleLogout = () => {

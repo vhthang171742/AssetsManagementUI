@@ -2,6 +2,7 @@ import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "components/navbar";
 import Sidebar from "components/sidebar";
+import PageGuard from "components/PageGuard";
 import routes from "routes.js";
 
 export default function Admin(props) {
@@ -47,7 +48,11 @@ export default function Admin(props) {
     return routes.map((prop, key) => {
       if (prop.layout === "/admin") {
         return (
-          <Route path={`/${prop.path}`} element={prop.component} key={key} />
+          <Route
+            path={`/${prop.path}`}
+            element={<PageGuard requiredRoles={prop.requiredRoles}>{prop.component}</PageGuard>}
+            key={key}
+          />
         );
       } else {
         return null;

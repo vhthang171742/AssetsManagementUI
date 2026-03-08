@@ -11,7 +11,7 @@ export default function SignIn() {
   // If already logged in, redirect to dashboard
   useEffect(() => {
     if (accounts.length > 0) {
-      navigate("/admin", { replace: true });
+      navigate("/", { replace: true });
     }
   }, [accounts, navigate]);
 
@@ -24,7 +24,7 @@ export default function SignIn() {
         ...loginRequest,
         prompt: "consent",
       });
-      navigate("/admin", { replace: true });
+      navigate("/", { replace: true });
     } catch (error) {
       console.error("Login failed:", error);
     }

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { useMsal } from "@azure/msal-react";
 import { getUserProfile, getUserPhoto, getUserGroups } from "services/userService";
 import { acquireTokenForApi } from "services/tokenService";
+import { PortalConfigs } from "constants/portals";
 
 /**
  * AuthContext - Manages authentication state and session persistence
@@ -18,6 +19,9 @@ export const AuthProvider = ({ children }) => {
   const [userRoles, setUserRoles] = useState([]);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedPortalId, setSelectedPortalId] = useState(
+    () => localStorage.getItem("selectedPortalId") || null
+  );
 
   // Initialize dark mode from localStorage on mount
   useEffect(() => {
@@ -27,14 +31,15 @@ export const AuthProvider = ({ children }) => {
       setIsDarkMode(isDark);
       updateDarkMode(isDark);
     }
-    setIsLoading(false);
   }, []);
 
   // Fetch detailed user profile when accounts change (after login)
   useEffect(() => {
     const fetchUserData = async () => {
-      if (accounts.length > 0) {
-        const account = accounts[0];
+      setIsLoading(true);
+      try {
+        if (accounts.length > 0) {
+          const account = accounts[0];
         
         // Set basic user info from MSAL
         setUser({
@@ -113,12 +118,17 @@ export const AuthProvider = ({ children }) => {
           // Set empty groups array on error to prevent blocking
           setUserGroups([]);
         }
-      } else {
-        setUser(null);
-        setUserProfile(null);
-        setUserPhoto(null);
-        setUserGroups([]);
-        setUserRoles([]);
+        } else {
+          setUser(null);
+          setUserProfile(null);
+          setUserPhoto(null);
+          setUserGroups([]);
+          setUserRoles([]);
+          setSelectedPortalId(null);
+          localStorage.removeItem("selectedPortalId");
+        }
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -152,6 +162,54 @@ export const AuthProvider = ({ children }) => {
    * Check if user is authenticated
    */
   const isAuthenticated = accounts.length > 0;
+
+  const normalize = (value) => (value || "").toLowerCase();
+
+  const hasAnyRole = (requiredRoles = []) => {
+    if (!Array.isArray(requiredRoles) || requiredRoles.length === 0) {
+      return false;
+    }
+
+    const normalizedRequiredRoles = requiredRoles.map(normalize);
+    return (userRoles || []).some((userRole) =>
+      normalizedRequiredRoles.includes(normalize(userRole))
+    );
+  };
+
+  const hasAnyGroup = (requiredGroups = []) => {
+    if (!Array.isArray(requiredGroups) || requiredGroups.length === 0) {
+      return false;
+    }
+
+    const normalizedGroups = requiredGroups.map(normalize);
+    return (userGroups || []).some((group) => {
+      const displayName = normalize(group.displayName);
+      const id = normalize(group.id);
+      return normalizedGroups.includes(displayName) || normalizedGroups.includes(id);
+    });
+  };
+
+  const canAccessPortal = (portalId) => {
+    const portal = PortalConfigs.find((item) => item.id === portalId);
+    if (!portal) {
+      return false;
+    }
+
+    return hasAnyRole(portal.requiredRoles) || hasAnyGroup(portal.requiredGroups);
+  };
+
+  const getAvailablePortals = () => {
+    return PortalConfigs.filter((portal) => canAccessPortal(portal.id));
+  };
+
+  const setSelectedPortal = (portalId) => {
+    setSelectedPortalId(portalId);
+    if (portalId) {
+      localStorage.setItem("selectedPortalId", portalId);
+    } else {
+      localStorage.removeItem("selectedPortalId");
+    }
+  };
 
   /**
    * Check if user belongs to a specific group
@@ -222,6 +280,12 @@ export const AuthProvider = ({ children }) => {
     isUserInGroup,
     getUserRole,
     hasRequiredRole,
+    hasAnyRole,
+    hasAnyGroup,
+    canAccessPortal,
+    getAvailablePortals,
+    selectedPortalId,
+    setSelectedPortal,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

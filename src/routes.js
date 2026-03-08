@@ -1,4 +1,5 @@
 import React from "react";
+import { RoleSets } from "constants/authorization";
 
 // Admin Imports
 import MainDashboard from "views/admin/default";
@@ -55,6 +56,7 @@ const routes = [
     path: "default",
     icon: <MdHome className="h-6 w-6" />,
     component: <MainDashboard />,
+    requiredRoles: RoleSets.AnyPortalRole,
   },
   {
     name: "Assets",
@@ -62,6 +64,7 @@ const routes = [
     path: "assets",
     icon: <MdStorefront className="h-6 w-6" />,
     component: <Assets />,
+    requiredRoles: RoleSets.AssetsUser,
   },
   {
     name: "Categories",
@@ -69,6 +72,7 @@ const routes = [
     path: "categories",
     icon: <MdCategory className="h-6 w-6" />,
     component: <Categories />,
+    requiredRoles: RoleSets.AssetsUser,
   },
   {
     name: "Departments",
@@ -76,6 +80,7 @@ const routes = [
     path: "departments",
     icon: <MdApartment className="h-6 w-6" />,
     component: <Departments />,
+    requiredRoles: RoleSets.AssetsUser,
   },
   {
     name: "Rooms",
@@ -83,6 +88,7 @@ const routes = [
     path: "rooms",
     icon: <MdMeetingRoom className="h-6 w-6" />,
     component: <Rooms />,
+    requiredRoles: RoleSets.AssetsUser,
   },
   {
     name: "Handovers",
@@ -90,6 +96,7 @@ const routes = [
     path: "handovers",
     icon: <MdAssignment className="h-6 w-6" />,
     component: <Handovers />,
+    requiredRoles: RoleSets.AssetsUser,
   },
   {
     name: "Configuration",
@@ -97,6 +104,7 @@ const routes = [
     path: "configuration",
     icon: <MdSettings className="h-6 w-6" />,
     component: <Configuration />,
+    requiredRoles: ["Admin"],
   },
   {
     name: "Users",
@@ -104,6 +112,7 @@ const routes = [
     path: "users",
     icon: <MdPeople className="h-6 w-6" />,
     component: <Users />,
+    requiredRoles: RoleSets.UsersManager,
   },
   {
     name: "Production Lines",
@@ -111,6 +120,7 @@ const routes = [
     path: "production-lines",
     icon: <MdFactory className="h-6 w-6" />,
     component: <ProductionLines />,
+    requiredRoles: RoleSets.ProductionUser,
   },
   {
     name: "Worker Equipment",
@@ -118,6 +128,7 @@ const routes = [
     path: "worker-equipment",
     icon: <MdPerson2 className="h-6 w-6" />,
     component: <WorkerEquipment />,
+    requiredRoles: RoleSets.AssetsUser,
   },
   {
     name: "Equipment Usage",
@@ -125,6 +136,7 @@ const routes = [
     path: "equipment-usage",
     icon: <MdDataUsage className="h-6 w-6" />,
     component: <EquipmentUsage />,
+    requiredRoles: RoleSets.AssetsUser,
   },
   {
     name: "Courses",
@@ -132,6 +144,7 @@ const routes = [
     path: "courses",
     icon: <MdSchool className="h-6 w-6" />,
     component: <Courses />,
+    requiredRoles: RoleSets.TrainingUser,
   },
   {
     name: "Classes",
@@ -139,6 +152,7 @@ const routes = [
     path: "classes",
     icon: <MdSchool className="h-6 w-6" />,
     component: <Classes />,
+    requiredRoles: RoleSets.TrainingUser,
   },
   {
     name: "Student Assignments",
@@ -146,6 +160,7 @@ const routes = [
     path: "student-equipment-assignments",
     icon: <MdSchool className="h-6 w-6" />,
     component: <StudentEquipmentAssignments />,
+    requiredRoles: RoleSets.TrainingUser,
   },
   {
     name: "Asset Mappings",
@@ -153,6 +168,7 @@ const routes = [
     path: "asset-course-mappings",
     icon: <MdSchool className="h-6 w-6" />,
     component: <AssetCourseMappings />,
+    requiredRoles: RoleSets.TrainingUser,
   },
   {
     name: "Maintenance Schedules",
@@ -160,6 +176,7 @@ const routes = [
     path: "maintenance-schedules",
     icon: <MdBuild className="h-6 w-6" />,
     component: <MaintenanceSchedules />,
+    requiredRoles: RoleSets.MaintenanceUser,
   },
   {
     name: "Maintenance Records",
@@ -167,6 +184,7 @@ const routes = [
     path: "maintenance-records",
     icon: <MdBuild className="h-6 w-6" />,
     component: <MaintenanceRecords />,
+    requiredRoles: RoleSets.MaintenanceUser,
   },
   {
     name: "Spare Parts",
@@ -174,6 +192,7 @@ const routes = [
     path: "spare-parts",
     icon: <MdBuild className="h-6 w-6" />,
     component: <SpareParts />,
+    requiredRoles: RoleSets.MaintenanceUser,
   },
   {
     name: "Profile",
@@ -181,6 +200,7 @@ const routes = [
     path: "profile",
     icon: <MdPerson className="h-6 w-6" />,
     component: <Profile />,
+    requiredRoles: RoleSets.AnyPortalRole,
   },
   {
     name: "Sign In",

@@ -1,0 +1,36 @@
+export const Roles = {
+  Admin: "Admin",
+  UsersManager: "Users.Manager",
+  AssetsUser: "Assets.User",
+  AssetsManager: "Assets.Manager",
+  ProductionUser: "Production.User",
+  ProductionManager: "Production.Manager",
+  TrainingUser: "Training.User",
+  TrainingManager: "Training.Manager",
+  MaintenanceUser: "Maintenance.User",
+  MaintenanceManager: "Maintenance.Manager",
+};
+
+export const RoleSets = {
+  AssetsUser: [Roles.AssetsUser, Roles.AssetsManager, Roles.Admin],
+  AssetsManager: [Roles.AssetsManager, Roles.Admin],
+  UsersManager: [Roles.UsersManager, Roles.Admin],
+  ProductionUser: [Roles.ProductionUser, Roles.ProductionManager, Roles.Admin],
+  ProductionManager: [Roles.ProductionManager, Roles.Admin],
+  TrainingUser: [Roles.TrainingUser, Roles.TrainingManager, Roles.Admin],
+  TrainingManager: [Roles.TrainingManager, Roles.Admin],
+  MaintenanceUser: [Roles.MaintenanceUser, Roles.MaintenanceManager, Roles.Admin],
+  MaintenanceManager: [Roles.MaintenanceManager, Roles.Admin],
+  AnyPortalRole: [
+    Roles.Admin,
+    Roles.UsersManager,
+    Roles.AssetsUser,
+    Roles.AssetsManager,
+    Roles.ProductionUser,
+    Roles.ProductionManager,
+    Roles.TrainingUser,
+    Roles.TrainingManager,
+    Roles.MaintenanceUser,
+    Roles.MaintenanceManager,
+  ],
+};
