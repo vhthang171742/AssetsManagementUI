@@ -54,6 +54,28 @@ export const practiceSessionService = {
     }),
 
   /**
+   * Student self check-in (attendance)
+   * @param {object} data - { assignmentID, classID? }
+   * @returns {Promise<object>} Created/opened practice session
+   */
+  studentCheckIn: (data) =>
+    httpClient("/practice-sessions/student/check-in", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * Student self check-out (attendance)
+   * @param {object} data - { sessionID }
+   * @returns {Promise<object>} Updated practice session
+   */
+  studentCheckOut: (data) =>
+    httpClient("/practice-sessions/student/check-out", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  /**
    * Update a practice session
    * @param {number} id - Session ID
    * @param {object} data - Updated session data {endTime, durationMinutes}

@@ -1,8 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useMsal } from "@azure/msal-react";
-import { getUserProfile, getUserPhoto, getUserGroups } from "services/userService";
+import {
+  getCurrentUser,
+  getUserProfile,
+  getUserPhoto,
+  getUserGroups,
+} from "services/userService";
 import { acquireTokenForApi } from "services/tokenService";
-import { PortalConfigs } from "constants/portals";
+import { PortalConfigs, PortalIds } from "constants/portals";
 
 /**
  * AuthContext - Manages authentication state and session persistence
@@ -17,6 +22,7 @@ export const AuthProvider = ({ children }) => {
   const [userPhoto, setUserPhoto] = useState(null);
   const [userGroups, setUserGroups] = useState([]);
   const [userRoles, setUserRoles] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPortalId, setSelectedPortalId] = useState(
@@ -99,6 +105,14 @@ export const AuthProvider = ({ children }) => {
 
         // Fetch detailed profile from Microsoft Graph
         try {
+          try {
+            const backendUser = await getCurrentUser();
+            setCurrentUser(backendUser || null);
+          } catch (error) {
+            console.warn("Failed to fetch backend user profile:", error.message);
+            setCurrentUser(null);
+          }
+
           const profile = await getUserProfile();
           if (profile) {
             setUserProfile(profile);
@@ -124,6 +138,7 @@ export const AuthProvider = ({ children }) => {
           setUserPhoto(null);
           setUserGroups([]);
           setUserRoles([]);
+          setCurrentUser(null);
           setSelectedPortalId(null);
           localStorage.removeItem("selectedPortalId");
         }
@@ -195,7 +210,30 @@ export const AuthProvider = ({ children }) => {
       return false;
     }
 
-    return hasAnyRole(portal.requiredRoles) || hasAnyGroup(portal.requiredGroups);
+    const hasPortalApiRole = hasAnyRole(portal.requiredRoles);
+    if (!hasPortalApiRole) {
+      return false;
+    }
+
+    if (portalId === PortalIds.Admin) {
+      return true;
+    }
+
+    const studentActive = Boolean(
+      currentUser?.studentRole && (currentUser.studentRole.isActive ?? true)
+    );
+    const instructorActive = Boolean(
+      currentUser?.instructorRole && (currentUser.instructorRole.isActive ?? true)
+    );
+    const technicianActive = Boolean(
+      currentUser?.technicianRole && (currentUser.technicianRole.isActive ?? true)
+    );
+
+    if (portalId === PortalIds.Student) return studentActive;
+    if (portalId === PortalIds.Teacher) return instructorActive;
+    if (portalId === PortalIds.Maintainer) return technicianActive;
+
+    return false;
   };
 
   const getAvailablePortals = () => {
@@ -270,6 +308,7 @@ export const AuthProvider = ({ children }) => {
     user,
     userProfile,
     userPhoto,
+    currentUser,
     userGroups,
     userRoles,
     isAuthenticated,

@@ -19,6 +19,7 @@ export const RoleSets = {
   ProductionManager: [Roles.ProductionManager, Roles.Admin],
   TrainingUser: [Roles.TrainingUser, Roles.TrainingManager, Roles.Admin],
   TrainingManager: [Roles.TrainingManager, Roles.Admin],
+  AssignmentManager: [Roles.TrainingManager, Roles.MaintenanceUser, Roles.MaintenanceManager, Roles.Admin],
   MaintenanceUser: [Roles.MaintenanceUser, Roles.MaintenanceManager, Roles.Admin],
   MaintenanceManager: [Roles.MaintenanceManager, Roles.Admin],
   AnyPortalRole: [

@@ -10,6 +10,7 @@ import Rooms from "views/admin/rooms";
 import Handovers from "views/admin/handovers";
 import Configuration from "views/admin/configuration";
 import Users from "views/admin/users";
+import PortalAccess from "views/admin/portalAccess";
 import ProductionLines from "views/admin/productionLines";
 import WorkerEquipment from "views/admin/workerEquipment";
 import EquipmentUsage from "views/admin/equipmentUsage";
@@ -113,6 +114,14 @@ const routes = [
     requiredRoles: RoleSets.UsersManager,
   },
   {
+    name: "Portal Access",
+    layout: "/admin",
+    path: "portal-access",
+    icon: <MdPeople className="h-6 w-6" />,
+    component: <PortalAccess />,
+    requiredRoles: RoleSets.UsersManager,
+  },
+  {
     name: "Production Lines",
     layout: "/admin",
     path: "production-lines",
@@ -158,7 +167,7 @@ const routes = [
     path: "student-equipment-assignments",
     icon: <MdSchool className="h-6 w-6" />,
     component: <StudentEquipmentAssignments />,
-    requiredRoles: RoleSets.TrainingUser,
+    requiredRoles: RoleSets.AssignmentManager,
   },
   {
     name: "Asset Mappings",

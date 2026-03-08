@@ -34,6 +34,18 @@ export const assetService = {
     httpClient(`/assets/by-category/${categoryId}`),
 
   /**
+   * Get all assets for status management (maintainer/admin)
+   * @returns {Promise<Array>} List of assets with all statuses
+   */
+  getAllStatuses: () => httpClient("/assets/all-statuses"),
+
+  /**
+   * Get available room assets for training assignment
+   * @returns {Promise<Array>} List of available room assets
+   */
+  getAvailableForTraining: () => httpClient("/assets/available-for-training"),
+
+  /**
    * Get all available units
    * @returns {Promise<Array>} List of units
    */
@@ -82,6 +94,18 @@ export const assetService = {
     httpClient(`/assets/${id}/quantity`, {
       method: "PATCH",
       body: JSON.stringify({ quantityChange }),
+    }),
+
+  /**
+   * Update asset operational status
+   * @param {number} id - Asset ID
+   * @param {string} statusCode - Equipment status code
+   * @returns {Promise<object>} Updated asset
+   */
+  updateStatus: (id, statusCode) =>
+    httpClient(`/assets/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ statusCode }),
     }),
 
   /**

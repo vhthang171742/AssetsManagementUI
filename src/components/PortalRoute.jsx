@@ -2,11 +2,10 @@ import React from "react";
 import { Navigate } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
 import { useAuth } from "context/AuthContext";
-import UnauthorizedAccess from "components/UnauthorizedAccess";
 
 export default function PortalRoute({ portalId, children }) {
   const { accounts, inProgress } = useMsal();
-  const { isLoading, canAccessPortal } = useAuth();
+  const { isLoading, canAccessPortal, getAvailablePortals, selectedPortalId } = useAuth();
 
   if (isLoading || inProgress !== "none") {
     return (
@@ -24,7 +23,13 @@ export default function PortalRoute({ portalId, children }) {
   }
 
   if (!canAccessPortal(portalId)) {
-    return <UnauthorizedAccess />;
+    const portals = getAvailablePortals();
+    if (portals.length === 0) {
+      return <Navigate to="/no-portal-access" replace />;
+    }
+
+    const selectedPortal = portals.find((portal) => portal.id === selectedPortalId);
+    return <Navigate to={(selectedPortal || portals[0]).path} replace />;
   }
 
   return children;

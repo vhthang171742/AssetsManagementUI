@@ -15,6 +15,7 @@ import StudentPortal from "views/portals/StudentPortal";
 import TeacherPortal from "views/portals/TeacherPortal";
 import MaintainerPortal from "views/portals/MaintainerPortal";
 import ProfilePage from "views/profile";
+import NoPortalAccessPage from "views/noPortalAccess";
 
 // Initialize MSAL instance
 const msalInstance = new PublicClientApplication(msalConfig);
@@ -38,7 +39,7 @@ const LandingRedirect = () => {
   const portals = getAvailablePortals();
 
   if (portals.length === 0) {
-    return <Navigate to="/admin" replace />;
+    return <Navigate to="/no-portal-access" replace />;
   }
 
   const selectedPortal = portals.find((portal) => portal.id === selectedPortalId);
@@ -99,6 +100,14 @@ const AppContent = () => {
           <PortalRoute portalId={PortalIds.Maintainer}>
             <MaintainerPortal />
           </PortalRoute>
+        }
+      />
+      <Route
+        path="no-portal-access"
+        element={
+          <ProtectedRoute>
+            <NoPortalAccessPage />
+          </ProtectedRoute>
         }
       />
       <Route path="/" element={<LandingRedirect />} />

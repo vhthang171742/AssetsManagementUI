@@ -26,6 +26,12 @@ export const studentEquipmentAssignmentService = {
   getByStudent: (studentId) => httpClient(`/student-equipment-assignments/by-student/${studentId}`),
 
   /**
+   * Get assignments for current logged-in student
+   * @returns {Promise<Array>} List of current student's assignments
+   */
+  getMine: () => httpClient("/student-equipment-assignments/me"),
+
+  /**
    * Get assignments by class
    * @param {number} classId - Class ID
    * @returns {Promise<Array>} List of assignments in the class
@@ -38,6 +44,12 @@ export const studentEquipmentAssignmentService = {
    * @returns {Promise<Array>} List of assignments for the asset
    */
   getByAsset: (roomAssetId) => httpClient(`/student-equipment-assignments/by-asset/${roomAssetId}`),
+
+  /**
+   * Get available room assets for assignment
+   * @returns {Promise<Array>} List of available room assets
+   */
+  getAvailableAssets: () => httpClient("/student-equipment-assignments/available-assets"),
 
   /**
    * Get active assignments
