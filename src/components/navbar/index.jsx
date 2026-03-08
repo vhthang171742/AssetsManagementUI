@@ -1,6 +1,6 @@
 import React from "react";
 import { useMsal } from "@azure/msal-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Dropdown from "components/dropdown";
 import { FiAlignJustify } from "react-icons/fi";
 import { Link } from "react-router-dom";
@@ -8,6 +8,7 @@ import avatarDefault from "assets/img/avatars/user.png";
 import { BsArrowBarUp } from "react-icons/bs";
 import { FiSearch } from "react-icons/fi";
 import { RiMoonFill, RiSunFill } from "react-icons/ri";
+import { MdKeyboardArrowDown } from "react-icons/md";
 import {
   IoMdNotificationsOutline,
   IoMdInformationCircleOutline,
@@ -16,9 +17,10 @@ import { useAuth } from "context/AuthContext";
 import LanguageSwitcher from "components/languageSwitcher/LanguageSwitcher";
 
 const Navbar = (props) => {
-  const { onOpenSidenav, brandText } = props;
-  const { isDarkMode, toggleDarkMode, userProfile, userPhoto, getAvailablePortals } = useAuth();
+  const { onOpenSidenav, brandText, showSidebarToggle = true, profilePath = "/profile" } = props;
+  const { isDarkMode, toggleDarkMode, userProfile, userPhoto, getAvailablePortals, selectedPortalId, setSelectedPortal } = useAuth();
   const { instance } = useMsal();
+  const location = useLocation();
   const navigate = useNavigate();
 
   /**
@@ -40,7 +42,16 @@ const Navbar = (props) => {
   const email = userProfile?.email || "user@example.com";
   const avatarUrl = userPhoto || avatarDefault;
   const availablePortals = getAvailablePortals();
-  const canSwitchPortal = availablePortals.length > 1;
+  const hasPortalAccess = availablePortals.length > 0;
+  const activePortal =
+    availablePortals.find((portal) => location.pathname.startsWith(portal.path)) ||
+    availablePortals.find((portal) => portal.id === selectedPortalId) ||
+    availablePortals[0];
+
+  const handlePortalSwitch = (portal) => {
+    setSelectedPortal(portal.id);
+    navigate(portal.path, { replace: true });
+  };
 
   return (
     <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 p-2 backdrop-blur-xl dark:bg-[#0b14374d]">
@@ -73,8 +84,8 @@ const Navbar = (props) => {
         </p>
       </div>
 
-      <div className="relative mt-[3px] flex h-[61px] w-[430px] flex-grow items-center justify-around gap-2 rounded-full bg-white px-2 py-2 shadow-xl shadow-shadow-500 dark:!bg-navy-800 dark:shadow-none md:w-[470px] md:flex-grow-0 md:gap-1 xl:w-[520px] xl:gap-2">
-        <div className="flex h-full items-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white xl:w-[225px]">
+      <div className="relative mt-[3px] flex h-[61px] w-fit min-w-[430px] flex-grow items-center justify-end gap-2 rounded-full bg-white px-2 py-2 shadow-xl shadow-shadow-500 dark:!bg-navy-800 dark:shadow-none md:min-w-[470px] md:flex-grow-0 md:gap-1 xl:min-w-[520px] xl:gap-2">
+        <div className="flex h-full w-[170px] flex-shrink-0 items-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white md:w-[200px] xl:w-[225px]">
           <p className="pl-3 pr-2 text-xl">
             <FiSearch className="h-4 w-4 text-gray-400 dark:text-white" />
           </p>
@@ -84,12 +95,14 @@ const Navbar = (props) => {
             className="block h-full w-full rounded-full bg-lightPrimary text-sm font-medium text-navy-700 outline-none placeholder:!text-gray-400 dark:bg-navy-900 dark:text-white dark:placeholder:!text-white sm:w-fit"
           />
         </div>
-        <span
-          className="flex cursor-pointer text-xl text-gray-600 dark:text-white xl:hidden"
-          onClick={onOpenSidenav}
-        >
-          <FiAlignJustify className="h-5 w-5" />
-        </span>
+        {showSidebarToggle && typeof onOpenSidenav === "function" ? (
+          <span
+            className="flex cursor-pointer text-xl text-gray-600 dark:text-white xl:hidden"
+            onClick={onOpenSidenav}
+          >
+            <FiAlignJustify className="h-5 w-5" />
+          </span>
+        ) : null}
         {/* start Notification */}
         <Dropdown
           button={
@@ -127,13 +140,38 @@ const Navbar = (props) => {
           classNames={"py-2 top-4 -left-[230px] md:-left-[440px] w-max"}
         />
         <LanguageSwitcher className="" />
-        {canSwitchPortal ? (
-          <Link
-            to="/portals"
-            className="rounded-xl bg-lightPrimary px-3 py-2 text-xs font-medium text-navy-700 dark:bg-navy-900 dark:text-white"
-          >
-            Switch Portal
-          </Link>
+        {hasPortalAccess ? (
+          <Dropdown
+            button={
+              <div className="flex cursor-pointer items-center gap-1 rounded-xl bg-lightPrimary px-3 py-2 text-xs font-medium text-navy-700 dark:bg-navy-900 dark:text-white">
+                <span className="whitespace-nowrap">{activePortal?.name || "Portal"}</span>
+                <MdKeyboardArrowDown className="h-4 w-4" />
+              </div>
+            }
+            animation="origin-[90%_0%] md:origin-top-right transition-all duration-300 ease-in-out"
+            classNames={"top-10 -left-24 w-max"}
+            children={
+              <div className="flex w-52 flex-col rounded-[16px] bg-white p-2 shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none">
+                {availablePortals.map((portal) => {
+                  const isActive = activePortal?.id === portal.id;
+                  return (
+                    <button
+                      key={portal.id}
+                      type="button"
+                      onClick={() => handlePortalSwitch(portal)}
+                      className={`rounded-xl px-3 py-2 text-left text-sm transition ${
+                        isActive
+                          ? "bg-lightPrimary font-semibold text-navy-700 dark:bg-navy-600 dark:text-white"
+                          : "text-gray-700 hover:bg-lightPrimary dark:text-gray-200 dark:hover:bg-navy-600"
+                      }`}
+                    >
+                      <span className="whitespace-nowrap">{portal.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            }
+          />
         ) : null}
         <div
           className="cursor-pointer text-gray-600"
@@ -174,16 +212,8 @@ const Navbar = (props) => {
               <div className="h-px w-full bg-gray-200 dark:bg-white/20 " />
 
               <div className="flex flex-col p-4">
-                {canSwitchPortal ? (
-                  <Link
-                    to="/portals"
-                    className="mb-3 text-sm text-gray-800 dark:text-white hover:dark:text-white"
-                  >
-                    Switch Portal
-                  </Link>
-                ) : null}
                 <Link
-                  to="/admin/profile"
+                  to={profilePath}
                   className="text-sm text-gray-800 dark:text-white hover:dark:text-white"
                 >
                   Profile Settings

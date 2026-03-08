@@ -3,7 +3,6 @@ import { RoleSets } from "constants/authorization";
 
 // Admin Imports
 import MainDashboard from "views/admin/default";
-import Profile from "views/admin/profile";
 import Assets from "views/admin/assets";
 import Categories from "views/admin/categories";
 import Departments from "views/admin/departments";
@@ -33,7 +32,6 @@ import SignIn from "views/auth/SignIn";
 // Icon Imports
 import {
   MdHome,
-  MdPerson,
   MdLock,
   MdStorefront,
   MdCategory,
@@ -193,14 +191,6 @@ const routes = [
     icon: <MdBuild className="h-6 w-6" />,
     component: <SpareParts />,
     requiredRoles: RoleSets.MaintenanceUser,
-  },
-  {
-    name: "Profile",
-    layout: "/admin",
-    path: "profile",
-    icon: <MdPerson className="h-6 w-6" />,
-    component: <Profile />,
-    requiredRoles: RoleSets.AnyPortalRole,
   },
   {
     name: "Sign In",

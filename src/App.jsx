@@ -11,10 +11,10 @@ import ProtectedRoute from "components/ProtectedRoute";
 import PortalRoute from "components/PortalRoute";
 import { LanguageProvider } from "context/LanguageContext";
 import { PortalIds } from "constants/portals";
-import PortalSelection from "views/portals/PortalSelection";
 import StudentPortal from "views/portals/StudentPortal";
 import TeacherPortal from "views/portals/TeacherPortal";
 import MaintainerPortal from "views/portals/MaintainerPortal";
+import ProfilePage from "views/profile";
 
 // Initialize MSAL instance
 const msalInstance = new PublicClientApplication(msalConfig);
@@ -50,7 +50,7 @@ const LandingRedirect = () => {
     return <Navigate to={portals[0].path} replace />;
   }
 
-  return <Navigate to="/portals" replace />;
+  return <Navigate to={portals[0].path} replace />;
 };
 
 /**
@@ -62,10 +62,10 @@ const AppContent = () => {
     <Routes>
       <Route path="auth/*" element={<AuthLayout />} />
       <Route
-        path="portals"
+        path="profile"
         element={
           <ProtectedRoute>
-            <PortalSelection />
+            <ProfilePage />
           </ProtectedRoute>
         }
       />

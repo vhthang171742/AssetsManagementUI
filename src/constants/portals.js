@@ -13,7 +13,7 @@ export const PortalConfigs = [
     name: "Admin Portal",
     path: "/admin",
     description: "Manage assets, users, configuration, production and training operations.",
-    requiredRoles: RoleSets.AnyPortalRole,
+    requiredRoles: [Roles.Admin],
     requiredGroups: ["admins"],
   },
   {
