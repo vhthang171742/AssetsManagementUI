@@ -92,13 +92,18 @@ export default function TeacherPortal() {
     }
   };
 
-  const handleUnassign = async (assignmentId) => {
+  const handleForceReturn = async (assignmentId) => {
+    const reason = window.prompt("Enter force return reason:", "Returned by teacher/admin");
+    if (!reason || !reason.trim()) {
+      return;
+    }
+
     try {
-      await studentEquipmentAssignmentService.unassign(assignmentId);
-      showToast("Asset unassigned.");
+      await studentEquipmentAssignmentService.forceReturn(assignmentId, reason.trim());
+      showToast("Asset force-returned.");
       await loadData();
     } catch (error) {
-      showToast(`Unassign failed: ${error.message}`, true);
+      showToast(`Force return failed: ${error.message}`, true);
     }
   };
 
@@ -261,10 +266,10 @@ export default function TeacherPortal() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleUnassign(item.assignmentID)}
+                    onClick={() => handleForceReturn(item.assignmentID)}
                     className="rounded-lg border border-amber-300 px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-50"
                   >
-                    Unassign
+                    Force Return
                   </button>
                 </div>
               </div>

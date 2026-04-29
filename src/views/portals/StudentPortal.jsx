@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Card from "components/card";
 import PortalLayout from "layouts/portal";
 import {
@@ -17,6 +17,15 @@ export default function StudentPortal() {
   const [sessions, setSessions] = useState([]);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState("");
   const [issueForm, setIssueForm] = useState({ sessionID: "", studentDescription: "" });
+  const [qrCodeValue, setQrCodeValue] = useState("");
+  const [qrBusy, setQrBusy] = useState(false);
+  const [myActiveCheckouts, setMyActiveCheckouts] = useState([]);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scannerSupported, setScannerSupported] = useState(true);
+
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const scannerTimerRef = useRef(null);
 
   const openSessions = useMemo(
     () => sessions.filter((session) => !session.endTime).slice(0, 6),
@@ -39,6 +48,9 @@ export default function StudentPortal() {
       const myAssignments = await studentEquipmentAssignmentService.getMine();
       setAssignments(myAssignments || []);
 
+      const activeCheckouts = await studentEquipmentAssignmentService.getMyActiveCheckouts();
+      setMyActiveCheckouts(activeCheckouts || []);
+
       const me = await getCurrentUser();
       const studentId = me?.studentRole?.studentID;
 
@@ -58,6 +70,109 @@ export default function StudentPortal() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (scannerTimerRef.current) {
+        clearInterval(scannerTimerRef.current);
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  const stopScanner = () => {
+    setIsScanning(false);
+    if (scannerTimerRef.current) {
+      clearInterval(scannerTimerRef.current);
+      scannerTimerRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+  };
+
+  const startScanner = async () => {
+    try {
+      if (!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia) {
+        setScannerSupported(false);
+        showToast("Camera QR scanning is not supported on this browser. Use manual input.", true);
+        return;
+      }
+
+      const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+      });
+      streamRef.current = stream;
+      setIsScanning(true);
+      setScannerSupported(true);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      scannerTimerRef.current = setInterval(async () => {
+        if (!videoRef.current) {
+          return;
+        }
+
+        try {
+          const codes = await detector.detect(videoRef.current);
+          if (codes.length > 0 && codes[0].rawValue) {
+            setQrCodeValue(codes[0].rawValue);
+            stopScanner();
+            showToast("QR detected. Ready to submit.");
+          }
+        } catch {
+          // Ignore intermittent frame decode failures.
+        }
+      }, 500);
+    } catch (error) {
+      stopScanner();
+      showToast(`Unable to start camera scanner: ${error.message}`, true);
+    }
+  };
+
+  const handleQrCheckout = async (event) => {
+    event.preventDefault();
+    if (!qrCodeValue.trim()) {
+      showToast("Scan or enter a QR code value first.", true);
+      return;
+    }
+
+    setQrBusy(true);
+    try {
+      await studentEquipmentAssignmentService.checkoutByQr(qrCodeValue.trim());
+      showToast("Asset checkout successful.");
+      await loadData();
+    } catch (error) {
+      showToast(`QR checkout failed: ${error.message}`, true);
+    } finally {
+      setQrBusy(false);
+    }
+  };
+
+  const handleQrCheckin = async () => {
+    if (!qrCodeValue.trim()) {
+      showToast("Scan or enter a QR code value first.", true);
+      return;
+    }
+
+    setQrBusy(true);
+    try {
+      await studentEquipmentAssignmentService.checkinByQr(qrCodeValue.trim());
+      showToast("Asset check-in successful.");
+      await loadData();
+    } catch (error) {
+      showToast(`QR check-in failed: ${error.message}`, true);
+    } finally {
+      setQrBusy(false);
+    }
+  };
 
   const handleCheckIn = async (event) => {
     event.preventDefault();
@@ -137,6 +252,53 @@ export default function StudentPortal() {
 
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card extra="p-6">
+          <h2 className="text-lg font-bold text-navy-700 dark:text-white">QR Checkout / Check-In</h2>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
+            Scan with camera or enter QR manually to check out and check in assets.
+          </p>
+          <form className="mt-4 space-y-3" onSubmit={handleQrCheckout}>
+            <input
+              required
+              value={qrCodeValue}
+              onChange={(e) => setQrCodeValue(e.target.value)}
+              placeholder="QR code value"
+              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
+            />
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <button
+                type="submit"
+                disabled={loading || qrBusy}
+                className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
+              >
+                QR Checkout
+              </button>
+              <button
+                type="button"
+                onClick={handleQrCheckin}
+                disabled={loading || qrBusy}
+                className="rounded-xl bg-navy-700 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-800 disabled:opacity-60"
+              >
+                QR Check-In
+              </button>
+              <button
+                type="button"
+                onClick={isScanning ? stopScanner : startScanner}
+                disabled={!scannerSupported && !isScanning}
+                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+              >
+                {isScanning ? "Stop Camera" : "Start Camera"}
+              </button>
+            </div>
+            <video
+              ref={videoRef}
+              className={`w-full rounded-xl border border-gray-200 ${isScanning ? "block" : "hidden"}`}
+              muted
+              playsInline
+            />
+          </form>
+        </Card>
+
+        <Card extra="p-6">
           <h2 className="text-lg font-bold text-navy-700 dark:text-white">Attendance Check-In</h2>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
             Pick your assigned asset and start a session.
@@ -206,6 +368,28 @@ export default function StudentPortal() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <Card extra="p-6">
+          <h2 className="text-lg font-bold text-navy-700 dark:text-white">My Active QR Checkouts</h2>
+          <div className="mt-4 space-y-3">
+            {myActiveCheckouts.length === 0 && (
+              <p className="text-sm text-gray-500 dark:text-gray-300">No active QR checkouts.</p>
+            )}
+            {myActiveCheckouts.map((item) => (
+              <div
+                key={item.assignmentID}
+                className="rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-700 dark:bg-navy-900"
+              >
+                <p className="text-sm font-semibold text-navy-700 dark:text-white">
+                  Asset #{item.roomAssetID} • Class #{item.classID}
+                </p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
+                  Checked out at {new Date(item.assignedDate).toLocaleString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Card>
+
         <Card extra="p-6">
           <h2 className="text-lg font-bold text-navy-700 dark:text-white">My Assigned Assets</h2>
           <div className="mt-4 space-y-3">

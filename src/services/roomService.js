@@ -73,11 +73,11 @@ export const roomService = {
   /**
    * Remove an asset from a room
    * @param {number} roomId - Room ID
-   * @param {number} assetId - Asset ID
+   * @param {number} roomAssetId - Room Asset ID
    * @returns {Promise<null>} No content response
    */
-  removeAsset: (roomId, assetId) =>
-    httpClient(`/rooms/${roomId}/assets/${assetId}`, {
+  removeAsset: (roomId, roomAssetId) =>
+    httpClient(`/rooms/${roomId}/assets/${roomAssetId}`, {
       method: "DELETE",
     }),
 

@@ -32,6 +32,12 @@ export const studentEquipmentAssignmentService = {
   getMine: () => httpClient("/student-equipment-assignments/me"),
 
   /**
+   * Get active checkouts for current logged-in student
+   * @returns {Promise<Array>} List of active checkouts
+   */
+  getMyActiveCheckouts: () => httpClient("/student-equipment-assignments/me/active-checkouts"),
+
+  /**
    * Get assignments by class
    * @param {number} classId - Class ID
    * @returns {Promise<Array>} List of assignments in the class
@@ -88,6 +94,40 @@ export const studentEquipmentAssignmentService = {
   unassign: (id) =>
     httpClient(`/student-equipment-assignments/${id}/unassign`, {
       method: "POST",
+    }),
+
+  /**
+   * Checkout an asset by QR code
+   * @param {string} qrCodeValue - QR code value from scan
+   * @returns {Promise<object>} Updated assignment
+   */
+  checkoutByQr: (qrCodeValue) =>
+    httpClient("/student-equipment-assignments/checkout-by-qr", {
+      method: "POST",
+      body: JSON.stringify({ qrCodeValue }),
+    }),
+
+  /**
+   * Checkin an asset by QR code
+   * @param {string} qrCodeValue - QR code value from scan
+   * @returns {Promise<object>} Updated assignment
+   */
+  checkinByQr: (qrCodeValue) =>
+    httpClient("/student-equipment-assignments/checkin-by-qr", {
+      method: "POST",
+      body: JSON.stringify({ qrCodeValue }),
+    }),
+
+  /**
+   * Force return an active assignment
+   * @param {number} id - Assignment ID
+   * @param {string} reason - Force return reason
+   * @returns {Promise<object>} Updated assignment
+   */
+  forceReturn: (id, reason) =>
+    httpClient(`/student-equipment-assignments/${id}/force-return`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
     }),
 
   /**

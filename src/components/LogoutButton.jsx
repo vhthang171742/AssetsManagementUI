@@ -22,16 +22,16 @@ export const LogoutButton = ({
   const handleLogout = async () => {
     try {
       setIsLoading(true);
-      await instance.logoutPopup({
-        postLogoutRedirectUri: "/auth/sign-in",
-      });
       
-      // Call optional callback
+      // Call optional callback before logout
       if (onLogoutComplete) {
         onLogoutComplete();
       }
       
-      navigate("/auth/sign-in", { replace: true });
+      await instance.logoutRedirect({
+        postLogoutRedirectUri: "/auth/sign-in",
+      });
+      // Note: After redirect, the user will be returned to the sign-in page by Azure AD
     } catch (error) {
       console.error("Logout failed:", error);
       setIsLoading(false);

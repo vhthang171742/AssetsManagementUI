@@ -1,35 +1,67 @@
 /* eslint-disable */
 
-import { HiX } from "react-icons/hi";
+import React from "react";
 import Links from "./components/Links";
 import routes from "routes.js";
 
-const Sidebar = ({ open, onClose }) => {
+const Sidebar = ({ open, headerHeight = 60 }) => {
+  const scrollContainerRef = React.useRef(null);
+
+  const handleSidebarWheel = (event) => {
+    const container = scrollContainerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const canScroll = container.scrollHeight > container.clientHeight;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!canScroll) {
+      return;
+    }
+
+    container.scrollTop += event.deltaY;
+  };
+
+  React.useEffect(() => {
+    const container = scrollContainerRef.current;
+
+    if (!container) {
+      return undefined;
+    }
+
+    const wheelListener = (event) => {
+      handleSidebarWheel(event);
+    };
+
+    container.addEventListener("wheel", wheelListener, { passive: false });
+
+    return () => {
+      container.removeEventListener("wheel", wheelListener);
+    };
+  }, []);
+
   return (
     <div
-      className={`sm:none duration-175 linear fixed !z-50 flex min-h-full flex-col bg-white pb-10 shadow-2xl shadow-white/5 transition-all dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0 w-[260px] xl:w-[313px] ${open ? "translate-x-0" : "-translate-x-96"
+      className={`sm:none duration-175 linear fixed !z-50 flex flex-col overflow-hidden bg-white shadow-2xl shadow-white/5 transition-all dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0 w-[260px] xl:w-[313px] ${open ? "translate-x-0" : "-translate-x-96"
         }`}
-      style={{ left: 0 }}
+      style={{ left: 0, top: `${headerHeight}px`, height: `calc(100vh - ${headerHeight}px)` }}
     >
-      <span
-        className="absolute top-4 right-4 block cursor-pointer xl:hidden"
-        onClick={onClose}
-      >
-        <HiX />
-      </span>
-
-      <div className="flex flex-col gap-0">
-        <div className={`flex items-center h-20 justify-center`}>
-          <div className="hidden xl:block font-poppins text-[26px] font-bold uppercase text-navy-700 dark:text-white">
-            Assets Management
-          </div>
-        </div>
-        <div class="mb-7 h-px bg-gray-300 dark:bg-white/30" className="flex" />
+      <div className="flex h-full flex-col overflow-hidden pt-1">
         {/* Nav item */}
 
-        <ul className="mb-auto">
-          <Links routes={routes} />
-        </ul>
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+          onScroll={(e) => e.stopPropagation()}
+        >
+          <ul>
+            <Links routes={routes} />
+          </ul>
+        </div>
 
         {/* Nav item end */}
       </div>

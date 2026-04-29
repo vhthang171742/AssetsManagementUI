@@ -26,16 +26,18 @@ const Dropdown = (props) => {
   useOutsideAlerter(wrapperRef, setOpenWrapper);
 
   return (
-    <div ref={wrapperRef} className="relative flex">
+    <div ref={wrapperRef} className="relative z-[70] flex">
       <div className="flex" onMouseDown={() => setOpenWrapper(!openWrapper)}>
         {button}
       </div>
       <div
-        className={`${classNames} absolute z-10 ${
+        className={`${classNames} absolute z-[80] ${
           animation
             ? animation
             : "origin-top-right transition-all duration-300 ease-in-out"
         } ${openWrapper ? "scale-100" : "scale-0"}`}
+        onWheel={(e) => e.stopPropagation()}
+        onScroll={(e) => e.stopPropagation()}
       >
         {children}
       </div>

@@ -5,6 +5,7 @@ import Card from "components/card";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete, MdInventory2, MdRemoveCircle } from "react-icons/md";
 import Modal from "components/modal/Modal";
+import { QRCodeSVG } from "qrcode.react";
 
 export default function RoomsTable() {
   const [rooms, setRooms] = useState([]);
@@ -12,8 +13,10 @@ export default function RoomsTable() {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [selectedRoomId, setSelectedRoomId] = useState(null);
+  const [selectedQrAsset, setSelectedQrAsset] = useState(null);
   const [roomAssets, setRoomAssets] = useState([]);
   const [allAssets, setAllAssets] = useState([]);
   const [conditions, setConditions] = useState([]);
@@ -23,7 +26,6 @@ export default function RoomsTable() {
     description: "",
   });
   const [assetFormData, setAssetFormData] = useState({
-    roomID: "",
     assetID: "",
     serialNumber: "",
     condition: "",
@@ -130,11 +132,14 @@ export default function RoomsTable() {
   const handleAddAssetSubmit = async (e) => {
     e.preventDefault();
     try {
-      await roomService.addAsset(selectedRoomId, assetFormData);
-      alert("Asset added to room successfully");
+      const created = await roomService.addAsset(selectedRoomId, assetFormData);
+      if (created?.qrCodeValue) {
+        alert(`Asset added to room successfully. QR: ${created.qrCodeValue}`);
+      } else {
+        alert("Asset added to room successfully");
+      }
       setShowAssetModal(false);
       setAssetFormData({
-        roomID: "",
         assetID: "",
         serialNumber: "",
         condition: "",
@@ -202,6 +207,11 @@ export default function RoomsTable() {
     fetchRoomAssets(roomId);
   };
 
+  const openQrModal = (asset) => {
+    setSelectedQrAsset(asset);
+    setShowQrModal(true);
+  };
+
   const getDepartmentName = (departmentID) => {
     const dept = departments.find((d) => d.departmentID === departmentID);
     return dept ? dept.departmentName : "Unknown";
@@ -214,74 +224,78 @@ export default function RoomsTable() {
 
   return (
     <>
-      <Card extra={"w-full h-full sm:overflow-auto px-2 sm:px-0"}>
-        <div className="flex justify-between items-center">
-          <button
-            onClick={() => {
-              setEditingId(null);
-              setFormData({
-                departmentID: "",
-                roomName: "",
-                description: "",
-              });
-              setShowModal(true);
-            }}
-            className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
-          >
-            Add Room
-          </button>
-        </div>
+      <Card extra={"w-full h-[calc(100vh-170px)] overflow-hidden flex flex-col"}>
+        <div className="flex flex-col h-full">
+          <div className="flex items-center justify-between p-3 shrink-0">
+            <button
+              onClick={() => {
+                setEditingId(null);
+                setFormData({
+                  departmentID: "",
+                  roomName: "",
+                  description: "",
+                });
+                setShowModal(true);
+              }}
+              className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
+            >
+              Add Room
+            </button>
+          </div>
 
-        {loading ? (
-          <div className="text-center py-8">Loading...</div>
-        ) : (
-          <Table
-            data={rooms}
-            pageSize={10}
-            height={'calc(100vh - 240px)'}
-            onBulkDelete={handleBulkDelete}
-            selectable={true}
-            idField="roomID"
-            columns={[
-              { header: 'Room Name', accessor: 'roomName' },
-              { header: 'Department', accessor: 'departmentID', render: (row) => getDepartmentName(row.departmentID) },
-              { header: 'Description', accessor: 'description' },
-              {
-                header: 'Actions',
-                render: (row) => (
-                  <div className="space-x-2">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openAssetModal(row.roomID)}
-                          title="Assets"
-                          aria-label="Assets"
-                          className="p-2 bg-green-500 text-white rounded hover:bg-green-600"
-                        >
-                          <MdInventory2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(row)}
-                          title="Edit"
-                          aria-label="Edit"
-                          className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                        >
-                          <MdModeEditOutline className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(row.roomID)}
-                          title="Delete"
-                          aria-label="Delete"
-                          className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
-                        >
-                          <MdDelete className="h-4 w-4" />
-                        </button>
-                      </div>
-                  </div>
-                ),
-              },
-            ]}
-          />
-        )}
+          {loading ? (
+            <div className="text-center py-8">Loading...</div>
+          ) : (
+            <div className="flex-1 min-h-0">
+            <Table
+              data={rooms}
+              pageSize={10}
+              height={'100%'}
+              onBulkDelete={handleBulkDelete}
+              selectable={true}
+              idField="roomID"
+              columns={[
+                { header: 'Room Name', accessor: 'roomName' },
+                { header: 'Department', accessor: 'departmentID', render: (row) => getDepartmentName(row.departmentID) },
+                { header: 'Description', accessor: 'description' },
+                {
+                  header: 'Actions',
+                  render: (row) => (
+                    <div className="space-x-2">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openAssetModal(row.roomID)}
+                            title="Assets"
+                            aria-label="Assets"
+                            className="p-2 bg-green-500 text-white rounded hover:bg-green-600"
+                          >
+                            <MdInventory2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(row)}
+                            title="Edit"
+                            aria-label="Edit"
+                            className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                          >
+                            <MdModeEditOutline className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(row.roomID)}
+                            title="Delete"
+                            aria-label="Delete"
+                            className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
+                          >
+                            <MdDelete className="h-4 w-4" />
+                          </button>
+                        </div>
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </div>
+          )}
+        </div>
       </Card>
 
       {/* Room Modal */}
@@ -451,6 +465,7 @@ export default function RoomsTable() {
                     <tr className="border-b dark:border-gray-600">
                       <th className="text-left p-2 dark:text-white">Asset Name</th>
                       <th className="text-left p-2 dark:text-white">Serial Number</th>
+                      <th className="text-left p-2 dark:text-white">QR Code</th>
                       <th className="text-left p-2 dark:text-white">Condition</th>
                       <th className="text-left p-2 dark:text-white">Actions</th>
                     </tr>
@@ -460,11 +475,24 @@ export default function RoomsTable() {
                       <tr key={asset.roomAssetID} className="border-b dark:border-gray-600 dark:text-white">
                         <td className="p-2">{asset.assetName}</td>
                         <td className="p-2">{asset.serialNumber}</td>
+                        <td className="p-2">
+                          {asset.qrCodeValue ? (
+                            <button
+                              type="button"
+                              onClick={() => openQrModal(asset)}
+                              className="rounded-md border border-brand-300 px-3 py-1 text-xs font-semibold text-brand-700 hover:bg-brand-50"
+                            >
+                              View QR
+                            </button>
+                          ) : (
+                            <span className="font-mono text-xs">N/A</span>
+                          )}
+                        </td>
                         <td className="p-2">{asset.condition || 'N/A'}</td>
                         <td className="p-2">
                           <button
                             onClick={() =>
-                              handleRemoveAsset(selectedRoomId, asset.assetID)
+                              handleRemoveAsset(selectedRoomId, asset.roomAssetID)
                             }
                             title="Remove"
                             aria-label="Remove"
@@ -479,6 +507,40 @@ export default function RoomsTable() {
                 </table>
               </div>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {showQrModal && selectedQrAsset && (
+        <Modal
+          isOpen={showQrModal}
+          onClose={() => {
+            setShowQrModal(false);
+            setSelectedQrAsset(null);
+          }}
+          title="Asset QR Code"
+          maxWidth={"max-w-md"}
+          footer={
+            <>
+              <button
+                onClick={() => {
+                  setShowQrModal(false);
+                  setSelectedQrAsset(null);
+                }}
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
+              >
+                Close
+              </button>
+            </>
+          }
+        >
+          <div className="flex flex-col items-center gap-3 py-2">
+            <QRCodeSVG value={selectedQrAsset.qrCodeValue} size={280} level="M" includeMargin={true} />
+            <p className="text-sm font-semibold text-navy-700 dark:text-white">{selectedQrAsset.assetName}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-300">Serial: {selectedQrAsset.serialNumber}</p>
+            <p className="max-w-full break-all text-center font-mono text-[11px] text-gray-500 dark:text-gray-300">
+              {selectedQrAsset.qrCodeValue}
+            </p>
           </div>
         </Modal>
       )}

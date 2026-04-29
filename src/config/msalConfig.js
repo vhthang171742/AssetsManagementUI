@@ -1,5 +1,38 @@
 import { LogLevel } from "@azure/msal-browser";
 
+const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "";
+const isMobileBrowser = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+const currentOrigin =
+  typeof window !== "undefined" ? window.location.origin : undefined;
+
+const canUseStorage = (storageName) => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    const storage = window[storageName];
+    const probeKey = "__msal_storage_probe__";
+    storage.setItem(probeKey, "1");
+    storage.removeItem(probeKey);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const preferredCacheLocation = (() => {
+  if (isMobileBrowser && canUseStorage("localStorage")) {
+    return "localStorage";
+  }
+
+  if (canUseStorage("sessionStorage")) {
+    return "sessionStorage";
+  }
+
+  return "localStorage";
+})();
+
 /**
  * MSAL Configuration
  *
@@ -16,12 +49,19 @@ const msalConfig = {
   auth: {
     clientId: process.env.REACT_APP_MSAL_CLIENT_ID,
     authority: process.env.REACT_APP_MSAL_AUTHORITY,
-    redirectUri: process.env.REACT_APP_MSAL_REDIRECT_URI,
-    postLogoutRedirectUri: process.env.REACT_APP_MSAL_POST_LOGOUT_REDIRECT_URI,
+    redirectUri: process.env.REACT_APP_MSAL_REDIRECT_URI || currentOrigin,
+    postLogoutRedirectUri:
+      process.env.REACT_APP_MSAL_POST_LOGOUT_REDIRECT_URI ||
+      (currentOrigin ? `${currentOrigin}/auth/sign-in` : undefined),
   },
   cache: {
-    cacheLocation: "sessionStorage",
-    storeAuthStateInCookie: false,
+    // Mobile browsers can drop sessionStorage during redirect auth flows,
+    // but some private/webview contexts block localStorage entirely.
+    cacheLocation: preferredCacheLocation,
+    // PKCE code verifier/challenge state must survive navigation reliably.
+    temporaryCacheLocation: preferredCacheLocation,
+    storeAuthStateInCookie: isMobileBrowser,
+    secureCookies: isMobileBrowser,
   },
   system: {
     loggerOptions: {

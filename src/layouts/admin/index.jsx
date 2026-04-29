@@ -8,14 +8,10 @@ import routes from "routes.js";
 export default function Admin(props) {
   const { ...rest } = props;
   const location = useLocation();
-  const [open, setOpen] = React.useState(true);
+  const HEADER_HEIGHT = 60;
+  const [open, setOpen] = React.useState(() => window.innerWidth >= 1200);
   const [currentRoute, setCurrentRoute] = React.useState("Dashboard");
 
-  React.useEffect(() => {
-    window.addEventListener("resize", () =>
-      window.innerWidth < 1200 ? setOpen(false) : setOpen(true)
-    );
-  }, []);
   React.useEffect(() => {
     getActiveRoute(routes);
   }, [location.pathname]);
@@ -62,40 +58,50 @@ export default function Admin(props) {
 
   document.documentElement.dir = "ltr";
   return (
-    <div className="flex h-full w-full">
-      <Sidebar open={open} onClose={() => setOpen(false)} />
-      {/* Navbar & Main Content */}
-      <div className="h-full w-full bg-lightPrimary dark:!bg-navy-900">
-        {/* Main Content */}
-        <main
-          className={`mx-[12px] h-full flex-none md:pr-2 transition-all ${
-            open ? "ml-[260px] xl:ml-[313px]" : "ml-0"
-          }`}
-        >
-          {/* Routes */}
-          <div className="h-full">
+    <div className="h-screen w-full overflow-hidden bg-lightPrimary dark:!bg-navy-900">
+      <header
+        className="relative z-[60] w-full border-b border-gray-200 bg-lightPrimary/95 px-4 py-1 dark:border-white/10 dark:bg-navy-900/95"
+        style={{ height: `${HEADER_HEIGHT}px` }}
+      >
+        <div className="flex h-full items-center justify-between gap-3">
+          <h1 className="truncate text-[24px] font-bold uppercase leading-none tracking-[0.04em] text-navy-700 dark:text-white xl:text-[26px]">
+            Assets Management
+          </h1>
+          <div className="min-w-0 flex-1">
             <Navbar
-              onOpenSidenav={() => setOpen(true)}
-              logoText={"Assets Management"}
-              brandText={currentRoute}
+              onOpenSidenav={() => setOpen((prev) => !prev)}
               secondary={getActiveNavbar(routes)}
               {...rest}
             />
-            <div className="pt-5s mx-auto mb-auto h-full min-h-[84vh] p-2 md:pr-2">
-              <Routes>
-                {getRoutes(routes)}
+          </div>
+        </div>
+      </header>
 
-                <Route
-                  path="/profile"
-                  element={<Navigate to="/profile" replace />}
-                />
+      <div className="relative flex h-[calc(100vh-60px)] w-full">
+        <Sidebar open={open} onClose={() => setOpen(false)} headerHeight={HEADER_HEIGHT} />
 
-                <Route
-                  path="/"
-                  element={<Navigate to="/admin/default" replace />}
-                />
-              </Routes>
-            </div>
+        <main
+          className={`mx-[12px] h-full flex-1 overflow-y-auto transition-all ${
+            open ? "ml-[260px] xl:ml-[313px]" : "ml-0"
+          }`}
+        >
+          <div className="pt-3 mx-auto mb-auto h-full min-h-[84vh] px-2 pb-2">
+            <h2 className="mb-3 truncate text-[26px] font-bold capitalize leading-none text-navy-700 dark:text-white lg:text-[30px]">
+              {currentRoute}
+            </h2>
+            <Routes>
+              {getRoutes(routes)}
+
+              <Route
+                path="/profile"
+                element={<Navigate to="/profile" replace />}
+              />
+
+              <Route
+                path="/"
+                element={<Navigate to="/admin/default" replace />}
+              />
+            </Routes>
           </div>
         </main>
       </div>

@@ -105,18 +105,20 @@ const getAccessToken = async () => {
     } catch (primaryError) {
       // Check if error is due to missing consent
       if (primaryError.errorCode === "consent_required" || primaryError.errorCode === "interaction_required") {
-        console.warn("Consent required for API scopes, prompting for interactive login");
+        console.warn("Consent required for API scopes, prompting for interactive login via redirect");
         
-        // Fallback to interactive popup for consent
+        // Fallback to interactive redirect for consent (better for mobile)
         try {
           const interactiveRequest = {
             scopes: tokenRequest.scopes,
             account: accounts[0],
           };
           
-          const response = await instance.acquireTokenPopup(interactiveRequest);
-          console.debug("Token acquired via interactive popup with API scopes");
-          return response.accessToken;
+          await instance.acquireTokenRedirect(interactiveRequest);
+          console.debug("Token acquisition via redirect initiated with API scopes");
+          // Note: The page will be redirected to Azure AD and back
+          // The token will be available after redirect
+          return null; // Return null as we're redirecting
         } catch (popupError) {
           console.warn("Interactive token request failed, trying .default format");
         }
@@ -135,18 +137,20 @@ const getAccessToken = async () => {
         console.debug("Token acquired with .default scope format");
         return response.accessToken;
       } catch (defaultError) {
-        // If .default also fails, try interactive
+        // If .default also fails, try interactive redirect
         if (defaultError.errorCode === "consent_required" || defaultError.errorCode === "interaction_required") {
-          console.warn("Consent required for .default scope, prompting for interactive login");
+          console.warn("Consent required for .default scope, prompting for interactive login via redirect");
           
           const interactiveRequest = {
             scopes: tokenRequestWithAudience.scopes,
             account: accounts[0],
           };
           
-          const response = await instance.acquireTokenPopup(interactiveRequest);
-          console.debug("Token acquired via interactive popup with .default scope");
-          return response.accessToken;
+          await instance.acquireTokenRedirect(interactiveRequest);
+          console.debug("Token acquisition via redirect initiated with .default scope");
+          // Note: The page will be redirected to Azure AD and back
+          // The token will be available after redirect
+          return null; // Return null as we're redirecting
         }
         
         throw defaultError;

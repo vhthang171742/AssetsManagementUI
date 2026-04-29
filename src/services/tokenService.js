@@ -39,7 +39,7 @@ export const requestApiConsent = async () => {
       return false;
     }
 
-    // Try to acquire token for API scopes with popup
+    // Try to acquire token for API scopes with redirect
     const consentRequest = {
       scopes: tokenRequest.scopes,
       account: accounts[0],
@@ -47,8 +47,9 @@ export const requestApiConsent = async () => {
     };
 
     try {
-      const response = await instance.acquireTokenPopup(consentRequest);
-      console.log("API scope consent granted");
+      await instance.acquireTokenRedirect(consentRequest);
+      console.log("API scope consent requested via redirect");
+      // Note: Page will be redirected and return with token
       return true;
     } catch (error) {
       if (error.errorCode === "user_cancelled") {
@@ -65,8 +66,9 @@ export const requestApiConsent = async () => {
         prompt: "consent",
       };
       
-      const fallbackResponse = await instance.acquireTokenPopup(fallbackRequest);
-      console.log("API scope consent granted with .default format");
+      await instance.acquireTokenRedirect(fallbackRequest);
+      console.log("API scope consent requested via redirect with .default format");
+      // Note: Page will be redirected and return with token
       return true;
     }
   } catch (error) {
@@ -94,15 +96,17 @@ export const acquireTokenForApi = async (forceInteractive = false) => {
     }
 
     if (forceInteractive) {
-      // Force interactive popup for consent
+      // Force interactive redirect for consent (better for mobile)
       try {
-        const response = await instance.acquireTokenPopup({
+        await instance.acquireTokenRedirect({
           scopes: tokenRequest.scopes,
           account: accounts[0],
         });
-        return response; // Return full response, not just accessToken
+        // Note: Page will be redirected to Azure AD and back
+        // Token will be available after redirect
+        return null;
       } catch (error) {
-        console.warn("Popup token request failed:", error.message);
+        console.warn("Redirect token request failed:", error.message);
         return null;
       }
     }
@@ -115,22 +119,25 @@ export const acquireTokenForApi = async (forceInteractive = false) => {
       });
       return response; // Return full response, not just accessToken
     } catch (error) {
-      // If consent is required, switch to interactive
+      // If consent is required, switch to interactive redirect
       if (
         error.errorCode === "consent_required" ||
         error.errorCode === "interaction_required" ||
         error.errorCode === "AADSTS65001"
       ) {
-        console.warn("Consent required, switching to interactive mode");
+        console.warn("Consent required, switching to interactive redirect mode");
         
         try {
-          const response = await instance.acquireTokenPopup({
+          await instance.acquireTokenRedirect({
             scopes: tokenRequest.scopes,
             account: accounts[0],
           });
-          return response; // Return full response
+          console.debug("Token acquisition via redirect initiated with API scopes");
+          // Note: Page will be redirected to Azure AD and back
+          // Token will be available after redirect
+          return null;
         } catch (popupError) {
-          console.error("Interactive popup failed:", popupError.message);
+          console.error("Interactive redirect failed:", popupError.message);
           return null;
         }
       }
@@ -148,13 +155,16 @@ export const acquireTokenForApi = async (forceInteractive = false) => {
           defaultError.errorCode === "interaction_required"
         ) {
           try {
-            const response = await instance.acquireTokenPopup({
+            await instance.acquireTokenRedirect({
               scopes: tokenRequestWithAudience.scopes,
               account: accounts[0],
             });
-            return response; // Return full response
+            console.debug("Token acquisition via redirect initiated with .default scope");
+            // Note: Page will be redirected to Azure AD and back
+            // Token will be available after redirect
+            return null;
           } catch (popupError) {
-            console.error("Interactive popup with .default failed:", popupError.message);
+            console.error("Interactive redirect with .default failed:", popupError.message);
             return null;
           }
         }

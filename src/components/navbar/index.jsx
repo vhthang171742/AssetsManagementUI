@@ -9,15 +9,12 @@ import { BsArrowBarUp } from "react-icons/bs";
 import { FiSearch } from "react-icons/fi";
 import { RiMoonFill, RiSunFill } from "react-icons/ri";
 import { MdKeyboardArrowDown } from "react-icons/md";
-import {
-  IoMdNotificationsOutline,
-  IoMdInformationCircleOutline,
-} from "react-icons/io";
+import { IoMdNotificationsOutline } from "react-icons/io";
 import { useAuth } from "context/AuthContext";
 import LanguageSwitcher from "components/languageSwitcher/LanguageSwitcher";
 
 const Navbar = (props) => {
-  const { onOpenSidenav, brandText, showSidebarToggle = true, profilePath = "/profile" } = props;
+  const { onOpenSidenav, showSidebarToggle = true, profilePath = "/profile" } = props;
   const { isDarkMode, toggleDarkMode, userProfile, userPhoto, getAvailablePortals, selectedPortalId, setSelectedPortal } = useAuth();
   const { instance } = useMsal();
   const location = useLocation();
@@ -28,10 +25,10 @@ const Navbar = (props) => {
    */
   const handleLogout = async () => {
     try {
-      await instance.logoutPopup({
+      await instance.logoutRedirect({
         postLogoutRedirectUri: "/auth/sign-in",
       });
-      navigate("/auth/sign-in", { replace: true });
+      // Note: Page will redirect to sign-in page after logout
     } catch (error) {
       console.error("Logout failed:", error);
     }
@@ -54,181 +51,159 @@ const Navbar = (props) => {
   };
 
   return (
-    <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 p-2 backdrop-blur-xl dark:bg-[#0b14374d]">
-      <div className="ml-[6px]">
-        <div className="h-6 w-[224px] pt-1">
-          <a
-            className="text-sm font-normal text-navy-700 hover:underline dark:text-white dark:hover:text-white"
-            href=" "
-          >
-            Pages
-            <span className="mx-1 text-sm text-navy-700 hover:text-navy-700 dark:text-white">
-              {" "}
-              /{" "}
-            </span>
-          </a>
-          <Link
-            className="text-sm font-normal capitalize text-navy-700 hover:underline dark:text-white dark:hover:text-white"
-            to="#"
-          >
-            {brandText}
-          </Link>
-        </div>
-        <p className="shrink text-[33px] capitalize text-navy-700 dark:text-white">
-          <Link
-            to="#"
-            className="font-bold capitalize hover:text-navy-700 dark:hover:text-white"
-          >
-            {brandText}
-          </Link>
-        </p>
-      </div>
-
-      <div className="relative mt-[3px] flex h-[61px] w-fit min-w-[430px] flex-grow items-center justify-end gap-2 rounded-full bg-white px-2 py-2 shadow-xl shadow-shadow-500 dark:!bg-navy-800 dark:shadow-none md:min-w-[470px] md:flex-grow-0 md:gap-1 xl:min-w-[520px] xl:gap-2">
-        <div className="flex h-full w-[170px] flex-shrink-0 items-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white md:w-[200px] xl:w-[225px]">
-          <p className="pl-3 pr-2 text-xl">
-            <FiSearch className="h-4 w-4 text-gray-400 dark:text-white" />
-          </p>
-          <input
-            type="text"
-            placeholder="Search..."
-            className="block h-full w-full rounded-full bg-lightPrimary text-sm font-medium text-navy-700 outline-none placeholder:!text-gray-400 dark:bg-navy-900 dark:text-white dark:placeholder:!text-white sm:w-fit"
-          />
-        </div>
+    <nav
+      className="z-30 w-full px-0 py-2"
+      onWheel={(e) => e.stopPropagation()}
+    >
+      <div className="flex min-h-[52px] items-center justify-between gap-2">
         {showSidebarToggle && typeof onOpenSidenav === "function" ? (
-          <span
-            className="flex cursor-pointer text-xl text-gray-600 dark:text-white xl:hidden"
+          <button
+            type="button"
+            className="flex cursor-pointer text-xl text-gray-600 dark:text-white"
             onClick={onOpenSidenav}
+            aria-label="Open navigation"
           >
             <FiAlignJustify className="h-5 w-5" />
-          </span>
-        ) : null}
-        {/* start Notification */}
-        <Dropdown
-          button={
-            <p className="cursor-pointer">
-              <IoMdNotificationsOutline className="h-4 w-4 text-gray-600 dark:text-white" />
-            </p>
-          }
-          animation="origin-[65%_0%] md:origin-top-right transition-all duration-300 ease-in-out"
-          children={
-            <div className="flex w-[360px] flex-col gap-3 rounded-[20px] bg-white p-4 shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none sm:w-[460px]">
-              <div className="flex items-center justify-between">
-                <p className="text-base font-bold text-navy-700 dark:text-white">
-                  Notification
-                </p>
-                <p className="text-sm font-bold text-navy-700 dark:text-white">
-                  Mark all read
-                </p>
-              </div>
+          </button>
+        ) : (
+          <div className="w-0" />
+        )}
 
-              <button className="flex w-full items-center">
-                <div className="flex h-full w-[85px] items-center justify-center rounded-xl bg-gradient-to-b from-brandLinear to-brand-500 py-4 text-2xl text-white">
-                  <BsArrowBarUp />
-                </div>
-                <div className="ml-2 flex h-full w-full flex-col justify-center rounded-lg px-1 text-sm">
-                  <p className="mb-1 text-left text-base font-bold text-gray-900 dark:text-white">
-                    New Update: An asset reassignment has been made
-                  </p>
-                  <p className="font-base text-left text-xs text-gray-900 dark:text-white">
-                    Check and confirm it now!
-                  </p>
-                </div>
-              </button>
+        <div className="flex min-w-0 w-full justify-end">
+          <div className="relative flex min-w-0 max-w-full flex-nowrap items-center justify-end gap-1.5 rounded-[26px] bg-white px-2 py-1.5 shadow-xl shadow-shadow-500 dark:!bg-navy-800 dark:shadow-none md:min-w-[430px] xl:min-w-[500px]">
+            <div className="flex h-9 min-w-0 w-[145px] items-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white md:w-[175px] xl:w-[210px]">
+              <p className="pl-3 pr-2 text-xl">
+                <FiSearch className="h-4 w-4 text-gray-400 dark:text-white" />
+              </p>
+              <input
+                type="text"
+                placeholder="Search..."
+                className="block h-full w-full rounded-full bg-lightPrimary pr-3 text-sm font-medium text-navy-700 outline-none placeholder:!text-gray-400 dark:bg-navy-900 dark:text-white dark:placeholder:!text-white"
+              />
             </div>
-          }
-          classNames={"py-2 top-4 -left-[230px] md:-left-[440px] w-max"}
-        />
-        <LanguageSwitcher className="" />
-        {hasPortalAccess ? (
-          <Dropdown
-            button={
-              <div className="flex cursor-pointer items-center gap-1 rounded-xl bg-lightPrimary px-3 py-2 text-xs font-medium text-navy-700 dark:bg-navy-900 dark:text-white">
-                <span className="whitespace-nowrap">{activePortal?.name || "Portal"}</span>
-                <MdKeyboardArrowDown className="h-4 w-4" />
-              </div>
-            }
-            animation="origin-[90%_0%] md:origin-top-right transition-all duration-300 ease-in-out"
-            classNames={"top-10 -left-24 w-max"}
-            children={
-              <div className="flex w-52 flex-col rounded-[16px] bg-white p-2 shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none">
-                {availablePortals.map((portal) => {
-                  const isActive = activePortal?.id === portal.id;
-                  return (
-                    <button
-                      key={portal.id}
-                      type="button"
-                      onClick={() => handlePortalSwitch(portal)}
-                      className={`rounded-xl px-3 py-2 text-left text-sm transition ${
-                        isActive
-                          ? "bg-lightPrimary font-semibold text-navy-700 dark:bg-navy-600 dark:text-white"
-                          : "text-gray-700 hover:bg-lightPrimary dark:text-gray-200 dark:hover:bg-navy-600"
-                      }`}
-                    >
-                      <span className="whitespace-nowrap">{portal.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            }
-          />
-        ) : null}
-        <div
-          className="cursor-pointer text-gray-600"
-          onClick={toggleDarkMode}
-        >
-          {isDarkMode ? (
-            <RiSunFill className="h-4 w-4 text-gray-600 dark:text-white" />
-          ) : (
-            <RiMoonFill className="h-4 w-4 text-gray-600 dark:text-white" />
-          )}
-        </div>
-        {/* Profile & Dropdown */}
-        <Dropdown
-          button={
-            <img
-              className="h-10 w-10 rounded-full object-cover"
-              src={avatarUrl}
-              alt={displayName}
-              onError={(e) => {
-                e.target.src = avatarDefault;
-              }}
-            />
-          }
-          children={
-            <div className="flex w-56 flex-col justify-start rounded-[20px] bg-white bg-cover bg-no-repeat shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none">
-              <div className="p-4">
-                <div className="flex items-center gap-2">
-                  <div>
-                    <p className="text-sm font-bold text-navy-700 dark:text-white">
-                      {displayName}
+            <Dropdown
+              button={
+                <p className="cursor-pointer">
+                  <IoMdNotificationsOutline className="h-4 w-4 text-gray-600 dark:text-white" />
+                </p>
+              }
+              animation="origin-[65%_0%] md:origin-top-right transition-all duration-300 ease-in-out"
+              children={
+                <div className="flex w-[360px] flex-col gap-3 rounded-[20px] bg-white p-4 shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none sm:w-[460px]">
+                  <div className="flex items-center justify-between">
+                    <p className="text-base font-bold text-navy-700 dark:text-white">
+                      Notification
                     </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      {email}
+                    <p className="text-sm font-bold text-navy-700 dark:text-white">
+                      Mark all read
                     </p>
                   </div>
-                </div>
-              </div>
-              <div className="h-px w-full bg-gray-200 dark:bg-white/20 " />
 
-              <div className="flex flex-col p-4">
-                <Link
-                  to={profilePath}
-                  className="text-sm text-gray-800 dark:text-white hover:dark:text-white"
-                >
-                  Profile Settings
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="mt-3 text-sm font-medium text-red-500 transition duration-150 ease-out hover:text-red-600 hover:ease-in"
-                >
-                  Log Out
-                </button>
-              </div>
+                  <button className="flex w-full items-center">
+                    <div className="flex h-full w-[85px] items-center justify-center rounded-xl bg-gradient-to-b from-brandLinear to-brand-500 py-4 text-2xl text-white">
+                      <BsArrowBarUp />
+                    </div>
+                    <div className="ml-2 flex h-full w-full flex-col justify-center rounded-lg px-1 text-sm">
+                      <p className="mb-1 text-left text-base font-bold text-gray-900 dark:text-white">
+                        New Update: An asset reassignment has been made
+                      </p>
+                      <p className="font-base text-left text-xs text-gray-900 dark:text-white">
+                        Check and confirm it now!
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              }
+              classNames={"py-2 top-8 -left-[230px] md:-left-[440px] w-max"}
+            />
+            <LanguageSwitcher className="" />
+            {hasPortalAccess ? (
+              <Dropdown
+                button={
+                  <div className="flex cursor-pointer items-center gap-1 rounded-xl bg-lightPrimary px-3 py-2 text-xs font-medium text-navy-700 dark:bg-navy-900 dark:text-white">
+                    <span className="whitespace-nowrap">{activePortal?.name || "Portal"}</span>
+                    <MdKeyboardArrowDown className="h-4 w-4" />
+                  </div>
+                }
+                animation="origin-[90%_0%] md:origin-top-right transition-all duration-300 ease-in-out"
+                classNames={"top-10 -left-24 w-max"}
+                children={
+                  <div className="flex w-52 flex-col rounded-[16px] bg-white p-2 shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none">
+                    {availablePortals.map((portal) => {
+                      const isActive = activePortal?.id === portal.id;
+                      return (
+                        <button
+                          key={portal.id}
+                          type="button"
+                          onClick={() => handlePortalSwitch(portal)}
+                          className={`rounded-xl px-3 py-2 text-left text-sm transition ${
+                            isActive
+                              ? "bg-lightPrimary font-semibold text-navy-700 dark:bg-navy-600 dark:text-white"
+                              : "text-gray-700 hover:bg-lightPrimary dark:text-gray-200 dark:hover:bg-navy-600"
+                          }`}
+                        >
+                          <span className="whitespace-nowrap">{portal.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                }
+              />
+            ) : null}
+            <div className="cursor-pointer text-gray-600" onClick={toggleDarkMode}>
+              {isDarkMode ? (
+                <RiSunFill className="h-4 w-4 text-gray-600 dark:text-white" />
+              ) : (
+                <RiMoonFill className="h-4 w-4 text-gray-600 dark:text-white" />
+              )}
             </div>
-          }
-          classNames={"py-2 top-8 -left-[180px] w-max"}
-        />
+            <Dropdown
+              button={
+                <img
+                  className="h-10 w-10 rounded-full object-cover"
+                  src={avatarUrl}
+                  alt={displayName}
+                  onError={(e) => {
+                    e.target.src = avatarDefault;
+                  }}
+                />
+              }
+              children={
+                <div className="flex w-56 flex-col justify-start rounded-[20px] bg-white bg-cover bg-no-repeat shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none">
+                  <div className="p-4">
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <p className="text-sm font-bold text-navy-700 dark:text-white">
+                          {displayName}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          {email}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="h-px w-full bg-gray-200 dark:bg-white/20 " />
+
+                  <div className="flex flex-col p-4">
+                    <Link
+                      to={profilePath}
+                      className="text-sm text-gray-800 dark:text-white hover:dark:text-white"
+                    >
+                      Profile Settings
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="mt-3 text-sm font-medium text-red-500 transition duration-150 ease-out hover:text-red-600 hover:ease-in"
+                    >
+                      Log Out
+                    </button>
+                  </div>
+                </div>
+              }
+              classNames={"py-2 top-8 -left-[180px] w-max"}
+            />
+          </div>
+        </div>
       </div>
     </nav>
   );

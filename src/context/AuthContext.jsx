@@ -92,16 +92,7 @@ export const AuthProvider = ({ children }) => {
         console.log("API scopes from env:", process.env.REACT_APP_API_SCOPES);
         console.log("ID token claims:", account.idTokenClaims);
         console.log("=========================");
-        
-        // FORCE CONSENT: Request API token immediately to trigger consent flow
-        try {
-          console.log("Requesting API consent on login...");
-          await acquireTokenForApi(true); // true = force interactive popup
-          console.log("API consent successful");
-        } catch (error) {
-          console.warn("API consent request failed:", error.message);
-          // Don't block login even if consent fails
-        }
+
 
         // Fetch detailed profile from Microsoft Graph
         try {

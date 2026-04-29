@@ -73,8 +73,8 @@ export default function Table({
   };
 
   return (
-    <div className="w-full h-full flex flex-col border rounded shadow-sm bg-white dark:bg-gray-800 dark:border-gray-700">
-      <div style={{ flex: "1 1 auto", height }} className="overflow-auto">
+    <div className="w-full flex flex-col border rounded shadow-sm bg-white dark:bg-gray-800 dark:border-gray-700">
+      <div style={{ flex: "1 1 auto", maxHeight: height }} className="overflow-auto">
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b dark:border-gray-700">
