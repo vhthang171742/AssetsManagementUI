@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { sparePartService } from "services/api";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete, MdWarning } from "react-icons/md";
@@ -10,6 +10,8 @@ export default function SparePartsTable() {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [activeFilter, setActiveFilter] = useState("");
   const [formData, setFormData] = useState({
     partName: "",
     partCode: "",
@@ -122,9 +124,18 @@ export default function SparePartsTable() {
     });
   };
 
+  const filteredParts = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    return parts.filter((p) => {
+      const matchesSearch = !query || p.partName?.toLowerCase().includes(query) || p.partCode?.toLowerCase().includes(query) || p.manufacturer?.toLowerCase().includes(query);
+      const matchesActive = !activeFilter || String(p.isActive) === activeFilter;
+      return matchesSearch && matchesActive;
+    });
+  }, [parts, searchText, activeFilter]);
+
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-      <div className="flex items-center">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <button
           onClick={() => {
             setEditingId(null);
@@ -135,13 +146,31 @@ export default function SparePartsTable() {
         >
           Add Spare Part
         </button>
+        <div className="flex flex-col gap-2 sm:flex-row md:max-w-lg">
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Search code, name, manufacturer"
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          />
+          <select
+            value={activeFilter}
+            onChange={(e) => setActiveFilter(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">All Statuses</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
       </div>
 
       {loading ? (
         <div className="text-center py-8">Loading...</div>
       ) : (
         <Table
-          data={parts}
+          data={filteredParts}
           pageSize={10}
           onBulkDelete={handleBulkDelete}
           selectable={true}

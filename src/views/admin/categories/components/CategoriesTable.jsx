@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { assetCategoryService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
@@ -10,6 +10,7 @@ export default function CategoriesTable() {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [searchText, setSearchText] = useState("");
   const [formData, setFormData] = useState({
     categoryName: "",
     description: "",
@@ -98,9 +99,18 @@ export default function CategoriesTable() {
     }
   };
 
+  const filteredCategories = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    return categories.filter((c) =>
+      !query ||
+      c.categoryName?.toLowerCase().includes(query) ||
+      c.description?.toLowerCase().includes(query)
+    );
+  }, [categories, searchText]);
+
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-      <div className="flex items-center">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <button
           onClick={() => {
             setEditingId(null);
@@ -114,13 +124,20 @@ export default function CategoriesTable() {
         >
           Add Category
         </button>
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          placeholder="Search name, description"
+          className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white md:w-64"
+        />
       </div>
 
       {loading ? (
         <div className="text-center py-8">Loading...</div>
       ) : (
         <Table
-          data={categories}
+          data={filteredCategories}
           pageSize={10}
           onBulkDelete={handleBulkDelete}
           selectable={true}

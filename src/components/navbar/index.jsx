@@ -12,6 +12,7 @@ import { MdClose, MdKeyboardArrowDown } from "react-icons/md";
 import { IoMdNotificationsOutline } from "react-icons/io";
 import { useAuth } from "context/AuthContext";
 import LanguageSwitcher from "components/languageSwitcher/LanguageSwitcher";
+import GlobalSearch from "components/navbar/GlobalSearch";
 
 const Navbar = (props) => {
   const {
@@ -119,29 +120,19 @@ const Navbar = (props) => {
                 >
                   <MdClose className="h-4 w-4" />
                 </button>
-                <div className="flex h-9 min-w-0 flex-1 items-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white">
-                  <p className="pl-3 pr-2 text-xl">
-                    <FiSearch className="h-4 w-4 text-gray-400 dark:text-white" />
-                  </p>
-                  <input
-                    autoFocus
-                    type="text"
-                    placeholder="Search..."
-                    className="block h-full w-full rounded-full bg-lightPrimary pr-3 text-sm font-medium text-navy-700 outline-none placeholder:!text-gray-400 dark:bg-navy-900 dark:text-white dark:placeholder:!text-white"
-                  />
-                </div>
+                <GlobalSearch
+                  className="min-w-0 flex-1"
+                  inputClassName="w-full"
+                  placeholder="Search pages..."
+                  autoFocus
+                  onClose={() => setSearchOpen(false)}
+                />
               </div>
             ) : null}
-            <div className={`h-9 min-w-0 items-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white ${showSidebarToggle ? "hidden sm:flex w-[145px] md:w-[175px] xl:w-[210px]" : isVerySmallScreen ? "hidden" : "flex flex-1"}`}>
-              <p className="pl-3 pr-2 text-xl">
-                <FiSearch className="h-4 w-4 text-gray-400 dark:text-white" />
-              </p>
-              <input
-                type="text"
-                placeholder="Search..."
-                className="block h-full w-full rounded-full bg-lightPrimary pr-3 text-sm font-medium text-navy-700 outline-none placeholder:!text-gray-400 dark:bg-navy-900 dark:text-white dark:placeholder:!text-white"
-              />
-            </div>
+            <GlobalSearch
+              className={`min-w-0 ${showSidebarToggle ? "hidden sm:block w-[145px] md:w-[175px] xl:w-[210px]" : isVerySmallScreen ? "hidden" : "flex-1"}`}
+              placeholder="Search pages..."
+            />
             <button
               type="button"
               className={`h-9 w-9 items-center justify-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white ${searchOpen ? "hidden" : showSidebarToggle ? "flex sm:hidden" : isVerySmallScreen ? "flex" : "hidden"}`}

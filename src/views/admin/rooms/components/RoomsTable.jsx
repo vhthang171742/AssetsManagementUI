@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { roomService, departmentService, assetService } from "services/api";
 import { dropdownService } from "services/dropdownService";
 import Card from "components/card";
@@ -20,6 +20,8 @@ export default function RoomsTable() {
   const [roomAssets, setRoomAssets] = useState([]);
   const [allAssets, setAllAssets] = useState([]);
   const [conditions, setConditions] = useState([]);
+  const [searchText, setSearchText] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
   const [formData, setFormData] = useState({
     departmentID: "",
     roomName: "",
@@ -222,11 +224,20 @@ export default function RoomsTable() {
     return asset ? asset.assetName : "Unknown";
   };
 
+  const filteredRooms = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    return rooms.filter((r) => {
+      const matchesSearch = !query || r.roomName?.toLowerCase().includes(query) || r.description?.toLowerCase().includes(query);
+      const matchesDept = !departmentFilter || String(r.departmentID) === departmentFilter;
+      return matchesSearch && matchesDept;
+    });
+  }, [rooms, searchText, departmentFilter]);
+
   return (
     <>
       <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
         <div className="flex flex-col h-full">
-          <div className="flex items-center">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <button
               onClick={() => {
                 setEditingId(null);
@@ -241,6 +252,25 @@ export default function RoomsTable() {
             >
               Add Room
             </button>
+            <div className="flex flex-col gap-2 sm:flex-row md:max-w-lg">
+              <input
+                type="text"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Search name, description"
+                className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+              <select
+                value={departmentFilter}
+                onChange={(e) => setDepartmentFilter(e.target.value)}
+                className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">All Departments</option>
+                {departments.map((d) => (
+                  <option key={d.departmentID} value={d.departmentID}>{d.departmentName}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {loading ? (
@@ -248,7 +278,7 @@ export default function RoomsTable() {
           ) : (
             <div className="flex-1 min-h-0">
               <Table
-                data={rooms}
+                data={filteredRooms}
                 pageSize={10}
                 height={"100%"}
                 onBulkDelete={handleBulkDelete}

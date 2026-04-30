@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { getAllUsers, assignRole, removeRole, updateUserCode } from "services/userService";
 import Card from "components/card";
 import Table from "components/table/Table";
@@ -10,6 +10,7 @@ export default function UsersTable() {
   const [loading, setLoading] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [showCodeModal, setShowCodeModal] = useState(false);
+  const [searchText, setSearchText] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   const [roleFormData, setRoleFormData] = useState({
     role: "Student",
@@ -103,14 +104,34 @@ export default function UsersTable() {
     setShowCodeModal(true);
   };
 
+  const filteredUsers = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    return users.filter((u) =>
+      !query ||
+      u.fullName?.toLowerCase().includes(query) ||
+      u.email?.toLowerCase().includes(query) ||
+      u.departmentName?.toLowerCase().includes(query)
+    );
+  }, [users, searchText]);
+
   return (
     <>
       <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div />
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Search name, email, department"
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white md:w-72"
+          />
+        </div>
         {loading ? (
           <div className="text-center py-8">Loading...</div>
         ) : (
           <Table
-            data={users}
+            data={filteredUsers}
             pageSize={10}
             selectable={false}
             columns={[

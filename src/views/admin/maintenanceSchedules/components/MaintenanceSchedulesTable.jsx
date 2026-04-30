@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { maintenanceScheduleService, assetService } from "services/api";
 import { dropdownService } from "services/dropdownService";
 import Table from "components/table/Table";
@@ -13,6 +13,10 @@ export default function MaintenanceSchedulesTable() {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [assetFilter, setAssetFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [activeFilter, setActiveFilter] = useState("");
   const [formData, setFormData] = useState({
     assetID: "",
     maintenanceTypeItemID: "",
@@ -150,9 +154,21 @@ export default function MaintenanceSchedulesTable() {
     return type ? type.label : "Unknown";
   };
 
+  const filteredSchedules = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    return schedules.filter((s) => {
+      const assetName = assets.find((a) => a.assetID === s.assetID)?.assetName || "";
+      const matchesSearch = !query || assetName.toLowerCase().includes(query) || s.description?.toLowerCase().includes(query);
+      const matchesAsset = !assetFilter || String(s.assetID) === assetFilter;
+      const matchesType = !typeFilter || String(s.maintenanceTypeItemID) === typeFilter;
+      const matchesActive = !activeFilter || String(s.isActive) === activeFilter;
+      return matchesSearch && matchesAsset && matchesType && matchesActive;
+    });
+  }, [schedules, assets, searchText, assetFilter, typeFilter, activeFilter]);
+
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-      <div className="flex items-center">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <button
           onClick={() => {
             setEditingId(null);
@@ -163,13 +179,51 @@ export default function MaintenanceSchedulesTable() {
         >
           Add Maintenance Schedule
         </button>
+        <div className="flex flex-col gap-2 sm:flex-row md:max-w-3xl">
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Search asset, description"
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          />
+          <select
+            value={assetFilter}
+            onChange={(e) => setAssetFilter(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">All Assets</option>
+            {assets.map((a) => (
+              <option key={a.assetID} value={a.assetID}>{a.assetName}</option>
+            ))}
+          </select>
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">All Types</option>
+            {maintenanceTypes.map((t) => (
+              <option key={t.itemID} value={t.itemID}>{t.label}</option>
+            ))}
+          </select>
+          <select
+            value={activeFilter}
+            onChange={(e) => setActiveFilter(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">All Statuses</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
       </div>
 
       {loading ? (
         <div className="text-center py-8">Loading...</div>
       ) : (
         <Table
-          data={schedules}
+          data={filteredSchedules}
           pageSize={10}
           onBulkDelete={handleBulkDelete}
           selectable={true}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { maintenanceRecordService, assetService, userService } from "services/api";
 import { dropdownService } from "services/dropdownService";
 import Table from "components/table/Table";
@@ -16,6 +16,10 @@ export default function MaintenanceRecordsTable() {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [assetFilter, setAssetFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [formData, setFormData] = useState({
     assetID: "",
     scheduleID: null,
@@ -212,9 +216,22 @@ export default function MaintenanceRecordsTable() {
     return tech ? tech.fullName : "Unknown";
   };
 
+  const filteredRecords = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    return records.filter((r) => {
+      const assetName = assets.find((a) => a.assetID === r.assetID)?.assetName || "";
+      const techName = technicians.find((t) => t.technicianID === r.technicianID)?.fullName || "";
+      const matchesSearch = !query || assetName.toLowerCase().includes(query) || r.rootCause?.toLowerCase().includes(query) || techName.toLowerCase().includes(query);
+      const matchesAsset = !assetFilter || String(r.assetID) === assetFilter;
+      const matchesType = !typeFilter || String(r.maintenanceTypeItemID) === typeFilter;
+      const matchesStatus = !statusFilter || String(r.completionStatusItemID) === statusFilter;
+      return matchesSearch && matchesAsset && matchesType && matchesStatus;
+    });
+  }, [records, assets, technicians, searchText, assetFilter, typeFilter, statusFilter]);
+
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-      <div className="flex items-center">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <button
           onClick={() => {
             setEditingId(null);
@@ -225,13 +242,52 @@ export default function MaintenanceRecordsTable() {
         >
           Add Maintenance Record
         </button>
+        <div className="flex flex-col gap-2 sm:flex-row md:max-w-3xl">
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Search asset, technician, root cause"
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          />
+          <select
+            value={assetFilter}
+            onChange={(e) => setAssetFilter(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">All Assets</option>
+            {assets.map((a) => (
+              <option key={a.assetID} value={a.assetID}>{a.assetName}</option>
+            ))}
+          </select>
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">All Types</option>
+            {maintenanceTypes.map((t) => (
+              <option key={t.itemID} value={t.itemID}>{t.label}</option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">All Completion Statuses</option>
+            {completionStatuses.map((s) => (
+              <option key={s.itemID} value={s.itemID}>{s.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {loading ? (
         <div className="text-center py-8">Loading...</div>
       ) : (
         <Table
-          data={records}
+          data={filteredRecords}
           pageSize={10}
           onBulkDelete={handleBulkDelete}
           selectable={true}

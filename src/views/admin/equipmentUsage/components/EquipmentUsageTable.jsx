@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { equipmentUsageService, userService, roomService, productionLineService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
@@ -13,6 +13,8 @@ export default function EquipmentUsageTable() {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [lineFilter, setLineFilter] = useState("");
   const [formData, setFormData] = useState({
     roomAssetID: "",
     workerID: "",
@@ -235,9 +237,20 @@ export default function EquipmentUsageTable() {
     },
   ];
 
+  const filteredLogs = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    return usageLogs.filter((log) => {
+      const workerName = workers.find((w) => w.workerRole?.workerID === log.workerID)?.fullName || "";
+      const assetName = equipment.find((e) => e.roomAssetID === log.roomAssetID)?.assetName || "";
+      const matchesSearch = !query || workerName.toLowerCase().includes(query) || assetName.toLowerCase().includes(query);
+      const matchesLine = !lineFilter || String(log.productionLineID) === lineFilter;
+      return matchesSearch && matchesLine;
+    });
+  }, [usageLogs, workers, equipment, searchText, lineFilter]);
+
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-      <div className="flex items-center">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <button
           onClick={() => {
             setFormData({
@@ -258,6 +271,25 @@ export default function EquipmentUsageTable() {
         >
           Log Equipment Usage
         </button>
+        <div className="flex flex-col gap-2 sm:flex-row md:max-w-lg">
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Search worker, equipment"
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          />
+          <select
+            value={lineFilter}
+            onChange={(e) => setLineFilter(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">All Production Lines</option>
+            {lines.map((l) => (
+              <option key={l.productionLineID} value={l.productionLineID}>{l.lineName}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {loading ? (
@@ -265,7 +297,7 @@ export default function EquipmentUsageTable() {
       ) : (
         <Table
           columns={columns}
-          data={usageLogs}
+          data={filteredLogs}
           onBulkDelete={handleBulkDelete}
         />
       )}

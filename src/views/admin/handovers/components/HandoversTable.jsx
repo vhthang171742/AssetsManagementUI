@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { handoverService, roomService, assetService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
@@ -15,6 +15,8 @@ export default function HandoversTable() {
   const [editingId, setEditingId] = useState(null);
   const [selectedHandoverId, setSelectedHandoverId] = useState(null);
   const [handoverDetails, setHandoverDetails] = useState([]);
+  const [searchText, setSearchText] = useState("");
+  const [roomFilter, setRoomFilter] = useState("");
   const [formData, setFormData] = useState({
     roomID: "",
     handoverDate: "",
@@ -211,10 +213,19 @@ export default function HandoversTable() {
     return new Date(dateString).toLocaleDateString();
   };
 
+  const filteredHandovers = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    return handovers.filter((h) => {
+      const matchesSearch = !query || h.deliveredBy?.toLowerCase().includes(query) || h.receivedBy?.toLowerCase().includes(query) || h.notes?.toLowerCase().includes(query);
+      const matchesRoom = !roomFilter || String(h.roomID) === roomFilter;
+      return matchesSearch && matchesRoom;
+    });
+  }, [handovers, searchText, roomFilter]);
+
   return (
     <>
       <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-        <div className="flex items-center">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <button
             onClick={() => {
               setEditingId(null);
@@ -231,13 +242,32 @@ export default function HandoversTable() {
           >
             Create Handover
           </button>
+          <div className="flex flex-col gap-2 sm:flex-row md:max-w-lg">
+            <input
+              type="text"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Search delivered by, received by"
+              className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            />
+            <select
+              value={roomFilter}
+              onChange={(e) => setRoomFilter(e.target.value)}
+              className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            >
+              <option value="">All Rooms</option>
+              {rooms.map((r) => (
+                <option key={r.roomID} value={r.roomID}>{r.roomName}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {loading ? (
           <div className="text-center py-8">Loading...</div>
         ) : (
           <Table
-            data={handovers}
+            data={filteredHandovers}
             pageSize={10}
             onBulkDelete={handleBulkDelete}
             selectable={true}

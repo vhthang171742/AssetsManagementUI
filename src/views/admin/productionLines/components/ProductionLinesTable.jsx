@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { productionLineService, departmentService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
@@ -11,6 +11,9 @@ export default function ProductionLinesTable() {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
+  const [activeFilter, setActiveFilter] = useState("");
   const [formData, setFormData] = useState({
     departmentID: "",
     lineName: "",
@@ -171,9 +174,19 @@ export default function ProductionLinesTable() {
     },
   ];
 
+  const filteredLines = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    return lines.filter((l) => {
+      const matchesSearch = !query || l.lineName?.toLowerCase().includes(query) || l.lineCode?.toLowerCase().includes(query) || l.orderCode?.toLowerCase().includes(query);
+      const matchesDept = !departmentFilter || String(l.departmentID) === departmentFilter;
+      const matchesActive = !activeFilter || String(l.isActive) === activeFilter;
+      return matchesSearch && matchesDept && matchesActive;
+    });
+  }, [lines, searchText, departmentFilter, activeFilter]);
+
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-      <div className="flex items-center">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <button
           onClick={() => {
             setFormData({
@@ -191,6 +204,34 @@ export default function ProductionLinesTable() {
         >
           Add Production Line
         </button>
+        <div className="flex flex-col gap-2 sm:flex-row md:max-w-2xl">
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Search name, code"
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          />
+          <select
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">All Departments</option>
+            {departments.map((d) => (
+              <option key={d.departmentID} value={d.departmentID}>{d.departmentName}</option>
+            ))}
+          </select>
+          <select
+            value={activeFilter}
+            onChange={(e) => setActiveFilter(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">All Statuses</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
       </div>
 
       {loading ? (
@@ -198,7 +239,7 @@ export default function ProductionLinesTable() {
       ) : (
         <Table
           columns={columns}
-          data={lines}
+          data={filteredLines}
           onBulkDelete={handleBulkDelete}
         />
       )}

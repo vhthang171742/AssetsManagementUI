@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { classService, courseService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
@@ -12,6 +12,9 @@ export default function ClassesTable() {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [courseFilter, setCourseFilter] = useState("");
+  const [activeFilter, setActiveFilter] = useState("");
   const [formData, setFormData] = useState({
     className: "",
     classCode: "",
@@ -188,9 +191,19 @@ export default function ClassesTable() {
     },
   ];
 
+  const filteredClasses = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    return classes.filter((c) => {
+      const matchesSearch = !query || c.className?.toLowerCase().includes(query) || c.classCode?.toLowerCase().includes(query);
+      const matchesCourse = !courseFilter || String(c.courseID) === courseFilter;
+      const matchesActive = !activeFilter || String(c.isActive) === activeFilter;
+      return matchesSearch && matchesCourse && matchesActive;
+    });
+  }, [classes, searchText, courseFilter, activeFilter]);
+
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-      <div className="flex items-center">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <button
           onClick={() => {
             setEditingId(null);
@@ -211,11 +224,39 @@ export default function ClassesTable() {
         >
           Add Class
         </button>
+        <div className="flex flex-col gap-2 sm:flex-row md:max-w-2xl">
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Search name, code"
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          />
+          <select
+            value={courseFilter}
+            onChange={(e) => setCourseFilter(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">All Courses</option>
+            {courses.map((c) => (
+              <option key={c.courseID} value={c.courseID}>{c.courseName}</option>
+            ))}
+          </select>
+          <select
+            value={activeFilter}
+            onChange={(e) => setActiveFilter(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">All Statuses</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
       </div>
 
       <Table
         columns={columns}
-        data={classes}
+        data={filteredClasses}
         actions={actions}
         loading={loading}
         onBulkDelete={handleBulkDelete}

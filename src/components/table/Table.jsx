@@ -14,6 +14,7 @@ export default function Table({
   columns = [],
   data = [],
   pageSize = 10,
+  pageSizeOptions = [10, 20, 50],
   height = "100%",
   onBulkDelete,
   selectable = true,
@@ -21,6 +22,11 @@ export default function Table({
 }) {
   const [selected, setSelected] = useState(new Set());
   const [page, setPage] = useState(1);
+  const [currentPageSize, setCurrentPageSize] = useState(pageSize);
+
+  useEffect(() => {
+    setCurrentPageSize(pageSize);
+  }, [pageSize]);
 
   useEffect(() => {
     // reset selection when data changes
@@ -28,12 +34,12 @@ export default function Table({
     setPage(1);
   }, [data]);
 
-  const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(data.length / currentPageSize));
 
   const pageData = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return data.slice(start, start + pageSize);
-  }, [data, page, pageSize]);
+    const start = (page - 1) * currentPageSize;
+    return data.slice(start, start + currentPageSize);
+  }, [data, page, currentPageSize]);
 
   const allSelectedOnPage = pageData.length > 0 && pageData.every((r) => selected.has(r[idField]));
 
@@ -138,6 +144,23 @@ export default function Table({
         </div>
 
         <div className="flex items-center space-x-2">
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            Rows
+            <select
+              value={currentPageSize}
+              onChange={(e) => {
+                setCurrentPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="rounded border px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            >
+              {pageSizeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
           <div className="text-sm text-gray-600 dark:text-gray-400">Page {page} / {totalPages}</div>
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
