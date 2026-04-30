@@ -15,6 +15,9 @@ export default function AssetsTable() {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [formData, setFormData] = useState({
     assetCode: "",
     assetName: "",
@@ -169,9 +172,27 @@ export default function AssetsTable() {
     return countries;
   }, [formData.countryOfOrigin]);
 
+  const filteredAssets = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+
+    return assets.filter((asset) => {
+      const matchesSearch =
+        !query ||
+        asset.assetCode?.toLowerCase().includes(query) ||
+        asset.assetName?.toLowerCase().includes(query) ||
+        asset.brand?.toLowerCase().includes(query) ||
+        asset.model?.toLowerCase().includes(query);
+
+      const matchesStatus = !statusFilter || asset.status === statusFilter;
+      const matchesCategory = !categoryFilter || String(asset.categoryID) === categoryFilter;
+
+      return matchesSearch && matchesStatus && matchesCategory;
+    });
+  }, [assets, categoryFilter, searchText, statusFilter]);
+
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-      <div className="flex items-center">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <button
           onClick={() => {
             setEditingId(null);
@@ -196,13 +217,47 @@ export default function AssetsTable() {
         >
           Add Asset
         </button>
+
+        <div className="grid w-full gap-2 sm:grid-cols-3 md:max-w-3xl">
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Search code, name, brand, model"
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          />
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">All Categories</option>
+            {categories.map((cat) => (
+              <option key={cat.categoryID} value={cat.categoryID}>
+                {cat.categoryName}
+              </option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">All Statuses</option>
+            {statuses.map((status) => (
+              <option key={status.itemCode} value={status.itemCode}>
+                {status.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {loading ? (
         <div className="text-center py-8">Loading...</div>
       ) : (
         <Table
-          data={assets}
+          data={filteredAssets}
           pageSize={10}
           onBulkDelete={handleBulkDelete}
           selectable={true}
