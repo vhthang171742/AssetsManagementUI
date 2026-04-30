@@ -124,7 +124,7 @@ export default function SparePartsTable() {
 
   return (
     <Card extra={"w-full h-full sm:overflow-auto px-2 sm:px-0"}>
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex items-center">
         <button
           onClick={() => {
             setEditingId(null);

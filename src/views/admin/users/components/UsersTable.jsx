@@ -106,15 +106,6 @@ export default function UsersTable() {
   return (
     <>
       <Card extra={"w-full h-full sm:overflow-auto px-2 sm:px-0"}>
-        <header className="relative flex items-center justify-between p-4">
-          <div className="text-xl font-bold text-navy-700 dark:text-white">
-            User Management (JIT Provisioning)
-          </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Users are auto-created on first login via Azure AD
-          </div>
-        </header>
-
         {loading ? (
           <div className="text-center py-8">Loading...</div>
         ) : (

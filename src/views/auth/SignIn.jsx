@@ -45,7 +45,6 @@ export default function SignIn() {
     try {
       await instance.loginRedirect({
         ...loginRequest,
-        prompt: "consent",
       });
       // Note: After redirect, the user will be returned to the app by MsalProvider
       // No need to navigate here as the redirect will handle the return
@@ -59,7 +58,6 @@ export default function SignIn() {
         try {
           await instance.loginPopup({
             ...loginRequest,
-            prompt: "consent",
           });
           navigate("/", { replace: true });
           return;

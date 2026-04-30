@@ -44,6 +44,7 @@ const Navbar = (props) => {
     availablePortals.find((portal) => location.pathname.startsWith(portal.path)) ||
     availablePortals.find((portal) => portal.id === selectedPortalId) ||
     availablePortals[0];
+  const compactPortalLabel = activePortal?.name?.replace(/\s+Portal$/i, "") || "Portal";
 
   const handlePortalSwitch = (portal) => {
     setSelectedPortal(portal.id);
@@ -69,9 +70,9 @@ const Navbar = (props) => {
           <div className="w-0" />
         )}
 
-        <div className="flex min-w-0 w-full justify-end">
-          <div className="relative flex min-w-0 max-w-full flex-nowrap items-center justify-end gap-1.5 rounded-[26px] bg-white px-2 py-1.5 shadow-xl shadow-shadow-500 dark:!bg-navy-800 dark:shadow-none md:min-w-[430px] xl:min-w-[500px]">
-            <div className="flex h-9 min-w-0 w-[145px] items-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white md:w-[175px] xl:w-[210px]">
+        <div className={`flex min-w-0 w-full ${showSidebarToggle ? "justify-end" : ""}`}>
+          <div className={`relative flex min-w-0 max-w-full items-center justify-end gap-1 rounded-[26px] bg-white px-2 py-1.5 shadow-xl shadow-shadow-500 dark:!bg-navy-800 dark:shadow-none sm:gap-1.5 ${showSidebarToggle ? "md:min-w-[430px] xl:min-w-[500px]" : "w-full"}`}>
+            <div className={`hidden h-9 min-w-0 items-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white md:flex ${showSidebarToggle ? "w-[145px] md:w-[175px] xl:w-[210px]" : "flex-1"}`}>
               <p className="pl-3 pr-2 text-xl">
                 <FiSearch className="h-4 w-4 text-gray-400 dark:text-white" />
               </p>
@@ -81,6 +82,13 @@ const Navbar = (props) => {
                 className="block h-full w-full rounded-full bg-lightPrimary pr-3 text-sm font-medium text-navy-700 outline-none placeholder:!text-gray-400 dark:bg-navy-900 dark:text-white dark:placeholder:!text-white"
               />
             </div>
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white md:hidden"
+              aria-label="Search"
+            >
+              <FiSearch className="h-4 w-4 text-gray-400 dark:text-white" />
+            </button>
             <Dropdown
               button={
                 <p className="cursor-pointer">
@@ -116,12 +124,18 @@ const Navbar = (props) => {
               }
               classNames={"py-2 top-8 -left-[230px] md:-left-[440px] w-max"}
             />
-            <LanguageSwitcher className="" />
+            <div className="hidden sm:block">
+              <LanguageSwitcher className="" />
+            </div>
+            <div className="sm:hidden">
+              <LanguageSwitcher className="max-w-[64px]" />
+            </div>
             {hasPortalAccess ? (
               <Dropdown
                 button={
-                  <div className="flex cursor-pointer items-center gap-1 rounded-xl bg-lightPrimary px-3 py-2 text-xs font-medium text-navy-700 dark:bg-navy-900 dark:text-white">
-                    <span className="whitespace-nowrap">{activePortal?.name || "Portal"}</span>
+                  <div className="flex cursor-pointer items-center gap-1 rounded-xl bg-lightPrimary px-2 py-2 text-xs font-medium text-navy-700 dark:bg-navy-900 dark:text-white sm:px-3">
+                    <span className="hidden whitespace-nowrap sm:inline">{activePortal?.name || "Portal"}</span>
+                    <span className="whitespace-nowrap sm:hidden">{compactPortalLabel}</span>
                     <MdKeyboardArrowDown className="h-4 w-4" />
                   </div>
                 }
@@ -160,7 +174,7 @@ const Navbar = (props) => {
             <Dropdown
               button={
                 <img
-                  className="h-10 w-10 rounded-full object-cover"
+                  className="h-9 w-9 rounded-full object-cover sm:h-10 sm:w-10"
                   src={avatarUrl}
                   alt={displayName}
                   onError={(e) => {

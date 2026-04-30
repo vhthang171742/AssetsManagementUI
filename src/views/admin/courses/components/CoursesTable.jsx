@@ -146,11 +146,8 @@ export default function CoursesTable() {
   ];
 
   return (
-    <Card>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-navy-700 dark:text-white">
-          Courses
-        </h2>
+    <Card extra={"w-full h-full sm:overflow-auto px-2 sm:px-0"}>
+      <div className="flex items-center">
         <button
           onClick={() => {
             setEditingId(null);
@@ -163,9 +160,9 @@ export default function CoursesTable() {
             });
             setShowModal(true);
           }}
-          className="inline-flex items-center justify-center rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+          className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
-          + New Course
+          Add Course
         </button>
       </div>
 

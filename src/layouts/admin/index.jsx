@@ -16,6 +16,12 @@ export default function Admin(props) {
     getActiveRoute(routes);
   }, [location.pathname]);
 
+  React.useEffect(() => {
+    document.title = currentRoute
+      ? `${currentRoute} | Assets Management`
+      : "Assets Management";
+  }, [currentRoute]);
+
   const getActiveRoute = (routes) => {
     let activeRoute = "Dashboard";
     for (let i = 0; i < routes.length; i++) {
@@ -64,8 +70,9 @@ export default function Admin(props) {
         style={{ height: `${HEADER_HEIGHT}px` }}
       >
         <div className="flex h-full items-center justify-between gap-3">
-          <h1 className="truncate text-[24px] font-bold uppercase leading-none tracking-[0.04em] text-navy-700 dark:text-white xl:text-[26px]">
-            Assets Management
+          <h1 className="shrink-0 text-lg font-bold uppercase leading-none tracking-[0.04em] text-navy-700 dark:text-white sm:text-[24px] xl:text-[26px]">
+            <span className="sm:hidden">Assets</span>
+            <span className="hidden sm:inline">Assets Management</span>
           </h1>
           <div className="min-w-0 flex-1">
             <Navbar
@@ -86,7 +93,7 @@ export default function Admin(props) {
           }`}
         >
           <div className="pt-3 mx-auto mb-auto h-full min-h-[84vh] px-2 pb-2">
-            <h2 className="mb-3 truncate text-[26px] font-bold capitalize leading-none text-navy-700 dark:text-white lg:text-[30px]">
+            <h2 className="mb-3 truncate text-[22px] font-bold capitalize leading-none text-navy-700 dark:text-white sm:text-[26px] lg:text-[30px]">
               {currentRoute}
             </h2>
             <Routes>

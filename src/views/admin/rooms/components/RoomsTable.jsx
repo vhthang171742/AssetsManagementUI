@@ -226,7 +226,7 @@ export default function RoomsTable() {
     <>
       <Card extra={"w-full h-[calc(100vh-170px)] overflow-hidden flex flex-col"}>
         <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between p-3 shrink-0">
+          <div className="flex items-center">
             <button
               onClick={() => {
                 setEditingId(null);

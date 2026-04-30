@@ -79,7 +79,7 @@ export default function Table({
           <thead>
             <tr className="border-b dark:border-gray-700">
               {selectable && (
-                <th className="p-2 sticky top-0 bg-white dark:bg-gray-800 z-10">
+                <th className="p-2 sticky top-0 bg-white dark:bg-gray-800 z-10 text-center" style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}>
                   <input type="checkbox" checked={allSelectedOnPage} onChange={toggleSelectAllOnPage} />
                 </th>
               )}
@@ -98,12 +98,11 @@ export default function Table({
             {pageData.map((row) => (
               <tr key={row[idField] || row.id || Math.random()} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                 {selectable && (
-                  <td className="p-2">
+                  <td className="p-2 text-center" style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}>
                     <input
                       type="checkbox"
                       checked={selected.has(row[idField])}
                       onChange={() => toggleSelect(row[idField])}
-                      className="w-full"
                     />
                   </td>
                 )}

@@ -182,12 +182,8 @@ export default function WorkerEquipmentTable() {
   ];
 
   return (
-    <Card extra={"w-full sm:overflow-auto"}>
-      <div className="relative flex items-center justify-between">
-        <div className="flex items-center text-xl font-bold text-navy-700 dark:text-white">
-          Worker Equipment Assignments
-        </div>
-
+    <Card extra={"w-full h-full sm:overflow-auto px-2 sm:px-0"}>
+      <div className="flex items-center">
         <button
           onClick={() => {
             setFormData({
@@ -199,7 +195,7 @@ export default function WorkerEquipmentTable() {
             setEditingId(null);
             setShowModal(true);
           }}
-          className="linear rounded-lg bg-blue-500 px-4 py-2 text-white transition duration-200 hover:bg-blue-600 active:bg-blue-700"
+          className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
           Add Assignment
         </button>
