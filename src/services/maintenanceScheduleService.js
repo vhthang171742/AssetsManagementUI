@@ -51,12 +51,19 @@ export const maintenanceScheduleService = {
    * @param {number} id - Schedule ID
    * @returns {Promise<object>} Response
    */
-  delete: (id) => httpClient.delete(`/maintenance-schedules/${id}`),
+  delete: (id) =>
+    httpClient(`/maintenance-schedules/${id}`, {
+      method: "DELETE",
+    }),
 
   /**
    * Bulk delete maintenance schedules
    * @param {number[]} ids - Array of schedule IDs
    * @returns {Promise<object>} Response
    */
-  bulkDelete: (ids) => httpClient.delete("/maintenance-schedules/bulk", { data: ids }),
+  bulkDelete: (ids) =>
+    httpClient("/maintenance-schedules/bulk", {
+      method: "DELETE",
+      body: JSON.stringify(ids),
+    }),
 };

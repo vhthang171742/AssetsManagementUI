@@ -65,8 +65,8 @@ export const productionLineService = {
    * @returns {Promise<object>} Deletion result
    */
   bulkDelete: (ids) =>
-    httpClient("/production-lines/bulk-delete", {
-      method: "POST",
+    httpClient("/production-lines/bulk", {
+      method: "DELETE",
       body: JSON.stringify({ ids }),
     }),
 

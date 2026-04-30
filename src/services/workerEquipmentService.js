@@ -104,8 +104,8 @@ export const workerEquipmentService = {
    * @returns {Promise<object>} Deletion result
    */
   bulkDelete: (ids) =>
-    httpClient("/worker-equipment/bulk-delete", {
-      method: "POST",
+    httpClient("/worker-equipment/bulk", {
+      method: "DELETE",
       body: JSON.stringify({ ids }),
     }),
 };

@@ -61,12 +61,19 @@ export const maintenanceRecordService = {
    * @param {number} id - Record ID
    * @returns {Promise<object>} Response
    */
-  delete: (id) => httpClient.delete(`/maintenance-records/${id}`),
+  delete: (id) =>
+    httpClient(`/maintenance-records/${id}`, {
+      method: "DELETE",
+    }),
 
   /**
    * Bulk delete maintenance records
    * @param {number[]} ids - Array of record IDs
    * @returns {Promise<object>} Response
    */
-  bulkDelete: (ids) => httpClient.delete("/maintenance-records/bulk", { data: ids }),
+  bulkDelete: (ids) =>
+    httpClient("/maintenance-records/bulk", {
+      method: "DELETE",
+      body: JSON.stringify(ids),
+    }),
 };

@@ -64,14 +64,21 @@ export const sparePartService = {
    * @param {number} id - Part ID
    * @returns {Promise<object>} Response
    */
-  delete: (id) => httpClient.delete(`/spare-parts/${id}`),
+  delete: (id) =>
+    httpClient(`/spare-parts/${id}`, {
+      method: "DELETE",
+    }),
 
   /**
    * Bulk delete spare parts
    * @param {number[]} ids - Array of part IDs
    * @returns {Promise<object>} Response
    */
-  bulkDelete: (ids) => httpClient.delete("/spare-parts/bulk", { data: ids }),
+  bulkDelete: (ids) =>
+    httpClient("/spare-parts/bulk", {
+      method: "DELETE",
+      body: JSON.stringify(ids),
+    }),
 
   /**
    * Update stock for a spare part

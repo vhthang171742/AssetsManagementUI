@@ -60,12 +60,19 @@ export const maintenanceSparePartUsageService = {
    * @param {number} id - Usage ID
    * @returns {Promise<object>} Response
    */
-  delete: (id) => httpClient.delete(`/maintenance-spare-part-usages/${id}`),
+  delete: (id) =>
+    httpClient(`/maintenance-spare-part-usages/${id}`, {
+      method: "DELETE",
+    }),
 
   /**
    * Bulk delete maintenance spare part usages
    * @param {number[]} ids - Array of usage IDs
    * @returns {Promise<object>} Response
    */
-  bulkDelete: (ids) => httpClient.delete("/maintenance-spare-part-usages/bulk", { data: ids }),
+  bulkDelete: (ids) =>
+    httpClient("/maintenance-spare-part-usages/bulk", {
+      method: "DELETE",
+      body: JSON.stringify(ids),
+    }),
 };
