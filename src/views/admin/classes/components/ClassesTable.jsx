@@ -225,8 +225,26 @@ export default function ClassesTable() {
         title={editingId ? "Edit Class" : "Create New Class"}
         isOpen={showModal}
         onClose={() => setShowModal(false)}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="inline-flex items-center justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-navy-700 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-900"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="class-form"
+              className="inline-flex items-center justify-center rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+            >
+              {editingId ? "Update" : "Create"}
+            </button>
+          </>
+        }
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form id="class-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
               Class Name *
@@ -345,21 +363,6 @@ export default function ClassesTable() {
             </label>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={() => setShowModal(false)}
-              className="inline-flex items-center justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-navy-700 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-900"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
-            >
-              {editingId ? "Update" : "Create"}
-            </button>
-          </div>
         </form>
       </Modal>
     </Card>

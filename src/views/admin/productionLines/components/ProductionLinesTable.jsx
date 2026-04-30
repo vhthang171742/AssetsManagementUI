@@ -211,10 +211,31 @@ export default function ProductionLinesTable() {
             setEditingId(null);
           }}
           title={editingId ? "Edit Production Line" : "Add Production Line"}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModal(false);
+                  setEditingId(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="production-line-form"
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              >
+                {editingId ? "Update" : "Create"}
+              </button>
+            </>
+          }
         >
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <form id="production-line-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Department
               </label>
               <select
@@ -222,7 +243,7 @@ export default function ProductionLinesTable() {
                 value={formData.departmentID}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
                 <option value="">Select Department</option>
                 {departments.map((dept) => (
@@ -234,7 +255,7 @@ export default function ProductionLinesTable() {
             </div>
 
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Line Name
               </label>
               <input
@@ -243,13 +264,13 @@ export default function ProductionLinesTable() {
                 value={formData.lineName}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder="Enter line name"
               />
             </div>
 
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Line Code
               </label>
               <input
@@ -258,13 +279,13 @@ export default function ProductionLinesTable() {
                 value={formData.lineCode}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder="Enter line code"
               />
             </div>
 
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Order Code
               </label>
               <input
@@ -272,13 +293,13 @@ export default function ProductionLinesTable() {
                 name="orderCode"
                 value={formData.orderCode}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder="Enter order code"
               />
             </div>
 
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Capacity
               </label>
               <input
@@ -286,7 +307,7 @@ export default function ProductionLinesTable() {
                 name="capacity"
                 value={formData.capacity}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder="Enter capacity"
               />
             </div>
@@ -300,28 +321,9 @@ export default function ProductionLinesTable() {
                 onChange={handleInputChange}
                 className="px-3 py-2"
               />
-              <label htmlFor="isActive" className="text-sm font-medium text-gray-700">
+              <label htmlFor="isActive" className="text-sm font-medium text-gray-700 dark:text-white">
                 Active
               </label>
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowModal(false);
-                  setEditingId(null);
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-              >
-                {editingId ? "Update" : "Create"}
-              </button>
             </div>
           </form>
         </Modal>

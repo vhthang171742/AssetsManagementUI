@@ -63,6 +63,17 @@ export const equipmentUsageService = {
     }),
 
   /**
+   * Validate usage references just before submit to catch stale IDs and assignment mismatches.
+   * @param {object} data - Validation payload {roomAssetID, workerID, productionLineID}
+   * @returns {Promise<object>} Validation result with IsValid and Errors
+   */
+  validateReferences: (data) =>
+    httpClient("/equipment-usage/validate-references", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  /**
    * Start equipment usage session
    * @param {object} data - Session start data {roomAssetID, workerID, productionLineID, startTime}
    * @returns {Promise<object>} Usage log with session started

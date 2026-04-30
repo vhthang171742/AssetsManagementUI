@@ -215,8 +215,26 @@ export default function StudentEquipmentAssignmentsTable() {
         title={editingId ? "Edit Assignment" : "Create New Assignment"}
         isOpen={showModal}
         onClose={() => setShowModal(false)}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="inline-flex items-center justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-navy-700 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-900"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="student-assignment-form"
+              className="inline-flex items-center justify-center rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+            >
+              {editingId ? "Update" : "Create"}
+            </button>
+          </>
+        }
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form id="student-assignment-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
               Student ID *
@@ -296,21 +314,6 @@ export default function StudentEquipmentAssignmentsTable() {
             </label>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={() => setShowModal(false)}
-              className="inline-flex items-center justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-navy-700 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-900"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
-            >
-              {editingId ? "Update" : "Create"}
-            </button>
-          </div>
         </form>
       </Modal>
     </Card>

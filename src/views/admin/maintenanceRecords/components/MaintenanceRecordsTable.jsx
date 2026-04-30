@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { maintenanceRecordService, assetService } from "services/api";
+import { maintenanceRecordService, assetService, userService } from "services/api";
 import { dropdownService } from "services/dropdownService";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
@@ -71,8 +71,15 @@ export default function MaintenanceRecordsTable() {
 
   const fetchTechnicians = async () => {
     try {
-      const data = await dropdownService.getTechnicians();
-      setTechnicians(data || []);
+      const data = await userService.getAllUsers();
+      const technicianList =
+        data
+          ?.filter((u) => u.roles?.includes("Technician") && u.technicianRole?.technicianID)
+          .map((u) => ({
+            technicianID: u.technicianRole.technicianID,
+            fullName: u.fullName,
+          })) || [];
+      setTechnicians(technicianList);
     } catch (error) {
       console.error("Failed to fetch technicians:", error);
     }

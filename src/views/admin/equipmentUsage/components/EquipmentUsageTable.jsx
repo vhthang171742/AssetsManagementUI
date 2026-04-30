@@ -47,8 +47,9 @@ export default function EquipmentUsageTable() {
 
   const fetchWorkers = async () => {
     try {
-      const data = await userService.getAll();
-      const workerList = data?.filter((u) => u.userType === "Worker" || !u.userType) || [];
+      const data = await userService.getAllUsers();
+      const workerList =
+        data?.filter((u) => u.roles?.includes("Worker") && u.workerRole?.workerID) || [];
       setWorkers(workerList);
     } catch (error) {
       console.error("Failed to fetch workers:", error);
@@ -89,6 +90,28 @@ export default function EquipmentUsageTable() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const validationPayload = {
+        roomAssetID: Number(formData.roomAssetID),
+        workerID: Number(formData.workerID),
+        productionLineID: Number(formData.productionLineID),
+      };
+      try {
+        const validation = await equipmentUsageService.validateReferences(validationPayload);
+        if (!validation?.isValid) {
+          const details = validation?.errors?.length
+            ? "\n• " + validation.errors.join("\n• ")
+            : "\n• Please refresh and select valid Equipment, Worker, and Production Line values.";
+          alert("Cannot save usage log due to reference validation errors:" + details);
+          return;
+        }
+      } catch (validationError) {
+        if (![404, 405].includes(validationError?.statusCode)) {
+          throw validationError;
+        }
+        // Backward compatibility: continue submit if API hasn't deployed validation endpoint yet.
+        console.warn("Validation endpoint unavailable, continuing with create/update request.");
+      }
+
       if (editingId) {
         await equipmentUsageService.update(editingId, formData);
         alert("Usage log updated successfully");
@@ -112,8 +135,10 @@ export default function EquipmentUsageTable() {
       fetchUsageLogs();
     } catch (error) {
       console.error("Failed to save usage log:", error);
-      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert("Failed to save usage log: " + error.message + details);
+      const details = Array.isArray(error.errors) && error.errors.length
+        ? "\n• " + error.errors.join("\n• ")
+        : "";
+      alert(`Failed to save usage log: ${error.message || "Unknown error"}${details}`);
     }
   };
 
@@ -162,12 +187,12 @@ export default function EquipmentUsageTable() {
     {
       header: "Equipment",
       accessor: (row) =>
-        equipment.find((e) => e.roomAssetID === row.roomAssetID)?.asset?.assetName || "N/A",
+        equipment.find((e) => e.roomAssetID === row.roomAssetID)?.assetName || "N/A",
     },
     {
       header: "Worker",
       accessor: (row) =>
-        workers.find((w) => w.userID === row.workerID)?.displayName || "N/A",
+      workers.find((w) => w.workerRole?.workerID === row.workerID)?.fullName || "N/A",
     },
     {
       header: "Production Line",
@@ -253,10 +278,31 @@ export default function EquipmentUsageTable() {
             setEditingId(null);
           }}
           title={editingId ? "Edit Usage Log" : "Log Equipment Usage"}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModal(false);
+                  setEditingId(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="equipment-usage-form"
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              >
+                {editingId ? "Update" : "Log Usage"}
+              </button>
+            </>
+          }
         >
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <form id="equipment-usage-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Equipment
               </label>
               <select
@@ -264,19 +310,19 @@ export default function EquipmentUsageTable() {
                 value={formData.roomAssetID}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
                 <option value="">Select Equipment</option>
                 {equipment.map((item) => (
                   <option key={item.roomAssetID} value={item.roomAssetID}>
-                    {item.asset?.assetName} ({item.serialNumber})
+                    {item.assetName} ({item.serialNumber})
                   </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Worker
               </label>
               <select
@@ -284,19 +330,19 @@ export default function EquipmentUsageTable() {
                 value={formData.workerID}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
                 <option value="">Select Worker</option>
                 {workers.map((worker) => (
-                  <option key={worker.userID} value={worker.userID}>
-                    {worker.displayName || worker.mail}
+                  <option key={worker.userID} value={worker.workerRole.workerID}>
+                    {worker.fullName || worker.email}
                   </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Production Line
               </label>
               <select
@@ -304,7 +350,7 @@ export default function EquipmentUsageTable() {
                 value={formData.productionLineID}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
                 <option value="">Select Production Line</option>
                 {lines.map((line) => (
@@ -316,7 +362,7 @@ export default function EquipmentUsageTable() {
             </div>
 
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Start Time
               </label>
               <input
@@ -330,12 +376,12 @@ export default function EquipmentUsageTable() {
                   }))
                 }
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               />
             </div>
 
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 End Time (Optional)
               </label>
               <input
@@ -350,12 +396,12 @@ export default function EquipmentUsageTable() {
                       : "",
                   }))
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               />
             </div>
 
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Running Minutes
               </label>
               <input
@@ -363,13 +409,13 @@ export default function EquipmentUsageTable() {
                 name="runningMinutes"
                 value={formData.runningMinutes}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder="e.g., 480"
               />
             </div>
 
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Downtime Minutes
               </label>
               <input
@@ -377,13 +423,13 @@ export default function EquipmentUsageTable() {
                 name="downtimeMinutes"
                 value={formData.downtimeMinutes}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder="e.g., 30"
               />
             </div>
 
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Stitch Count (Optional)
               </label>
               <input
@@ -391,42 +437,23 @@ export default function EquipmentUsageTable() {
                 name="stitchCount"
                 value={formData.stitchCount}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder="e.g., 5000"
               />
             </div>
 
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Notes
               </label>
               <textarea
                 name="notes"
                 value={formData.notes}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder="Add any notes about the usage"
                 rows="3"
               />
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowModal(false);
-                  setEditingId(null);
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-              >
-                {editingId ? "Update" : "Log Usage"}
-              </button>
             </div>
           </form>
         </Modal>

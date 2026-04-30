@@ -40,9 +40,10 @@ export default function WorkerEquipmentTable() {
 
   const fetchWorkers = async () => {
     try {
-      const data = await userService.getAll();
-      // Filter to get only workers if userType exists
-      const workerList = data?.filter((u) => u.userType === "Worker" || !u.userType) || [];
+      const data = await userService.getAllUsers();
+      // Backend assignment expects WorkerID (role entity), not UserID.
+      const workerList =
+        data?.filter((u) => u.roles?.includes("Worker") && u.workerRole?.workerID) || [];
       setWorkers(workerList);
     } catch (error) {
       console.error("Failed to fetch workers:", error);
@@ -75,6 +76,28 @@ export default function WorkerEquipmentTable() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const validationPayload = {
+        workerID: Number(formData.workerID),
+        roomAssetID: Number(formData.roomAssetID),
+        currentAssignmentID: editingId || null,
+      };
+      try {
+        const validation = await workerEquipmentService.validateReferences(validationPayload);
+        if (!validation?.isValid) {
+          const details = validation?.errors?.length
+            ? "\n• " + validation.errors.join("\n• ")
+            : "\n• Please refresh and select valid Worker and Equipment values.";
+          alert("Cannot save assignment due to reference validation errors:" + details);
+          return;
+        }
+      } catch (validationError) {
+        if (![404, 405].includes(validationError?.statusCode)) {
+          throw validationError;
+        }
+        // Backward compatibility: continue submit if API hasn't deployed validation endpoint yet.
+        console.warn("Validation endpoint unavailable, continuing with create/update request.");
+      }
+
       if (editingId) {
         await workerEquipmentService.update(editingId, formData);
         alert("Assignment updated successfully");
@@ -93,8 +116,10 @@ export default function WorkerEquipmentTable() {
       fetchAssignments();
     } catch (error) {
       console.error("Failed to save assignment:", error);
-      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert("Failed to save assignment: " + error.message + details);
+      const details = Array.isArray(error.errors) && error.errors.length
+        ? "\n• " + error.errors.join("\n• ")
+        : "";
+      alert(`Failed to save assignment: ${error.message || "Unknown error"}${details}`);
     }
   };
 
@@ -138,12 +163,12 @@ export default function WorkerEquipmentTable() {
     {
       header: "Worker",
       accessor: (row) =>
-        workers.find((w) => w.userID === row.workerID)?.displayName || "N/A",
+      workers.find((w) => w.workerRole?.workerID === row.workerID)?.fullName || "N/A",
     },
     {
       header: "Equipment",
       accessor: (row) =>
-        equipment.find((e) => e.roomAssetID === row.roomAssetID)?.asset?.assetName || "N/A",
+        equipment.find((e) => e.roomAssetID === row.roomAssetID)?.assetName || "N/A",
     },
     {
       header: "Assigned Date",
@@ -223,10 +248,31 @@ export default function WorkerEquipmentTable() {
               ? "Edit Worker Equipment Assignment"
               : "Add Worker Equipment Assignment"
           }
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModal(false);
+                  setEditingId(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="worker-equipment-form"
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              >
+                {editingId ? "Update" : "Create"}
+              </button>
+            </>
+          }
         >
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <form id="worker-equipment-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Worker
               </label>
               <select
@@ -234,19 +280,19 @@ export default function WorkerEquipmentTable() {
                 value={formData.workerID}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
                 <option value="">Select Worker</option>
                 {workers.map((worker) => (
-                  <option key={worker.userID} value={worker.userID}>
-                    {worker.displayName || worker.mail}
+                  <option key={worker.userID} value={worker.workerRole.workerID}>
+                    {worker.fullName || worker.email}
                   </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Equipment
               </label>
               <select
@@ -254,19 +300,19 @@ export default function WorkerEquipmentTable() {
                 value={formData.roomAssetID}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
                 <option value="">Select Equipment</option>
                 {equipment.map((item) => (
                   <option key={item.roomAssetID} value={item.roomAssetID}>
-                    {item.asset?.assetName} ({item.serialNumber})
+                    {item.assetName} ({item.serialNumber})
                   </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Assigned Date
               </label>
               <input
@@ -275,12 +321,12 @@ export default function WorkerEquipmentTable() {
                 value={formData.assignedDate}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               />
             </div>
 
             <div>
-              <label className="mb-2 text-sm font-medium text-gray-700">
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
                 Unassigned Date (Optional)
               </label>
               <input
@@ -288,27 +334,8 @@ export default function WorkerEquipmentTable() {
                 name="unassignedDate"
                 value={formData.unassignedDate}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               />
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowModal(false);
-                  setEditingId(null);
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-              >
-                {editingId ? "Update" : "Create"}
-              </button>
             </div>
           </form>
         </Modal>

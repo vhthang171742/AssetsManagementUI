@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { getData as getCountryData } from "country-list";
 import { assetService, assetCategoryService } from "services/api";
 import { dropdownService } from "services/dropdownService";
 import Table from "components/table/Table";
@@ -155,6 +156,18 @@ export default function AssetsTable() {
     const category = categories.find((c) => c.categoryID === categoryID);
     return category ? category.categoryName : "Unknown";
   };
+
+  const countryOptions = useMemo(() => {
+    const countries = getCountryData()
+      .map((country) => country.name)
+      .sort((a, b) => a.localeCompare(b));
+
+    if (formData.countryOfOrigin && !countries.includes(formData.countryOfOrigin)) {
+      return [formData.countryOfOrigin, ...countries];
+    }
+
+    return countries;
+  }, [formData.countryOfOrigin]);
 
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
@@ -314,14 +327,19 @@ export default function AssetsTable() {
                   onChange={handleInputChange}
                   className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 />
-                <input
-                  type="text"
+                <select
                   name="countryOfOrigin"
-                  placeholder="Country of Origin"
                   value={formData.countryOfOrigin}
                   onChange={handleInputChange}
-                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                />
+                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                >
+                  <option value="">Select Country of Origin (Optional)</option>
+                  {countryOptions.map((countryName) => (
+                    <option key={countryName} value={countryName}>
+                      {countryName}
+                    </option>
+                  ))}
+                </select>
                 <input
                   type="number"
                   name="quantity"

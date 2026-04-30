@@ -11,22 +11,22 @@ const MENU_GROUPS = [
   {
     id: "asset-management",
     label: "Asset Management",
-    items: ["assets", "categories", "departments", "rooms", "handovers", "worker-equipment", "equipment-usage"]
+    items: ["departments", "categories", "assets", "rooms", "production-lines", "handovers", "worker-equipment", "equipment-usage"]
   },
   {
     id: "training",
     label: "Training Mode",
-    items: ["courses", "classes", "student-equipment-assignments", "asset-course-mappings"]
+    items: ["courses", "classes", "asset-course-mappings", "student-equipment-assignments"]
   },
   {
     id: "maintenance",
     label: "Maintenance",
-    items: ["maintenance-schedules", "maintenance-records", "spare-parts", "maintenance-spare-part-usages"]
+    items: ["spare-parts", "maintenance-schedules", "maintenance-records", "maintenance-spare-part-usages"]
   },
   {
     id: "admin",
     label: "Administration",
-    items: ["configuration", "users", "portal-access", "production-lines"]
+    items: ["users", "portal-access", "configuration"]
   }
 ];
 
@@ -105,6 +105,8 @@ export function SidebarLinks(props) {
         route.sidebar !== false &&
         group.items.includes(route.path) &&
         canAccessRoute(route)
+    ).sort(
+      (a, b) => group.items.indexOf(a.path) - group.items.indexOf(b.path)
     );
 
     if (groupRoutes.length === 0) return null;

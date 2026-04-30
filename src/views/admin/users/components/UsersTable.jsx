@@ -249,14 +249,36 @@ export default function UsersTable() {
             setRoleFormData({ role: "Student", roleCode: "" });
           }}
           title={`Assign Role to ${selectedUser.fullName}`}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRoleModal(false);
+                  setSelectedUser(null);
+                  setRoleFormData({ role: "Student", roleCode: "" });
+                }}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-50 dark:text-white dark:border-gray-600 dark:hover:bg-navy-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="assign-role-form"
+                className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600"
+              >
+                Assign Role
+              </button>
+            </>
+          }
         >
-          <form onSubmit={handleAssignRole} className="space-y-4">
+          <form id="assign-role-form" onSubmit={handleAssignRole} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Role</label>
+              <label className="block text-sm font-medium mb-1 dark:text-white">Role</label>
               <select
                 value={roleFormData.role}
                 onChange={(e) => setRoleFormData({ ...roleFormData, role: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg dark:bg-navy-800 dark:border-gray-600"
+                className="w-full px-3 py-2 border rounded-lg dark:bg-navy-800 dark:border-gray-600 dark:text-white"
                 required
               >
                 <option value="Student">Student</option>
@@ -267,7 +289,7 @@ export default function UsersTable() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-sm font-medium mb-1 dark:text-white">
                 Business Code (optional)
               </label>
               <input
@@ -275,32 +297,13 @@ export default function UsersTable() {
                 value={roleFormData.roleCode}
                 onChange={(e) => setRoleFormData({ ...roleFormData, roleCode: e.target.value })}
                 placeholder="Leave empty for auto-generation"
-                className="w-full px-3 py-2 border rounded-lg dark:bg-navy-800 dark:border-gray-600"
+                className="w-full px-3 py-2 border rounded-lg dark:bg-navy-800 dark:border-gray-600 dark:text-white"
               />
               <p className="text-xs text-gray-500 mt-1">
                 If empty, code will be auto-generated (e.g., STU-000001)
               </p>
             </div>
 
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowRoleModal(false);
-                  setSelectedUser(null);
-                  setRoleFormData({ role: "Student", roleCode: "" });
-                }}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50 dark:hover:bg-navy-700"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600"
-              >
-                Assign Role
-              </button>
-            </div>
           </form>
         </Modal>
       )}
@@ -315,22 +318,8 @@ export default function UsersTable() {
             setRoleFormData({ role: "Student", roleCode: "" });
           }}
           title={`Edit ${roleFormData.role} Code for ${selectedUser.fullName}`}
-        >
-          <form onSubmit={handleUpdateCode} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                {roleFormData.role} Code
-              </label>
-              <input
-                type="text"
-                value={roleFormData.roleCode}
-                onChange={(e) => setRoleFormData({ ...roleFormData, roleCode: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg dark:bg-navy-800 dark:border-gray-600"
-                required
-              />
-            </div>
-
-            <div className="flex justify-end gap-2">
+          footer={
+            <>
               <button
                 type="button"
                 onClick={() => {
@@ -338,16 +327,32 @@ export default function UsersTable() {
                   setSelectedUser(null);
                   setRoleFormData({ role: "Student", roleCode: "" });
                 }}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50 dark:hover:bg-navy-700"
+                className="px-4 py-2 border rounded-lg hover:bg-gray-50 dark:text-white dark:border-gray-600 dark:hover:bg-navy-700"
               >
                 Cancel
               </button>
               <button
                 type="submit"
+                form="update-code-form"
                 className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600"
               >
                 Update Code
               </button>
+            </>
+          }
+        >
+          <form id="update-code-form" onSubmit={handleUpdateCode} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1 dark:text-white">
+                {roleFormData.role} Code
+              </label>
+              <input
+                type="text"
+                value={roleFormData.roleCode}
+                onChange={(e) => setRoleFormData({ ...roleFormData, roleCode: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg dark:bg-navy-800 dark:border-gray-600 dark:text-white"
+                required
+              />
             </div>
           </form>
         </Modal>

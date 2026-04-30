@@ -54,6 +54,17 @@ export const workerEquipmentService = {
     }),
 
   /**
+   * Validate worker/equipment references just before submit to avoid stale dropdown IDs.
+   * @param {object} data - Validation payload {workerID, roomAssetID, currentAssignmentID?}
+   * @returns {Promise<object>} Validation result with IsValid and Errors
+   */
+  validateReferences: (data) =>
+    httpClient("/worker-equipment/validate-references", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  /**
    * Update an existing assignment
    * @param {number} id - Assignment ID
    * @param {object} data - Updated assignment data
