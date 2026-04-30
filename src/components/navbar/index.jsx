@@ -20,6 +20,7 @@ const Navbar = (props) => {
     showSidebarToggle = true,
     profilePath = "/profile",
     onMobileSearchOpenChange,
+    compact = false,
   } = props;
   const { isDarkMode, toggleDarkMode, userProfile, userPhoto, getAvailablePortals, selectedPortalId, setSelectedPortal } = useAuth();
   const { instance } = useMsal();
@@ -91,10 +92,10 @@ const Navbar = (props) => {
 
   return (
     <nav
-      className="z-30 w-full px-0 py-2"
+      className={`z-30 w-full px-0 ${compact ? "h-full py-0" : "py-2"}`}
       onWheel={(e) => e.stopPropagation()}
     >
-      <div className="flex min-h-[52px] items-center justify-between gap-2">
+      <div className={`flex items-center justify-between gap-2 ${compact ? "h-full min-h-0" : "min-h-[52px]"}`}>
         {showSidebarToggle && typeof onOpenSidenav === "function" ? (
           <button
             type="button"
