@@ -11,6 +11,7 @@ export default function Admin(props) {
   const HEADER_HEIGHT = 60;
   const [open, setOpen] = React.useState(() => window.innerWidth >= 1200);
   const [currentRoute, setCurrentRoute] = React.useState("Dashboard");
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = React.useState(false);
 
   React.useEffect(() => {
     getActiveRoute(routes);
@@ -70,13 +71,14 @@ export default function Admin(props) {
         style={{ height: `${HEADER_HEIGHT}px` }}
       >
         <div className="flex h-full items-center justify-between gap-3">
-          <h1 className="shrink-0 text-lg font-bold uppercase leading-none tracking-[0.04em] text-navy-700 dark:text-white sm:text-[24px] xl:text-[26px]">
+          <h1 className={`${isMobileSearchOpen ? "hidden" : "shrink-0"} text-lg font-bold uppercase leading-none tracking-[0.04em] text-navy-700 dark:text-white sm:text-[24px] xl:text-[26px]`}>
             <span className="sm:hidden">Assets</span>
             <span className="hidden sm:inline">Assets Management</span>
           </h1>
           <div className="min-w-0 flex-1">
             <Navbar
               onOpenSidenav={() => setOpen((prev) => !prev)}
+              onMobileSearchOpenChange={setIsMobileSearchOpen}
               secondary={getActiveNavbar(routes)}
               {...rest}
             />
@@ -88,27 +90,26 @@ export default function Admin(props) {
         <Sidebar open={open} onClose={() => setOpen(false)} headerHeight={HEADER_HEIGHT} />
 
         <main
-          className={`mx-[12px] h-full flex-1 overflow-y-auto transition-all ${
+          className={`h-full flex-1 overflow-y-auto transition-all ${
             open ? "ml-[260px] xl:ml-[313px]" : "ml-0"
           }`}
         >
-          <div className="pt-3 mx-auto mb-auto h-full min-h-[84vh] px-2 pb-2">
-            <h2 className="mb-3 truncate text-[22px] font-bold capitalize leading-none text-navy-700 dark:text-white sm:text-[26px] lg:text-[30px]">
-              {currentRoute}
-            </h2>
-            <Routes>
-              {getRoutes(routes)}
+          <div className="mx-auto flex h-full min-h-0 flex-col px-2 pt-3 pb-2">
+            <div className="min-h-0 flex-1">
+              <Routes>
+                {getRoutes(routes)}
 
-              <Route
-                path="/profile"
-                element={<Navigate to="/profile" replace />}
-              />
+                <Route
+                  path="/profile"
+                  element={<Navigate to="/profile" replace />}
+                />
 
-              <Route
-                path="/"
-                element={<Navigate to="/admin/default" replace />}
-              />
-            </Routes>
+                <Route
+                  path="/"
+                  element={<Navigate to="/admin/default" replace />}
+                />
+              </Routes>
+            </div>
           </div>
         </main>
       </div>

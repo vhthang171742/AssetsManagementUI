@@ -14,7 +14,7 @@ export default function Table({
   columns = [],
   data = [],
   pageSize = 10,
-  height = "calc(100vh - 240px)",
+  height = "100%",
   onBulkDelete,
   selectable = true,
   idField = "assetID",
@@ -73,8 +73,8 @@ export default function Table({
   };
 
   return (
-    <div className="w-full flex flex-col border rounded shadow-sm bg-white dark:bg-gray-800 dark:border-gray-700">
-      <div style={{ flex: "1 1 auto", maxHeight: height }} className="overflow-auto">
+    <div className="flex h-full min-h-0 w-full flex-col rounded border bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <div style={{ height }} className="min-h-0 flex-1 overflow-auto">
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b dark:border-gray-700">

@@ -8,13 +8,18 @@ import avatarDefault from "assets/img/avatars/user.png";
 import { BsArrowBarUp } from "react-icons/bs";
 import { FiSearch } from "react-icons/fi";
 import { RiMoonFill, RiSunFill } from "react-icons/ri";
-import { MdKeyboardArrowDown } from "react-icons/md";
+import { MdClose, MdKeyboardArrowDown } from "react-icons/md";
 import { IoMdNotificationsOutline } from "react-icons/io";
 import { useAuth } from "context/AuthContext";
 import LanguageSwitcher from "components/languageSwitcher/LanguageSwitcher";
 
 const Navbar = (props) => {
-  const { onOpenSidenav, showSidebarToggle = true, profilePath = "/profile" } = props;
+  const {
+    onOpenSidenav,
+    showSidebarToggle = true,
+    profilePath = "/profile",
+    onMobileSearchOpenChange,
+  } = props;
   const { isDarkMode, toggleDarkMode, userProfile, userPhoto, getAvailablePortals, selectedPortalId, setSelectedPortal } = useAuth();
   const { instance } = useMsal();
   const location = useLocation();
@@ -45,6 +50,38 @@ const Navbar = (props) => {
     availablePortals.find((portal) => portal.id === selectedPortalId) ||
     availablePortals[0];
   const compactPortalLabel = activePortal?.name?.replace(/\s+Portal$/i, "") || "Portal";
+  const [searchOpen, setSearchOpen] = React.useState(false);
+  const [isVerySmallScreen, setIsVerySmallScreen] = React.useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 430 : false
+  );
+  const [isSmallScreen, setIsSmallScreen] = React.useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 640 : false
+  );
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsVerySmallScreen(window.innerWidth < 430);
+      setIsSmallScreen(window.innerWidth < 640);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  React.useEffect(() => {
+    if ((showSidebarToggle && !isSmallScreen) || (!showSidebarToggle && !isVerySmallScreen)) {
+      setSearchOpen(false);
+    }
+  }, [isVerySmallScreen, isSmallScreen, showSidebarToggle]);
+
+  React.useEffect(() => {
+    if (typeof onMobileSearchOpenChange === "function") {
+      onMobileSearchOpenChange(searchOpen && isSmallScreen);
+    }
+  }, [searchOpen, isSmallScreen, onMobileSearchOpenChange]);
+
+  const isAdminMobileSearchMode = showSidebarToggle && searchOpen && isSmallScreen;
 
   const handlePortalSwitch = (portal) => {
     setSelectedPortal(portal.id);
@@ -60,7 +97,7 @@ const Navbar = (props) => {
         {showSidebarToggle && typeof onOpenSidenav === "function" ? (
           <button
             type="button"
-            className="flex cursor-pointer text-xl text-gray-600 dark:text-white"
+            className={`cursor-pointer text-xl text-gray-600 dark:text-white ${searchOpen ? "hidden" : "flex"}`}
             onClick={onOpenSidenav}
             aria-label="Open navigation"
           >
@@ -70,9 +107,32 @@ const Navbar = (props) => {
           <div className="w-0" />
         )}
 
-        <div className={`flex min-w-0 w-full ${showSidebarToggle ? "justify-end" : ""}`}>
-          <div className={`relative flex min-w-0 max-w-full items-center justify-end gap-1 rounded-[26px] bg-white px-2 py-1.5 shadow-xl shadow-shadow-500 dark:!bg-navy-800 dark:shadow-none sm:gap-1.5 ${showSidebarToggle ? "md:min-w-[430px] xl:min-w-[500px]" : "w-full"}`}>
-            <div className={`hidden h-9 min-w-0 items-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white md:flex ${showSidebarToggle ? "w-[145px] md:w-[175px] xl:w-[210px]" : "flex-1"}`}>
+        <div className={`flex min-w-0 w-full ${showSidebarToggle && !isAdminMobileSearchMode ? "justify-end" : ""}`}>
+          <div className={`relative flex min-w-0 max-w-full items-center justify-end gap-1 rounded-[26px] bg-white px-2 py-1.5 shadow-xl shadow-shadow-500 dark:!bg-navy-800 dark:shadow-none sm:gap-1.5 ${showSidebarToggle ? "md:min-w-[430px] xl:min-w-[500px]" : "w-full"} ${isAdminMobileSearchMode ? "w-full" : ""}`}>
+            {searchOpen ? (
+              <div className="absolute inset-0 z-20 flex items-center gap-2 rounded-[26px] bg-white px-2 py-1.5 dark:!bg-navy-800 sm:hidden">
+                <button
+                  type="button"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white"
+                  onClick={() => setSearchOpen(false)}
+                  aria-label="Close search"
+                >
+                  <MdClose className="h-4 w-4" />
+                </button>
+                <div className="flex h-9 min-w-0 flex-1 items-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white">
+                  <p className="pl-3 pr-2 text-xl">
+                    <FiSearch className="h-4 w-4 text-gray-400 dark:text-white" />
+                  </p>
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="Search..."
+                    className="block h-full w-full rounded-full bg-lightPrimary pr-3 text-sm font-medium text-navy-700 outline-none placeholder:!text-gray-400 dark:bg-navy-900 dark:text-white dark:placeholder:!text-white"
+                  />
+                </div>
+              </div>
+            ) : null}
+            <div className={`h-9 min-w-0 items-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white ${showSidebarToggle ? "hidden sm:flex w-[145px] md:w-[175px] xl:w-[210px]" : isVerySmallScreen ? "hidden" : "flex flex-1"}`}>
               <p className="pl-3 pr-2 text-xl">
                 <FiSearch className="h-4 w-4 text-gray-400 dark:text-white" />
               </p>
@@ -84,11 +144,13 @@ const Navbar = (props) => {
             </div>
             <button
               type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white md:hidden"
+              className={`h-9 w-9 items-center justify-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white ${searchOpen ? "hidden" : showSidebarToggle ? "flex sm:hidden" : isVerySmallScreen ? "flex" : "hidden"}`}
+              onClick={() => setSearchOpen(true)}
               aria-label="Search"
             >
               <FiSearch className="h-4 w-4 text-gray-400 dark:text-white" />
             </button>
+            <div className={`ml-auto flex items-center gap-1 sm:gap-1.5 ${searchOpen ? "hidden sm:flex" : ""}`}>
             <Dropdown
               button={
                 <p className="cursor-pointer">
@@ -216,6 +278,7 @@ const Navbar = (props) => {
               }
               classNames={"py-2 top-8 -left-[180px] w-max"}
             />
+            </div>
           </div>
         </div>
       </div>

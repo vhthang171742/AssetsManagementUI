@@ -146,7 +146,7 @@ export default function CoursesTable() {
   ];
 
   return (
-    <Card extra={"w-full h-full sm:overflow-auto px-2 sm:px-0"}>
+    <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
       <div className="flex items-center">
         <button
           onClick={() => {
@@ -273,3 +273,4 @@ export default function CoursesTable() {
     </Card>
   );
 }
+

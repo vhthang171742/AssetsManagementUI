@@ -105,14 +105,13 @@ export default function UsersTable() {
 
   return (
     <>
-      <Card extra={"w-full h-full sm:overflow-auto px-2 sm:px-0"}>
+      <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
         {loading ? (
           <div className="text-center py-8">Loading...</div>
         ) : (
           <Table
             data={users}
             pageSize={10}
-            height={'calc(100vh - 280px)'}
             selectable={false}
             columns={[
               { header: 'Full Name', accessor: 'fullName' },
@@ -356,3 +355,4 @@ export default function UsersTable() {
     </>
   );
 }
+

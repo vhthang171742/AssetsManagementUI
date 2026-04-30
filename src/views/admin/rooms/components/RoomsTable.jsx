@@ -224,7 +224,7 @@ export default function RoomsTable() {
 
   return (
     <>
-      <Card extra={"w-full h-[calc(100vh-170px)] overflow-hidden flex flex-col"}>
+      <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
         <div className="flex flex-col h-full">
           <div className="flex items-center">
             <button
@@ -247,27 +247,27 @@ export default function RoomsTable() {
             <div className="text-center py-8">Loading...</div>
           ) : (
             <div className="flex-1 min-h-0">
-            <Table
-              data={rooms}
-              pageSize={10}
-              height={'100%'}
-              onBulkDelete={handleBulkDelete}
-              selectable={true}
-              idField="roomID"
-              columns={[
-                { header: 'Room Name', accessor: 'roomName' },
-                { header: 'Department', accessor: 'departmentID', render: (row) => getDepartmentName(row.departmentID) },
-                { header: 'Description', accessor: 'description' },
-                {
-                  header: 'Actions',
-                  render: (row) => (
-                    <div className="space-x-2">
+              <Table
+                data={rooms}
+                pageSize={10}
+                height={"100%"}
+                onBulkDelete={handleBulkDelete}
+                selectable={true}
+                idField="roomID"
+                columns={[
+                  { header: "Room Name", accessor: "roomName" },
+                  { header: "Department", accessor: "departmentID", render: (row) => getDepartmentName(row.departmentID) },
+                  { header: "Description", accessor: "description" },
+                  {
+                    header: "Actions",
+                    render: (row) => (
+                      <div className="space-x-2">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => openAssetModal(row.roomID)}
                             title="Assets"
                             aria-label="Assets"
-                            className="p-2 bg-green-500 text-white rounded hover:bg-green-600"
+                            className="rounded bg-green-500 p-2 text-white hover:bg-green-600"
                           >
                             <MdInventory2 className="h-4 w-4" />
                           </button>
@@ -275,7 +275,7 @@ export default function RoomsTable() {
                             onClick={() => handleEdit(row)}
                             title="Edit"
                             aria-label="Edit"
-                            className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                            className="rounded bg-blue-500 p-2 text-white hover:bg-blue-600"
                           >
                             <MdModeEditOutline className="h-4 w-4" />
                           </button>
@@ -283,17 +283,17 @@ export default function RoomsTable() {
                             onClick={() => handleDelete(row.roomID)}
                             title="Delete"
                             aria-label="Delete"
-                            className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
+                            className="rounded bg-red-500 p-2 text-white hover:bg-red-600"
                           >
                             <MdDelete className="h-4 w-4" />
                           </button>
                         </div>
-                    </div>
-                  ),
-                },
-              ]}
-            />
-          </div>
+                      </div>
+                    ),
+                  },
+                ]}
+              />
+            </div>
           )}
         </div>
       </Card>
@@ -547,3 +547,4 @@ export default function RoomsTable() {
     </>
   );
 }
+

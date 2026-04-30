@@ -164,8 +164,8 @@ export default function PortalAccessManagement() {
   };
 
   return (
-    <div className="space-y-4">
-      <Card extra="w-full p-4">
+    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
+      <Card extra="w-full shrink-0 p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h4 className="text-xl font-bold text-navy-700 dark:text-white">Portal Access Management</h4>
@@ -206,15 +206,15 @@ export default function PortalAccessManagement() {
         </div>
       </Card>
 
-      <Card extra="w-full h-full sm:overflow-auto px-2 sm:px-0">
+      <Card extra="w-full min-h-0 flex-1 px-2 sm:px-0">
         {loading ? (
           <div className="py-8 text-center">Loading...</div>
         ) : (
-          <div className="overflow-auto">
+          <div className="h-full min-h-0 overflow-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b dark:border-gray-700">
-                  <th className="p-3 text-left">
+                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">
                     <input
                       type="checkbox"
                       checked={allSelected}
@@ -222,12 +222,12 @@ export default function PortalAccessManagement() {
                       disabled={submitting}
                     />
                   </th>
-                  <th className="p-3 text-left">Full Name</th>
-                  <th className="p-3 text-left">Email</th>
-                  <th className="p-3 text-left">Department</th>
-                  <th className="p-3 text-left">Student Portal</th>
-                  <th className="p-3 text-left">Teacher Portal</th>
-                  <th className="p-3 text-left">Maintainer Portal</th>
+                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">Full Name</th>
+                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">Email</th>
+                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">Department</th>
+                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">Student Portal</th>
+                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">Teacher Portal</th>
+                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">Maintainer Portal</th>
                 </tr>
               </thead>
               <tbody>
@@ -325,3 +325,4 @@ export default function PortalAccessManagement() {
     </div>
   );
 }
+

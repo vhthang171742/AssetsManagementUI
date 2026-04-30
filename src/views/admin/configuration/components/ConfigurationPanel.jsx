@@ -175,10 +175,10 @@ export default function ConfigurationPanel() {
 
   // ── Render ────────────────────────────────────────────────────
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-4">
+    <div className="grid h-full min-h-0 grid-cols-1 gap-5 lg:grid-cols-4">
       {/* Left: Categories list */}
-      <Card extra="col-span-1 p-4">
-        <div className="flex items-center justify-between mb-4">
+      <Card extra="col-span-1 flex h-full min-h-0 flex-col p-4">
+        <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-navy-700 dark:text-white">
             Categories
           </h2>
@@ -194,34 +194,36 @@ export default function ConfigurationPanel() {
           </button>
         </div>
 
-        {loadingCategories ? (
-          <p className="text-sm text-gray-500">Loading...</p>
-        ) : (
-          <ul className="space-y-1">
-            {categories.map((cat) => (
-              <li key={cat.categoryID}>
-                <button
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                    selectedCategory?.categoryID === cat.categoryID
-                      ? "bg-brand-500 text-white"
-                      : "text-navy-700 dark:text-white hover:bg-gray-100 dark:hover:bg-navy-700"
-                  }`}
-                >
-                  <span className="font-semibold">{cat.categoryName}</span>
-                  <span className="ml-2 text-xs opacity-70">
-                    ({cat.itemCount} items)
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="min-h-0 flex-1 overflow-auto">
+          {loadingCategories ? (
+            <p className="text-sm text-gray-500">Loading...</p>
+          ) : (
+            <ul className="space-y-1">
+              {categories.map((cat) => (
+                <li key={cat.categoryID}>
+                  <button
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                      selectedCategory?.categoryID === cat.categoryID
+                        ? "bg-brand-500 text-white"
+                        : "text-navy-700 dark:text-white hover:bg-gray-100 dark:hover:bg-navy-700"
+                    }`}
+                  >
+                    <span className="font-semibold">{cat.categoryName}</span>
+                    <span className="ml-2 text-xs opacity-70">
+                      ({cat.itemCount} items)
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </Card>
 
       {/* Right: Items for selected category */}
-      <Card extra="col-span-1 lg:col-span-3 p-4">
-        <div className="flex items-center justify-between mb-4">
+      <Card extra="col-span-1 flex h-full min-h-0 flex-col p-4 lg:col-span-3">
+        <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-navy-700 dark:text-white">
             {selectedCategory
               ? `${selectedCategory.categoryName} Items`
@@ -237,62 +239,64 @@ export default function ConfigurationPanel() {
           )}
         </div>
 
-        {loadingItems ? (
-          <p className="text-sm text-gray-500 py-4">Loading items...</p>
-        ) : items.length === 0 ? (
-          <p className="text-sm text-gray-400 py-4">No items in this category.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead>
-                <tr className="border-b dark:border-navy-600">
-                  <th className="py-2 px-3 font-semibold text-gray-600 dark:text-gray-300">Code</th>
-                  <th className="py-2 px-3 font-semibold text-gray-600 dark:text-gray-300">Label ({language})</th>
-                  <th className="py-2 px-3 font-semibold text-gray-600 dark:text-gray-300">Sort Order</th>
-                  <th className="py-2 px-3 font-semibold text-gray-600 dark:text-gray-300">Active</th>
-                  <th className="py-2 px-3 font-semibold text-gray-600 dark:text-gray-300 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr
-                    key={item.itemID}
-                    className="border-b dark:border-navy-700 hover:bg-gray-50 dark:hover:bg-navy-700"
-                  >
-                    <td className="py-2 px-3 font-mono text-navy-700 dark:text-white">{item.itemCode}</td>
-                    <td className="py-2 px-3 text-navy-700 dark:text-white">{item.label}</td>
-                    <td className="py-2 px-3 text-gray-500 dark:text-gray-300">{item.sortOrder}</td>
-                    <td className="py-2 px-3">
-                      <span className={`px-2 py-0.5 text-xs rounded-full ${item.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                        {item.isActive ? "Yes" : "No"}
-                      </span>
-                    </td>
-                    <td className="py-2 px-3 text-right">
-                      <div className="inline-flex gap-2">
-                        <button
-                          onClick={() => openEditItemModal(item)}
-                          title="Edit translations"
-                          className="p-1.5 bg-blue-500 text-white rounded hover:bg-blue-600"
-                        >
-                          <MdModeEditOutline className="h-4 w-4" />
-                        </button>
-                        {!selectedCategory?.isSystemDefined && (
-                          <button
-                            onClick={() => handleDeleteItem(item.itemID)}
-                            title="Delete"
-                            className="p-1.5 bg-red-500 text-white rounded hover:bg-red-600"
-                          >
-                            <MdDelete className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
+        <div className="min-h-0 flex-1">
+          {loadingItems ? (
+            <p className="py-4 text-sm text-gray-500">Loading items...</p>
+          ) : items.length === 0 ? (
+            <p className="py-4 text-sm text-gray-400">No items in this category.</p>
+          ) : (
+            <div className="h-full min-h-0 overflow-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b dark:border-navy-600">
+                    <th className="sticky top-0 z-10 bg-white px-3 py-2 font-semibold text-gray-600 dark:bg-navy-800 dark:text-gray-300">Code</th>
+                    <th className="sticky top-0 z-10 bg-white px-3 py-2 font-semibold text-gray-600 dark:bg-navy-800 dark:text-gray-300">Label ({language})</th>
+                    <th className="sticky top-0 z-10 bg-white px-3 py-2 font-semibold text-gray-600 dark:bg-navy-800 dark:text-gray-300">Sort Order</th>
+                    <th className="sticky top-0 z-10 bg-white px-3 py-2 font-semibold text-gray-600 dark:bg-navy-800 dark:text-gray-300">Active</th>
+                    <th className="sticky top-0 z-10 bg-white px-3 py-2 text-right font-semibold text-gray-600 dark:bg-navy-800 dark:text-gray-300">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr
+                      key={item.itemID}
+                      className="border-b dark:border-navy-700 hover:bg-gray-50 dark:hover:bg-navy-700"
+                    >
+                      <td className="px-3 py-2 font-mono text-navy-700 dark:text-white">{item.itemCode}</td>
+                      <td className="px-3 py-2 text-navy-700 dark:text-white">{item.label}</td>
+                      <td className="px-3 py-2 text-gray-500 dark:text-gray-300">{item.sortOrder}</td>
+                      <td className="px-3 py-2">
+                        <span className={`rounded-full px-2 py-0.5 text-xs ${item.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                          {item.isActive ? "Yes" : "No"}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <div className="inline-flex gap-2">
+                          <button
+                            onClick={() => openEditItemModal(item)}
+                            title="Edit translations"
+                            className="rounded bg-blue-500 p-1.5 text-white hover:bg-blue-600"
+                          >
+                            <MdModeEditOutline className="h-4 w-4" />
+                          </button>
+                          {!selectedCategory?.isSystemDefined && (
+                            <button
+                              onClick={() => handleDeleteItem(item.itemID)}
+                              title="Delete"
+                              className="rounded bg-red-500 p-1.5 text-white hover:bg-red-600"
+                            >
+                              <MdDelete className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </Card>
 
       {/* ── Create Category Modal ──────────────────────────── */}

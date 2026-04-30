@@ -99,7 +99,7 @@ export default function CategoriesTable() {
   };
 
   return (
-    <Card extra={"w-full h-full sm:overflow-auto px-2 sm:px-0"}>
+    <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
       <div className="flex items-center">
         <button
           onClick={() => {
@@ -122,7 +122,6 @@ export default function CategoriesTable() {
         <Table
           data={categories}
           pageSize={10}
-          height={'calc(100vh - 240px)'}
           onBulkDelete={handleBulkDelete}
           selectable={true}
           idField="categoryID"
@@ -212,3 +211,4 @@ export default function CategoriesTable() {
     </Card>
   );
 }
+
