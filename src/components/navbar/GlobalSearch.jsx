@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { FiSearch } from "react-icons/fi";
 import { MdClose } from "react-icons/md";
 import routes from "routes.js";
+import { useLanguage } from "context/LanguageContext";
 
-// Flatten routes into searchable items
+// Flatten routes into searchable items (static index — English names + translation keys)
 function buildSearchIndex() {
   const items = [];
   routes.forEach((route) => {
@@ -12,6 +13,7 @@ function buildSearchIndex() {
     if (!route.layout || !route.path) return;
     items.push({
       name: route.name,
+      translationKey: route.translationKey,
       path: `${route.layout}/${route.path}`,
       icon: route.icon,
     });
@@ -27,12 +29,19 @@ export default function GlobalSearch({ className = "", inputClassName = "", plac
   const navigate = useNavigate();
   const inputRef = useRef(null);
   const containerRef = useRef(null);
+  const { t } = useLanguage();
 
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return searchIndex.filter((item) => item.name.toLowerCase().includes(q)).slice(0, 8);
-  }, [query]);
+    return searchIndex
+      .map((item) => ({
+        ...item,
+        displayName: item.translationKey ? t(item.translationKey, item.name) : item.name,
+      }))
+      .filter((item) => item.displayName.toLowerCase().includes(q) || item.name.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [query, t]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -83,7 +92,7 @@ export default function GlobalSearch({ className = "", inputClassName = "", plac
           onFocus={() => { if (query) setOpen(true); }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="block h-full w-full rounded-full bg-lightPrimary pr-3 text-sm font-medium text-navy-700 outline-none placeholder:!text-gray-400 dark:bg-navy-900 dark:text-white dark:placeholder:!text-white"
+          className="block h-full w-full rounded-full bg-lightPrimary pr-3 text-sm font-medium text-navy-700 outline-none placeholder:!text-gray-400 dark:bg-navy-900 dark:text-white dark:placeholder:!text-white/40"
         />
         {query && (
           <button
@@ -106,7 +115,7 @@ export default function GlobalSearch({ className = "", inputClassName = "", plac
               className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-800 hover:bg-gray-100 dark:text-white dark:hover:bg-navy-600"
             >
               <span className="shrink-0 text-gray-500 dark:text-gray-300">{item.icon}</span>
-              <span>{item.name}</span>
+              <span>{item.displayName}</span>
             </button>
           ))}
         </div>
