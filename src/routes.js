@@ -1,5 +1,6 @@
 import React from "react";
 import { RoleSets } from "constants/authorization";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 // Admin Imports
 import MainDashboard from "views/admin/default";
@@ -51,6 +52,7 @@ import {
 const routes = [
   {
     name: "Dashboard",
+    translationKey: K.ROUTE_DASHBOARD,
     layout: "/admin",
     path: "default",
     icon: <MdHome className="h-6 w-6" />,
@@ -59,6 +61,7 @@ const routes = [
   },
   {
     name: "Assets",
+    translationKey: K.ROUTE_ASSETS,
     layout: "/admin",
     path: "assets",
     icon: <MdStorefront className="h-6 w-6" />,
@@ -67,6 +70,7 @@ const routes = [
   },
   {
     name: "Categories",
+    translationKey: K.ROUTE_CATEGORIES,
     layout: "/admin",
     path: "categories",
     icon: <MdCategory className="h-6 w-6" />,
@@ -75,6 +79,7 @@ const routes = [
   },
   {
     name: "Departments",
+    translationKey: K.ROUTE_DEPARTMENTS,
     layout: "/admin",
     path: "departments",
     icon: <MdApartment className="h-6 w-6" />,
@@ -83,6 +88,7 @@ const routes = [
   },
   {
     name: "Rooms",
+    translationKey: K.ROUTE_ROOMS,
     layout: "/admin",
     path: "rooms",
     icon: <MdMeetingRoom className="h-6 w-6" />,
@@ -91,6 +97,7 @@ const routes = [
   },
   {
     name: "Handovers",
+    translationKey: K.ROUTE_HANDOVERS,
     layout: "/admin",
     path: "handovers",
     icon: <MdAssignment className="h-6 w-6" />,
@@ -99,6 +106,7 @@ const routes = [
   },
   {
     name: "Configuration",
+    translationKey: K.ROUTE_CONFIGURATION,
     layout: "/admin",
     path: "configuration",
     icon: <MdSettings className="h-6 w-6" />,
@@ -107,6 +115,7 @@ const routes = [
   },
   {
     name: "Users",
+    translationKey: K.ROUTE_USERS,
     layout: "/admin",
     path: "users",
     icon: <MdPeople className="h-6 w-6" />,
@@ -115,6 +124,7 @@ const routes = [
   },
   {
     name: "Portal Access",
+    translationKey: K.ROUTE_PORTAL_ACCESS,
     layout: "/admin",
     path: "portal-access",
     icon: <MdPeople className="h-6 w-6" />,
@@ -123,6 +133,7 @@ const routes = [
   },
   {
     name: "Production Lines",
+    translationKey: K.ROUTE_PRODUCTION_LINES,
     layout: "/admin",
     path: "production-lines",
     icon: <MdFactory className="h-6 w-6" />,
@@ -131,6 +142,7 @@ const routes = [
   },
   {
     name: "Worker Equipment",
+    translationKey: K.ROUTE_WORKER_EQUIPMENT,
     layout: "/admin",
     path: "worker-equipment",
     icon: <MdPerson2 className="h-6 w-6" />,
@@ -139,6 +151,7 @@ const routes = [
   },
   {
     name: "Equipment Usage",
+    translationKey: K.ROUTE_EQUIPMENT_USAGE,
     layout: "/admin",
     path: "equipment-usage",
     icon: <MdDataUsage className="h-6 w-6" />,
@@ -147,6 +160,7 @@ const routes = [
   },
   {
     name: "Courses",
+    translationKey: K.ROUTE_COURSES,
     layout: "/admin",
     path: "courses",
     icon: <MdSchool className="h-6 w-6" />,
@@ -155,6 +169,7 @@ const routes = [
   },
   {
     name: "Classes",
+    translationKey: K.ROUTE_CLASSES,
     layout: "/admin",
     path: "classes",
     icon: <MdSchool className="h-6 w-6" />,
@@ -163,6 +178,7 @@ const routes = [
   },
   {
     name: "Student Assignments",
+    translationKey: K.ROUTE_STUDENT_ASSIGNMENTS,
     layout: "/admin",
     path: "student-equipment-assignments",
     icon: <MdSchool className="h-6 w-6" />,
@@ -171,6 +187,7 @@ const routes = [
   },
   {
     name: "Asset Mappings",
+    translationKey: K.ROUTE_ASSET_MAPPINGS,
     layout: "/admin",
     path: "asset-course-mappings",
     icon: <MdSchool className="h-6 w-6" />,
@@ -179,6 +196,7 @@ const routes = [
   },
   {
     name: "Maintenance Schedules",
+    translationKey: K.ROUTE_MAINTENANCE_SCHEDULES,
     layout: "/admin",
     path: "maintenance-schedules",
     icon: <MdBuild className="h-6 w-6" />,
@@ -187,6 +205,7 @@ const routes = [
   },
   {
     name: "Maintenance Records",
+    translationKey: K.ROUTE_MAINTENANCE_RECORDS,
     layout: "/admin",
     path: "maintenance-records",
     icon: <MdBuild className="h-6 w-6" />,
@@ -195,6 +214,7 @@ const routes = [
   },
   {
     name: "Spare Parts",
+    translationKey: K.ROUTE_SPARE_PARTS,
     layout: "/admin",
     path: "spare-parts",
     icon: <MdBuild className="h-6 w-6" />,
@@ -203,6 +223,7 @@ const routes = [
   },
   {
     name: "Sign In",
+    translationKey: K.ROUTE_SIGN_IN,
     layout: "/auth",
     path: "sign-in",
     icon: <MdLock className="h-6 w-6" />,

@@ -1,6 +1,7 @@
 import React from "react";
 import { useLanguage } from "context/LanguageContext";
 import { MdLanguage } from "react-icons/md";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 /**
  * LanguageSwitcher — Compact dropdown for switching the active locale.
@@ -9,7 +10,7 @@ import { MdLanguage } from "react-icons/md";
  * Reads and writes via LanguageContext.
  */
 const LanguageSwitcher = ({ className = "" }) => {
-  const { language, setLanguage, languages, loadingLanguages } = useLanguage();
+  const { language, setLanguage, languages, loadingLanguages, t } = useLanguage();
 
   if (loadingLanguages) {
     return null; // Don't render until languages are loaded
@@ -22,7 +23,7 @@ const LanguageSwitcher = ({ className = "" }) => {
         value={language}
         onChange={(e) => setLanguage(e.target.value)}
         className="appearance-none pl-7 pr-6 py-1 text-sm rounded-lg bg-lightPrimary dark:bg-navy-900 text-navy-700 dark:text-white border-none outline-none cursor-pointer"
-        aria-label="Select language"
+        aria-label={t(K.NAV_SELECT_LANGUAGE, "Select language")}
       >
         {languages
           .filter((l) => l.isActive)

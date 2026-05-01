@@ -3,10 +3,13 @@ import { Navigate } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
 import { MdLockOutline, MdLogout } from "react-icons/md";
 import { useAuth } from "context/AuthContext";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function NoPortalAccessPage() {
   const { instance } = useMsal();
   const { isLoading, getAvailablePortals, selectedPortalId } = useAuth();
+  const { t } = useLanguage();
 
   if (isLoading) {
     return (
@@ -35,15 +38,15 @@ export default function NoPortalAccessPage() {
           </div>
 
           <h1 className="text-2xl font-bold text-navy-700 dark:text-white">
-            Portal Access Required
+            {t(K.PAGE_NO_PORTAL_ACCESS_TITLE, "Portal Access Required")}
           </h1>
 
           <p className="text-gray-600 dark:text-gray-300">
-            Your account is active, but no portal access has been assigned yet.
+            {t(K.PAGE_NO_PORTAL_ACCESS_BODY_1, "Your account is active, but no portal access has been assigned yet.")}
           </p>
 
           <p className="text-gray-600 dark:text-gray-300">
-            Please contact your administrator to grant access to Student, Teacher, Maintainer, or Admin portal.
+            {t(K.PAGE_NO_PORTAL_ACCESS_BODY_2, "Please contact your administrator to grant access to Student, Teacher, Maintainer, or Admin portal.")}
           </p>
 
           <button
@@ -51,7 +54,7 @@ export default function NoPortalAccessPage() {
             className="mt-3 inline-flex items-center gap-2 rounded-lg bg-red-500 px-5 py-2.5 font-medium text-white hover:bg-red-600"
           >
             <MdLogout className="h-5 w-5" />
-            Sign Out
+            {t(K.PAGE_SIGN_OUT, "Sign Out")}
           </button>
         </div>
       </div>

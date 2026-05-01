@@ -4,8 +4,11 @@ import Card from "components/card";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function ClassesTable() {
+  const { t } = useLanguage();
   const [classes, setClasses] = useState([]);
   const [courses, setCourses] = useState([]);
   const [instructors, setInstructors] = useState([]);
@@ -40,7 +43,7 @@ export default function ClassesTable() {
       setClasses(data || []);
     } catch (error) {
       console.error("Failed to fetch classes:", error);
-      alert(`Failed to fetch classes: ${error.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_CLASSES, "classes")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -85,10 +88,10 @@ export default function ClassesTable() {
 
       if (editingId) {
         await classService.update(editingId, dataToSend);
-        alert("Class updated successfully");
+        alert(`${t(K.ADMIN_TABLE_CLASS, "Class")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await classService.create(dataToSend);
-        alert("Class created successfully");
+        alert(`${t(K.ADMIN_TABLE_CLASS, "Class")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -107,7 +110,7 @@ export default function ClassesTable() {
     } catch (error) {
       console.error("Failed to save class:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert("Failed to save class: " + error.message + details);
+      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_CLASS, "class")}: ${error.message}${details}`);
     }
   };
 
@@ -128,14 +131,14 @@ export default function ClassesTable() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this class?")) {
+    if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_CLASS, "Are you sure you want to delete this class?"))) {
       try {
         await classService.delete(id);
-        alert("Class deleted successfully");
+        alert(`${t(K.ADMIN_TABLE_CLASS, "Class")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchClasses();
       } catch (error) {
         console.error("Failed to delete class:", error);
-        alert(`Failed to delete class: ${error.message || "Unknown error"}`);
+        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_CLASS, "class")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -143,37 +146,37 @@ export default function ClassesTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await classService.bulkDelete(ids);
-      alert("Deleted selected classes");
+      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_CLASSES, "classes")}`);
       fetchClasses();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`Failed to delete selected classes: ${err.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_CLASSES, "classes")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };
 
   const columns = [
     {
-      header: "Class Name",
+      header: t(K.ADMIN_TABLE_CLASS_NAME, "Class Name"),
       accessor: "className",
     },
     {
-      header: "Class Code",
+      header: t(K.ADMIN_TABLE_CLASS_CODE, "Class Code"),
       accessor: "classCode",
     },
     {
-      header: "Course",
+      header: t(K.ADMIN_TABLE_COURSE, "Course"),
       accessor: (row) =>
-        courses.find((c) => c.courseID === row.courseID)?.courseName || "N/A",
+        courses.find((c) => c.courseID === row.courseID)?.courseName || t(K.ADMIN_TABLE_NA, "N/A"),
     },
     {
-      header: "Start Date",
+      header: t(K.ADMIN_TABLE_START_DATE, "Start Date"),
       accessor: (row) =>
-        row.startDate ? new Date(row.startDate).toLocaleDateString() : "N/A",
+        row.startDate ? new Date(row.startDate).toLocaleDateString() : t(K.ADMIN_TABLE_NA, "N/A"),
     },
     {
-      header: "Status",
-      accessor: (row) => (row.isActive ? "Active" : "Inactive"),
+      header: t(K.ADMIN_TABLE_STATUS, "Status"),
+      accessor: (row) => (row.isActive ? t(K.ADMIN_TABLE_ACTIVE, "Active") : t(K.ADMIN_TABLE_INACTIVE, "Inactive")),
     },
   ];
 
@@ -181,12 +184,12 @@ export default function ClassesTable() {
     {
       icon: <MdModeEditOutline className="h-4 w-4" />,
       onClick: handleEdit,
-      label: "Edit",
+      label: t(K.ADMIN_TABLE_EDIT, "Edit"),
     },
     {
       icon: <MdDelete className="h-4 w-4" />,
       onClick: handleDelete,
-      label: "Delete",
+      label: t(K.ADMIN_TABLE_DELETE, "Delete"),
       variant: "danger",
     },
   ];
@@ -222,14 +225,14 @@ export default function ClassesTable() {
           }}
           className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
-          Add Class
+          {`${t(K.ADMIN_TABLE_ADD, "Add")} ${t(K.ADMIN_TABLE_CLASS, "Class")}`}
         </button>
         <div className="flex flex-col gap-2 sm:flex-row md:max-w-2xl">
           <input
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder="Search name, code"
+            placeholder={t(K.ADMIN_TABLE_SEARCH_NAME_CODE, "Search name, code")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
@@ -237,7 +240,7 @@ export default function ClassesTable() {
             onChange={(e) => setCourseFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">All Courses</option>
+            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_COURSES, "Courses")}`}</option>
             {courses.map((c) => (
               <option key={c.courseID} value={c.courseID}>{c.courseName}</option>
             ))}
@@ -247,9 +250,9 @@ export default function ClassesTable() {
             onChange={(e) => setActiveFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">All Statuses</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
+            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
+            <option value="true">{t(K.ADMIN_TABLE_ACTIVE, "Active")}</option>
+            <option value="false">{t(K.ADMIN_TABLE_INACTIVE, "Inactive")}</option>
           </select>
         </div>
       </div>
@@ -263,7 +266,7 @@ export default function ClassesTable() {
       />
 
       <Modal
-        title={editingId ? "Edit Class" : "Create New Class"}
+        title={editingId ? `${t(K.ADMIN_TABLE_EDIT, "Edit")} ${t(K.ADMIN_TABLE_CLASS, "Class")}` : `${t(K.ADMIN_TABLE_CREATE_NEW, "Create New")} ${t(K.ADMIN_TABLE_CLASS, "Class")}`}
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         footer={
@@ -273,14 +276,14 @@ export default function ClassesTable() {
               onClick={() => setShowModal(false)}
               className="inline-flex items-center justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-navy-700 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-900"
             >
-              Cancel
+              {t(K.ADMIN_TABLE_CANCEL, "Cancel")}
             </button>
             <button
               type="submit"
               form="class-form"
               className="inline-flex items-center justify-center rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
             >
-              {editingId ? "Update" : "Create"}
+              {editingId ? t(K.ADMIN_TABLE_UPDATE, "Update") : t(K.ADMIN_TABLE_CREATE, "Create")}
             </button>
           </>
         }
@@ -288,7 +291,7 @@ export default function ClassesTable() {
         <form id="class-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              Class Name *
+              {`${t(K.ADMIN_TABLE_CLASS_NAME, "Class Name")} *`}
             </label>
             <input
               type="text"
@@ -297,13 +300,13 @@ export default function ClassesTable() {
               onChange={handleInputChange}
               required
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder="Enter class name"
+              placeholder={t(K.ADMIN_TABLE_ENTER_CLASS_NAME, "Enter class name")}
             />
           </div>
 
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              Class Code *
+              {`${t(K.ADMIN_TABLE_CLASS_CODE, "Class Code")} *`}
             </label>
             <input
               type="text"
@@ -312,13 +315,13 @@ export default function ClassesTable() {
               onChange={handleInputChange}
               required
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder="Enter class code"
+              placeholder={t(K.ADMIN_TABLE_ENTER_CLASS_CODE, "Enter class code")}
             />
           </div>
 
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              Course *
+              {`${t(K.ADMIN_TABLE_COURSE, "Course")} *`}
             </label>
             <select
               name="courseID"
@@ -327,7 +330,7 @@ export default function ClassesTable() {
               required
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
-              <option value="">Select a course</option>
+              <option value="">{t(K.ADMIN_TABLE_SELECT_COURSE, "Select a course")}</option>
               {courses.map((course) => (
                 <option key={course.courseID} value={course.courseID}>
                   {course.courseName}
@@ -338,7 +341,7 @@ export default function ClassesTable() {
 
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              Description
+              {t(K.ADMIN_TABLE_DESCRIPTION, "Description")}
             </label>
             <textarea
               name="description"
@@ -346,13 +349,13 @@ export default function ClassesTable() {
               onChange={handleInputChange}
               rows="2"
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder="Enter class description"
+              placeholder={t(K.ADMIN_TABLE_ENTER_CLASS_DESCRIPTION, "Enter class description")}
             />
           </div>
 
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              Start Date
+              {t(K.ADMIN_TABLE_START_DATE, "Start Date")}
             </label>
             <input
               type="date"
@@ -365,7 +368,7 @@ export default function ClassesTable() {
 
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              End Date
+              {t(K.ADMIN_TABLE_END_DATE, "End Date")}
             </label>
             <input
               type="date"
@@ -378,7 +381,7 @@ export default function ClassesTable() {
 
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              Max Students
+              {t(K.ADMIN_TABLE_MAX_STUDENTS, "Max Students")}
             </label>
             <input
               type="number"
@@ -387,7 +390,7 @@ export default function ClassesTable() {
               onChange={handleInputChange}
               min="1"
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder="Enter max students"
+              placeholder={t(K.ADMIN_TABLE_ENTER_MAX_STUDENTS, "Enter max students")}
             />
           </div>
 
@@ -400,7 +403,7 @@ export default function ClassesTable() {
               className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
             />
             <label className="ml-2 block text-sm text-navy-700 dark:text-white">
-              Active
+              {t(K.ADMIN_TABLE_ACTIVE, "Active")}
             </label>
           </div>
 

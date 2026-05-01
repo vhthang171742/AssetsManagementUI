@@ -4,8 +4,11 @@ import Card from "components/card";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function CoursesTable() {
+  const { t } = useLanguage();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -31,7 +34,7 @@ export default function CoursesTable() {
       setCourses(data || []);
     } catch (error) {
       console.error("Failed to fetch courses:", error);
-      alert(`Failed to fetch courses: ${error.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_COURSES, "courses")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -55,10 +58,10 @@ export default function CoursesTable() {
 
       if (editingId) {
         await courseService.update(editingId, dataToSend);
-        alert("Course updated successfully");
+        alert(`${t(K.ADMIN_TABLE_COURSE, "Course")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await courseService.create(dataToSend);
-        alert("Course created successfully");
+        alert(`${t(K.ADMIN_TABLE_COURSE, "Course")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -73,7 +76,7 @@ export default function CoursesTable() {
     } catch (error) {
       console.error("Failed to save course:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert("Failed to save course: " + error.message + details);
+      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_COURSE, "course")}: ${error.message}${details}`);
     }
   };
 
@@ -90,14 +93,14 @@ export default function CoursesTable() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this course?")) {
+    if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_COURSE, "Are you sure you want to delete this course?"))) {
       try {
         await courseService.delete(id);
-        alert("Course deleted successfully");
+        alert(`${t(K.ADMIN_TABLE_COURSE, "Course")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchCourses();
       } catch (error) {
         console.error("Failed to delete course:", error);
-        alert(`Failed to delete course: ${error.message || "Unknown error"}`);
+        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_COURSE, "course")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -105,31 +108,31 @@ export default function CoursesTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await courseService.bulkDelete(ids);
-      alert("Deleted selected courses");
+      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_COURSES, "courses")}`);
       fetchCourses();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`Failed to delete selected courses: ${err.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_COURSES, "courses")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };
 
   const columns = [
     {
-      header: "Course Name",
+      header: t(K.ADMIN_TABLE_COURSE_NAME, "Course Name"),
       accessor: "courseName",
     },
     {
-      header: "Course Code",
+      header: t(K.ADMIN_TABLE_COURSE_CODE, "Course Code"),
       accessor: "courseCode",
     },
     {
-      header: "Duration (Hours)",
+      header: t(K.ADMIN_TABLE_DURATION_HOURS, "Duration (Hours)"),
       accessor: "durationHours",
     },
     {
-      header: "Status",
-      accessor: (row) => (row.isActive ? "Active" : "Inactive"),
+      header: t(K.ADMIN_TABLE_STATUS, "Status"),
+      accessor: (row) => (row.isActive ? t(K.ADMIN_TABLE_ACTIVE, "Active") : t(K.ADMIN_TABLE_INACTIVE, "Inactive")),
     },
   ];
 
@@ -137,12 +140,12 @@ export default function CoursesTable() {
     {
       icon: <MdModeEditOutline className="h-4 w-4" />,
       onClick: handleEdit,
-      label: "Edit",
+      label: t(K.ADMIN_TABLE_EDIT, "Edit"),
     },
     {
       icon: <MdDelete className="h-4 w-4" />,
       onClick: handleDelete,
-      label: "Delete",
+      label: t(K.ADMIN_TABLE_DELETE, "Delete"),
       variant: "danger",
     },
   ];
@@ -173,14 +176,14 @@ export default function CoursesTable() {
           }}
           className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
-          Add Course
+          {`${t(K.ADMIN_TABLE_ADD, "Add")} ${t(K.ADMIN_TABLE_COURSE, "Course")}`}
         </button>
         <div className="flex flex-col gap-2 sm:flex-row md:max-w-lg">
           <input
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder="Search name, code"
+            placeholder={t(K.ADMIN_TABLE_SEARCH_NAME_CODE, "Search name, code")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
@@ -188,9 +191,9 @@ export default function CoursesTable() {
             onChange={(e) => setActiveFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">All Statuses</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
+            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
+            <option value="true">{t(K.ADMIN_TABLE_ACTIVE, "Active")}</option>
+            <option value="false">{t(K.ADMIN_TABLE_INACTIVE, "Inactive")}</option>
           </select>
         </div>
       </div>
@@ -204,7 +207,7 @@ export default function CoursesTable() {
       />
 
       <Modal
-        title={editingId ? "Edit Course" : "Create New Course"}
+        title={editingId ? `${t(K.ADMIN_TABLE_EDIT, "Edit")} ${t(K.ADMIN_TABLE_COURSE, "Course")}` : `${t(K.ADMIN_TABLE_CREATE_NEW, "Create New")} ${t(K.ADMIN_TABLE_COURSE, "Course")}`}
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         footer={
@@ -214,14 +217,14 @@ export default function CoursesTable() {
               onClick={() => setShowModal(false)}
               className="inline-flex items-center justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-navy-700 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-900"
             >
-              Cancel
+              {t(K.ADMIN_TABLE_CANCEL, "Cancel")}
             </button>
             <button
               type="submit"
               form="course-form"
               className="inline-flex items-center justify-center rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
             >
-              {editingId ? "Update" : "Create"}
+              {editingId ? t(K.ADMIN_TABLE_UPDATE, "Update") : t(K.ADMIN_TABLE_CREATE, "Create")}
             </button>
           </>
         }
@@ -229,7 +232,7 @@ export default function CoursesTable() {
         <form id="course-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              Course Name *
+              {`${t(K.ADMIN_TABLE_COURSE_NAME, "Course Name")} *`}
             </label>
             <input
               type="text"
@@ -238,13 +241,13 @@ export default function CoursesTable() {
               onChange={handleInputChange}
               required
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder="Enter course name"
+              placeholder={t(K.ADMIN_TABLE_ENTER_COURSE_NAME, "Enter course name")}
             />
           </div>
 
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              Course Code *
+              {`${t(K.ADMIN_TABLE_COURSE_CODE, "Course Code")} *`}
             </label>
             <input
               type="text"
@@ -253,13 +256,13 @@ export default function CoursesTable() {
               onChange={handleInputChange}
               required
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder="Enter course code (e.g., CS101)"
+              placeholder={t(K.ADMIN_TABLE_ENTER_COURSE_CODE_EXAMPLE, "Enter course code (e.g., CS101)")}
             />
           </div>
 
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              Description
+              {t(K.ADMIN_TABLE_DESCRIPTION, "Description")}
             </label>
             <textarea
               name="description"
@@ -267,13 +270,13 @@ export default function CoursesTable() {
               onChange={handleInputChange}
               rows="3"
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder="Enter course description"
+              placeholder={t(K.ADMIN_TABLE_ENTER_COURSE_DESCRIPTION, "Enter course description")}
             />
           </div>
 
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              Duration (Hours) *
+              {`${t(K.ADMIN_TABLE_DURATION_HOURS, "Duration (Hours)")} *`}
             </label>
             <input
               type="number"
@@ -283,7 +286,7 @@ export default function CoursesTable() {
               required
               min="0"
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder="Enter duration in hours"
+              placeholder={t(K.ADMIN_TABLE_ENTER_DURATION_HOURS, "Enter duration in hours")}
             />
           </div>
 
@@ -296,7 +299,7 @@ export default function CoursesTable() {
               className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
             />
             <label className="ml-2 block text-sm text-navy-700 dark:text-white">
-              Active
+              {t(K.ADMIN_TABLE_ACTIVE, "Active")}
             </label>
           </div>
 

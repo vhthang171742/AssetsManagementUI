@@ -4,13 +4,17 @@ import Navbar from "components/navbar";
 import Sidebar from "components/sidebar";
 import PageGuard from "components/PageGuard";
 import routes from "routes.js";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function Admin(props) {
   const { ...rest } = props;
   const location = useLocation();
+  const { t } = useLanguage();
   const HEADER_HEIGHT = 60;
   const [open, setOpen] = React.useState(() => window.innerWidth >= 1200);
   const [currentRoute, setCurrentRoute] = React.useState("Dashboard");
+  const [currentRouteKey, setCurrentRouteKey] = React.useState(K.ROUTE_DASHBOARD);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -19,9 +23,9 @@ export default function Admin(props) {
 
   React.useEffect(() => {
     document.title = currentRoute
-      ? `${currentRoute} | Assets Management`
-      : "Assets Management";
-  }, [currentRoute]);
+      ? `${t(currentRouteKey, currentRoute)} | ${t(K.APP_NAME_FULL, "Assets Management")}`
+      : t(K.APP_NAME_FULL, "Assets Management");
+  }, [currentRoute, currentRouteKey, t]);
 
   const getActiveRoute = (routes) => {
     let activeRoute = "Dashboard";
@@ -32,6 +36,7 @@ export default function Admin(props) {
         ) !== -1
       ) {
         setCurrentRoute(routes[i].name);
+        setCurrentRouteKey(routes[i].translationKey || K.ROUTE_DASHBOARD);
       }
     }
     return activeRoute;
@@ -72,8 +77,8 @@ export default function Admin(props) {
       >
         <div className="flex h-full items-center justify-between gap-3">
           <h1 className={`${isMobileSearchOpen ? "hidden" : "shrink-0"} text-lg font-bold uppercase leading-none tracking-[0.04em] text-navy-700 dark:text-white sm:text-[24px] xl:text-[26px]`}>
-            <span className="sm:hidden">Assets</span>
-            <span className="hidden sm:inline">Assets Management</span>
+            <span className="sm:hidden">{t(K.APP_NAME_SHORT, "Assets")}</span>
+            <span className="hidden sm:inline">{t(K.APP_NAME_FULL, "Assets Management")}</span>
           </h1>
           <div className="min-w-0 flex-1">
             <Navbar

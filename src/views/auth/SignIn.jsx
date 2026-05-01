@@ -3,9 +3,12 @@ import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
 import { loginRequest } from "config/msalConfig";
 import { ReactComponent as MicrosoftLogo } from "assets/svg/microsoft_logo.svg";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function SignIn() {
   const { instance, accounts, inProgress } = useMsal();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [loginError, setLoginError] = useState("");
   const isMobileBrowser = /Android|iPhone|iPad|iPod|Mobile/i.test(
@@ -36,9 +39,7 @@ export default function SignIn() {
       typeof window !== "undefined" ? window.isSecureContext : false;
 
     if (!hasWebCrypto || !isSecureContextAvailable) {
-      setLoginError(
-        "This browser cannot create a secure PKCE login request. Open this site in Chrome/Safari (not in-app browser) and ensure HTTPS."
-      );
+      setLoginError(t(K.SIGNIN_ERR_SECURE_BROWSER, "This browser cannot create a secure PKCE login request. Open this site in Chrome/Safari (not in-app browser) and ensure HTTPS."));
       return;
     }
 
@@ -50,7 +51,7 @@ export default function SignIn() {
       // No need to navigate here as the redirect will handle the return
     } catch (error) {
       const errorCode = error?.errorCode || "unknown_error";
-      const errorMessage = error?.message || "Unknown sign-in error";
+      const errorMessage = error?.message || t(K.SIGNIN_ERR_UNKNOWN, "Unknown sign-in error");
       console.error("Login redirect failed:", errorCode, errorMessage, error);
 
       // Some mobile contexts block redirect navigation. Try popup as fallback.
@@ -67,19 +68,18 @@ export default function SignIn() {
       }
 
       if (errorCode === "interaction_in_progress") {
-        setLoginError("Sign-in is already in progress. Please wait a few seconds and try again.");
+        setLoginError(t(K.SIGNIN_ERR_IN_PROGRESS, "Sign-in is already in progress. Please wait a few seconds and try again."));
         return;
       }
 
       if (errorCode === "pkce_not_created") {
-        setLoginError(
-          "PKCE generation failed on this mobile browser. Open the app in Chrome/Safari (outside in-app browser), then try again."
-        );
+        setLoginError(t(K.SIGNIN_ERR_PKCE, "PKCE generation failed on this mobile browser. Open the app in Chrome/Safari (outside in-app browser), then try again."));
         return;
       }
 
       setLoginError(
-        `Unable to start Microsoft sign-in (${errorCode}). Try opening in Chrome/Safari and sign in again.`
+        t(K.SIGNIN_ERR_UNABLE_START, "Unable to start Microsoft sign-in ({errorCode}). Try opening in Chrome/Safari and sign in again.")
+          .replace("{errorCode}", errorCode)
       );
     }
   };
@@ -89,10 +89,10 @@ export default function SignIn() {
       {/* Sign in section */}
       <div className="mt-[10vh] w-full max-w-full flex-col items-center md:pl-4 lg:pl-0 xl:max-w-[420px]">
         <h4 className="mb-2.5 text-4xl font-bold text-navy-700 dark:text-white">
-          Welcome Back
+          {t(K.SIGNIN_WELCOME_BACK, "Welcome Back")}
         </h4>
         <p className="mb-9 ml-1 text-base text-gray-600 dark:text-gray-400">
-          Sign in with your Microsoft account
+          {t(K.SIGNIN_MICROSOFT_PROMPT, "Sign in with your Microsoft account")}
         </p>
 
         {/* Microsoft Sign In Button */}
@@ -103,7 +103,9 @@ export default function SignIn() {
         >
           <MicrosoftLogo className="h-5 w-5" />
           <span className="text-sm font-medium text-white">
-            {inProgress !== "none" ? "Preparing sign-in..." : "Sign In with Microsoft"}
+            {inProgress !== "none"
+              ? t(K.SIGNIN_PREPARING, "Preparing sign-in...")
+              : t(K.SIGNIN_WITH_MICROSOFT, "Sign In with Microsoft")}
           </span>
         </button>
 
@@ -113,7 +115,7 @@ export default function SignIn() {
 
         <div className="mt-4 text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Using your organizational Microsoft account
+            {t(K.SIGNIN_ORG_ACCOUNT_HINT, "Using your organizational Microsoft account")}
           </p>
         </div>
       </div>

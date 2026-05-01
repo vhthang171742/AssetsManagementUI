@@ -5,8 +5,11 @@ import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Card from "components/card";
 import Modal from "components/modal/Modal";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function MaintenanceSchedulesTable() {
+  const { t } = useLanguage();
   const [schedules, setSchedules] = useState([]);
   const [assets, setAssets] = useState([]);
   const [maintenanceTypes, setMaintenanceTypes] = useState([]);
@@ -40,7 +43,7 @@ export default function MaintenanceSchedulesTable() {
       setSchedules(data || []);
     } catch (error) {
       console.error("Failed to fetch schedules:", error);
-      alert(`Failed to fetch schedules: ${error.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_MAINTENANCE_SCHEDULES, "maintenance schedules")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -77,10 +80,10 @@ export default function MaintenanceSchedulesTable() {
     try {
       if (editingId) {
         await maintenanceScheduleService.update(editingId, formData);
-        alert("Schedule updated successfully");
+        alert(`${t(K.ADMIN_TABLE_SCHEDULE, "Schedule")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await maintenanceScheduleService.create(formData);
-        alert("Schedule created successfully");
+        alert(`${t(K.ADMIN_TABLE_SCHEDULE, "Schedule")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -89,7 +92,7 @@ export default function MaintenanceSchedulesTable() {
     } catch (error) {
       console.error("Failed to save schedule:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert("Failed to save schedule: " + error.message + details);
+      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_SCHEDULE, "schedule")}: ${error.message}${details}`);
     }
   };
 
@@ -108,14 +111,14 @@ export default function MaintenanceSchedulesTable() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this schedule?")) {
+    if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_SCHEDULE, "Are you sure you want to delete this schedule?"))) {
       try {
         await maintenanceScheduleService.delete(id);
-        alert("Schedule deleted successfully");
+        alert(`${t(K.ADMIN_TABLE_SCHEDULE, "Schedule")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchSchedules();
       } catch (error) {
         console.error("Failed to delete schedule:", error);
-        alert(`Failed to delete schedule: ${error.message || "Unknown error"}`);
+        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_SCHEDULE, "schedule")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -123,11 +126,11 @@ export default function MaintenanceSchedulesTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await maintenanceScheduleService.bulkDelete(ids);
-      alert("Deleted selected schedules");
+      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_SCHEDULES, "schedules")}`);
       fetchSchedules();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`Failed to delete selected schedules: ${err.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_SCHEDULES, "schedules")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };
@@ -146,12 +149,12 @@ export default function MaintenanceSchedulesTable() {
 
   const getAssetName = (assetID) => {
     const asset = assets.find((a) => a.assetID === assetID);
-    return asset ? asset.assetName : "Unknown";
+    return asset ? asset.assetName : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
   };
 
   const getMaintenanceTypeName = (itemID) => {
     const type = maintenanceTypes.find((t) => t.itemID === itemID);
-    return type ? type.label : "Unknown";
+    return type ? type.label : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
   };
 
   const filteredSchedules = useMemo(() => {
@@ -177,14 +180,14 @@ export default function MaintenanceSchedulesTable() {
           }}
           className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
-          Add Maintenance Schedule
+          {t(K.ADMIN_TABLE_ADD_MAINTENANCE_SCHEDULE, "Add Maintenance Schedule")}
         </button>
         <div className="flex flex-col gap-2 sm:flex-row md:max-w-3xl">
           <input
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder="Search asset, description"
+            placeholder={t(K.ADMIN_TABLE_SEARCH_ASSET_DESCRIPTION, "Search asset, description")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
@@ -192,7 +195,7 @@ export default function MaintenanceSchedulesTable() {
             onChange={(e) => setAssetFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">All Assets</option>
+            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ROUTE_ASSETS, "Assets")}`}</option>
             {assets.map((a) => (
               <option key={a.assetID} value={a.assetID}>{a.assetName}</option>
             ))}
@@ -202,7 +205,7 @@ export default function MaintenanceSchedulesTable() {
             onChange={(e) => setTypeFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">All Types</option>
+            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_TYPES, "Types")}`}</option>
             {maintenanceTypes.map((t) => (
               <option key={t.itemID} value={t.itemID}>{t.label}</option>
             ))}
@@ -212,15 +215,15 @@ export default function MaintenanceSchedulesTable() {
             onChange={(e) => setActiveFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">All Statuses</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
+            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
+            <option value="true">{t(K.ADMIN_TABLE_ACTIVE, "Active")}</option>
+            <option value="false">{t(K.ADMIN_TABLE_INACTIVE, "Inactive")}</option>
           </select>
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-8">Loading...</div>
+        <div className="text-center py-8">{t(K.ADMIN_TABLE_LOADING, "Loading...")}</div>
       ) : (
         <Table
           data={filteredSchedules}
@@ -228,28 +231,28 @@ export default function MaintenanceSchedulesTable() {
           onBulkDelete={handleBulkDelete}
           selectable={true}
           columns={[
-            { header: 'Asset', accessor: 'assetID', render: (row) => getAssetName(row.assetID) },
-            { header: 'Type', accessor: 'maintenanceTypeItemID', render: (row) => getMaintenanceTypeName(row.maintenanceTypeItemID) },
-            { header: 'Frequency', accessor: 'frequency', render: (row) => `${row.frequency} days/hours` },
-            { header: 'Last Maintenance', accessor: 'lastMaintenanceDate', render: (row) => row.lastMaintenanceDate ? new Date(row.lastMaintenanceDate).toLocaleDateString() : 'N/A' },
-            { header: 'Next Due', accessor: 'nextDueDate', render: (row) => row.nextDueDate ? new Date(row.nextDueDate).toLocaleDateString() : 'N/A' },
-            { header: 'Active', accessor: 'isActive', render: (row) => row.isActive ? '✓' : '✗' },
+            { header: t(K.ADMIN_TABLE_ASSET, 'Asset'), accessor: 'assetID', render: (row) => getAssetName(row.assetID) },
+            { header: t(K.ADMIN_TABLE_TYPE, 'Type'), accessor: 'maintenanceTypeItemID', render: (row) => getMaintenanceTypeName(row.maintenanceTypeItemID) },
+            { header: t(K.ADMIN_TABLE_FREQUENCY, 'Frequency'), accessor: 'frequency', render: (row) => t(K.ADMIN_TABLE_FREQUENCY_DAYS_HOURS, `${row.frequency} days/hours`).replace("{value}", row.frequency) },
+            { header: t(K.ADMIN_TABLE_LAST_MAINTENANCE, 'Last Maintenance'), accessor: 'lastMaintenanceDate', render: (row) => row.lastMaintenanceDate ? new Date(row.lastMaintenanceDate).toLocaleDateString() : t(K.ADMIN_TABLE_NA, 'N/A') },
+            { header: t(K.ADMIN_TABLE_NEXT_DUE, 'Next Due'), accessor: 'nextDueDate', render: (row) => row.nextDueDate ? new Date(row.nextDueDate).toLocaleDateString() : t(K.ADMIN_TABLE_NA, 'N/A') },
+            { header: t(K.ADMIN_TABLE_ACTIVE, 'Active'), accessor: 'isActive', render: (row) => row.isActive ? '✓' : '✗' },
             {
-              header: 'Actions',
+              header: t(K.ADMIN_TABLE_ACTIONS, 'Actions'),
               render: (row) => (
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleEdit(row)}
-                    title="Edit"
-                    aria-label="Edit"
+                    title={t(K.ADMIN_TABLE_EDIT, "Edit")}
+                    aria-label={t(K.ADMIN_TABLE_EDIT, "Edit")}
                     className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                   >
                     <MdModeEditOutline className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(row.scheduleID)}
-                    title="Delete"
-                    aria-label="Delete"
+                    title={t(K.ADMIN_TABLE_DELETE, "Delete")}
+                    aria-label={t(K.ADMIN_TABLE_DELETE, "Delete")}
                     className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
                   >
                     <MdDelete className="h-4 w-4" />
@@ -265,7 +268,7 @@ export default function MaintenanceSchedulesTable() {
         <Modal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
-          title={editingId ? "Edit Maintenance Schedule" : "Add New Maintenance Schedule"}
+          title={editingId ? t(K.ADMIN_TABLE_EDIT_MAINTENANCE_SCHEDULE, "Edit Maintenance Schedule") : t(K.ADMIN_TABLE_ADD_NEW_MAINTENANCE_SCHEDULE, "Add New Maintenance Schedule")}
           maxWidth={"max-w-2xl"}
           footer={
             <>
@@ -274,14 +277,14 @@ export default function MaintenanceSchedulesTable() {
                 onClick={() => setShowModal(false)}
                 className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
               >
-                Cancel
+                {t(K.ADMIN_TABLE_CANCEL, "Cancel")}
               </button>
               <button
                 type="submit"
                 form="scheduleForm"
                 className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
               >
-                {editingId ? "Update" : "Create"}
+                {editingId ? t(K.ADMIN_TABLE_UPDATE, "Update") : t(K.ADMIN_TABLE_CREATE, "Create")}
               </button>
             </>
           }
@@ -295,7 +298,7 @@ export default function MaintenanceSchedulesTable() {
                 className="col-span-2 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 required
               >
-                <option value="">Select Asset</option>
+                <option value="">{t(K.ADMIN_TABLE_SELECT_ASSET, "Select Asset")}</option>
                 {assets.map((asset) => (
                   <option key={asset.assetID} value={asset.assetID}>
                     {asset.assetName} ({asset.assetCode})
@@ -310,7 +313,7 @@ export default function MaintenanceSchedulesTable() {
                 className="col-span-2 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 required
               >
-                <option value="">Select Maintenance Type</option>
+                <option value="">{t(K.ADMIN_TABLE_SELECT_MAINTENANCE_TYPE, "Select Maintenance Type")}</option>
                 {maintenanceTypes.map((type) => (
                   <option key={type.itemID} value={type.itemID}>
                     {type.label}
@@ -321,7 +324,7 @@ export default function MaintenanceSchedulesTable() {
               <input
                 type="number"
                 name="frequency"
-                placeholder="Frequency (days or hours)"
+                placeholder={t(K.ADMIN_TABLE_FREQUENCY_DAYS_OR_HOURS, "Frequency (days or hours)")}
                 value={formData.frequency}
                 onChange={handleInputChange}
                 className="col-span-2 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -330,7 +333,7 @@ export default function MaintenanceSchedulesTable() {
 
               <textarea
                 name="description"
-                placeholder="Description"
+                placeholder={t(K.ADMIN_TABLE_DESCRIPTION, "Description")}
                 value={formData.description}
                 onChange={handleInputChange}
                 className="col-span-2 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -338,7 +341,7 @@ export default function MaintenanceSchedulesTable() {
               />
 
               <div className="col-span-1">
-                <label className="block text-sm font-medium mb-1 dark:text-white">Last Maintenance Date</label>
+                <label className="block text-sm font-medium mb-1 dark:text-white">{t(K.ADMIN_TABLE_LAST_MAINTENANCE_DATE, "Last Maintenance Date")}</label>
                 <input
                   type="datetime-local"
                   name="lastMaintenanceDate"
@@ -349,7 +352,7 @@ export default function MaintenanceSchedulesTable() {
               </div>
 
               <div className="col-span-1">
-                <label className="block text-sm font-medium mb-1 dark:text-white">Next Due Date</label>
+                <label className="block text-sm font-medium mb-1 dark:text-white">{t(K.ADMIN_TABLE_NEXT_DUE_DATE, "Next Due Date")}</label>
                 <input
                   type="datetime-local"
                   name="nextDueDate"
@@ -368,7 +371,7 @@ export default function MaintenanceSchedulesTable() {
                   className="mr-2"
                   id="isActive"
                 />
-                <label htmlFor="isActive" className="dark:text-white">Active</label>
+                <label htmlFor="isActive" className="dark:text-white">{t(K.ADMIN_TABLE_ACTIVE, "Active")}</label>
               </div>
             </div>
           </form>

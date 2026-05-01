@@ -1,12 +1,19 @@
 import React from "react";
 import Navbar from "components/navbar";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
-export default function PortalLayout({ title, children }) {
+export default function PortalLayout({ title, titleKey, children }) {
+  const { t } = useLanguage();
   const HEADER_HEIGHT = 60;
 
+  const resolvedTitle = titleKey ? t(titleKey, title) : title;
+
   React.useEffect(() => {
-    document.title = title ? `${title} | Assets Management` : "Assets Management";
-  }, [title]);
+    document.title = resolvedTitle
+      ? `${resolvedTitle} | ${t(K.APP_NAME_FULL, "Assets Management")}`
+      : t(K.APP_NAME_FULL, "Assets Management");
+  }, [resolvedTitle, t]);
 
   return (
     <div className="min-h-screen bg-lightPrimary dark:bg-navy-900">

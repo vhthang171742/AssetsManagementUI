@@ -7,8 +7,11 @@ import {
   practiceErrorLogService,
 } from "services/api";
 import { getCurrentUser } from "services/userService";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function StudentPortal() {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
@@ -61,7 +64,7 @@ export default function StudentPortal() {
         setSessions([]);
       }
     } catch (error) {
-      showToast(`Failed to load student portal: ${error.message}`, true);
+      showToast(`${t(K.STUDENT_LOAD_FAILED, "Failed to load student portal")}: ${error.message}`, true);
     } finally {
       setLoading(false);
     }
@@ -98,7 +101,7 @@ export default function StudentPortal() {
     try {
       if (!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia) {
         setScannerSupported(false);
-        showToast("Camera QR scanning is not supported on this browser. Use manual input.", true);
+        showToast(t(K.STUDENT_SCANNER_UNSUPPORTED, "Camera QR scanning is not supported on this browser. Use manual input."), true);
         return;
       }
 
@@ -125,7 +128,7 @@ export default function StudentPortal() {
           if (codes.length > 0 && codes[0].rawValue) {
             setQrCodeValue(codes[0].rawValue);
             stopScanner();
-            showToast("QR detected. Ready to submit.");
+            showToast(t(K.STUDENT_QR_DETECTED, "QR detected. Ready to submit."));
           }
         } catch {
           // Ignore intermittent frame decode failures.
@@ -133,24 +136,24 @@ export default function StudentPortal() {
       }, 500);
     } catch (error) {
       stopScanner();
-      showToast(`Unable to start camera scanner: ${error.message}`, true);
+      showToast(`${t(K.STUDENT_SCANNER_START_FAILED, "Unable to start camera scanner")}: ${error.message}`, true);
     }
   };
 
   const handleQrCheckout = async (event) => {
     event.preventDefault();
     if (!qrCodeValue.trim()) {
-      showToast("Scan or enter a QR code value first.", true);
+      showToast(t(K.STUDENT_ENTER_QR_FIRST, "Scan or enter a QR code value first."), true);
       return;
     }
 
     setQrBusy(true);
     try {
       await studentEquipmentAssignmentService.checkoutByQr(qrCodeValue.trim());
-      showToast("Asset checkout successful.");
+      showToast(t(K.STUDENT_QR_CHECKOUT_SUCCESS, "Asset checkout successful."));
       await loadData();
     } catch (error) {
-      showToast(`QR checkout failed: ${error.message}`, true);
+      showToast(`${t(K.STUDENT_QR_CHECKOUT_FAILED, "QR checkout failed")}: ${error.message}`, true);
     } finally {
       setQrBusy(false);
     }
@@ -158,17 +161,17 @@ export default function StudentPortal() {
 
   const handleQrCheckin = async () => {
     if (!qrCodeValue.trim()) {
-      showToast("Scan or enter a QR code value first.", true);
+      showToast(t(K.STUDENT_ENTER_QR_FIRST, "Scan or enter a QR code value first."), true);
       return;
     }
 
     setQrBusy(true);
     try {
       await studentEquipmentAssignmentService.checkinByQr(qrCodeValue.trim());
-      showToast("Asset check-in successful.");
+      showToast(t(K.STUDENT_QR_CHECKIN_SUCCESS, "Asset check-in successful."));
       await loadData();
     } catch (error) {
-      showToast(`QR check-in failed: ${error.message}`, true);
+      showToast(`${t(K.STUDENT_QR_CHECKIN_FAILED, "QR check-in failed")}: ${error.message}`, true);
     } finally {
       setQrBusy(false);
     }
@@ -177,27 +180,27 @@ export default function StudentPortal() {
   const handleCheckIn = async (event) => {
     event.preventDefault();
     if (!selectedAssignmentId) {
-      showToast("Select an assignment to check in.", true);
+      showToast(t(K.STUDENT_SELECT_ASSIGNMENT_FIRST, "Select an assignment to check in."), true);
       return;
     }
 
     try {
       await practiceSessionService.studentCheckIn({ assignmentID: Number(selectedAssignmentId) });
-      showToast("Check-in successful.");
+      showToast(t(K.STUDENT_CHECKIN_SUCCESS, "Check-in successful."));
       setSelectedAssignmentId("");
       await loadData();
     } catch (error) {
-      showToast(`Check-in failed: ${error.message}`, true);
+      showToast(`${t(K.STUDENT_CHECKIN_FAILED, "Check-in failed")}: ${error.message}`, true);
     }
   };
 
   const handleCheckOut = async (sessionId) => {
     try {
       await practiceSessionService.studentCheckOut({ sessionID: Number(sessionId) });
-      showToast("Check-out successful.");
+      showToast(t(K.STUDENT_CHECKOUT_SUCCESS, "Check-out successful."));
       await loadData();
     } catch (error) {
-      showToast(`Check-out failed: ${error.message}`, true);
+      showToast(`${t(K.STUDENT_CHECKOUT_FAILED, "Check-out failed")}: ${error.message}`, true);
     }
   };
 
@@ -211,30 +214,30 @@ export default function StudentPortal() {
         instructorNotified: true,
       });
       setIssueForm({ sessionID: "", studentDescription: "" });
-      showToast("Issue reported successfully.");
+      showToast(t(K.STUDENT_ISSUE_REPORTED, "Issue reported successfully."));
       await loadData();
     } catch (error) {
-      showToast(`Issue report failed: ${error.message}`, true);
+      showToast(`${t(K.STUDENT_ISSUE_REPORT_FAILED, "Issue report failed")}: ${error.message}`, true);
     }
   };
 
   return (
-    <PortalLayout title="Student Portal">
+    <PortalLayout title="Student Portal" titleKey={K.STUDENT_PORTAL_TITLE}>
       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
         <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">My Active Assets</p>
+          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_MY_ACTIVE_ASSETS, "My Active Assets")}</p>
           <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{activeAssignments.length}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">Ready for class attendance check</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.STUDENT_READY_FOR_ATTENDANCE, "Ready for class attendance check")}</p>
         </Card>
         <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">Open Sessions</p>
+          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_OPEN_SESSIONS, "Open Sessions")}</p>
           <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{openSessions.length}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">Check out to complete attendance</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.STUDENT_CHECKOUT_TO_COMPLETE, "Check out to complete attendance")}</p>
         </Card>
         <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">Total Sessions</p>
+          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_TOTAL_SESSIONS, "Total Sessions")}</p>
           <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{sessions.length}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">Practice activity history</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.STUDENT_PRACTICE_HISTORY, "Practice activity history")}</p>
         </Card>
       </div>
 
@@ -252,16 +255,16 @@ export default function StudentPortal() {
 
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">QR Checkout / Check-In</h2>
+          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_QR_SECTION_TITLE, "QR Checkout / Check-In")}</h2>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-            Scan with camera or enter QR manually to check out and check in assets.
+            {t(K.STUDENT_QR_SECTION_HINT, "Scan with camera or enter QR manually to check out and check in assets.")}
           </p>
           <form className="mt-4 space-y-3" onSubmit={handleQrCheckout}>
             <input
               required
               value={qrCodeValue}
               onChange={(e) => setQrCodeValue(e.target.value)}
-              placeholder="QR code value"
+              placeholder={t(K.STUDENT_QR_CODE_VALUE, "QR code value")}
               className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
             />
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -270,7 +273,7 @@ export default function StudentPortal() {
                 disabled={loading || qrBusy}
                 className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
               >
-                QR Checkout
+                {t(K.STUDENT_QR_CHECKOUT_BUTTON, "QR Checkout")}
               </button>
               <button
                 type="button"
@@ -278,7 +281,7 @@ export default function StudentPortal() {
                 disabled={loading || qrBusy}
                 className="rounded-xl bg-navy-700 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-800 disabled:opacity-60"
               >
-                QR Check-In
+                {t(K.STUDENT_QR_CHECKIN_BUTTON, "QR Check-In")}
               </button>
               <button
                 type="button"
@@ -286,7 +289,9 @@ export default function StudentPortal() {
                 disabled={!scannerSupported && !isScanning}
                 className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
               >
-                {isScanning ? "Stop Camera" : "Start Camera"}
+                {isScanning
+                  ? t(K.STUDENT_STOP_CAMERA, "Stop Camera")
+                  : t(K.STUDENT_START_CAMERA, "Start Camera")}
               </button>
             </div>
             <video
@@ -299,9 +304,9 @@ export default function StudentPortal() {
         </Card>
 
         <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">Attendance Check-In</h2>
+          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_ATTENDANCE_CHECKIN_TITLE, "Attendance Check-In")}</h2>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-            Pick your assigned asset and start a session.
+            {t(K.STUDENT_ATTENDANCE_CHECKIN_HINT, "Pick your assigned asset and start a session.")}
           </p>
           <form className="mt-4 space-y-3" onSubmit={handleCheckIn}>
             <select
@@ -310,10 +315,10 @@ export default function StudentPortal() {
               onChange={(e) => setSelectedAssignmentId(e.target.value)}
               className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
             >
-              <option value="">Select assignment</option>
+              <option value="">{t(K.STUDENT_SELECT_ASSIGNMENT, "Select assignment")}</option>
               {activeAssignments.map((item) => (
                 <option key={item.assignmentID} value={item.assignmentID}>
-                  Assignment #{item.assignmentID} • Asset #{item.roomAssetID} • Class #{item.classID}
+                  {t(K.STUDENT_ASSIGNMENT_ROW, "Assignment")} #{item.assignmentID} • Asset #{item.roomAssetID} • Class #{item.classID}
                 </option>
               ))}
             </select>
@@ -322,15 +327,15 @@ export default function StudentPortal() {
               disabled={loading || activeAssignments.length === 0}
               className="w-full rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
             >
-              Check In
+              {t(K.STUDENT_CHECKIN_BUTTON, "Check In")}
             </button>
           </form>
         </Card>
 
         <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">Report an Issue</h2>
+          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_REPORT_ISSUE_TITLE, "Report an Issue")}</h2>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-            Share any equipment issue during your current session.
+            {t(K.STUDENT_REPORT_ISSUE_HINT, "Share any equipment issue during your current session.")}
           </p>
           <form className="mt-4 space-y-3" onSubmit={handleReportIssue}>
             <select
@@ -339,10 +344,10 @@ export default function StudentPortal() {
               onChange={(e) => setIssueForm((prev) => ({ ...prev, sessionID: e.target.value }))}
               className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
             >
-              <option value="">Select session</option>
+              <option value="">{t(K.STUDENT_SELECT_SESSION, "Select session")}</option>
               {openSessions.map((session) => (
                 <option key={session.sessionID} value={session.sessionID}>
-                  Session #{session.sessionID} • Asset #{session.roomAssetID}
+                  {t(K.STUDENT_SESSION_ROW, "Session")} #{session.sessionID} • Asset #{session.roomAssetID}
                 </option>
               ))}
             </select>
@@ -353,7 +358,7 @@ export default function StudentPortal() {
               onChange={(e) =>
                 setIssueForm((prev) => ({ ...prev, studentDescription: e.target.value }))
               }
-              placeholder="Describe what happened"
+              placeholder={t(K.STUDENT_DESCRIBE_EVENT, "Describe what happened")}
               className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
             />
             <button
@@ -361,7 +366,7 @@ export default function StudentPortal() {
               disabled={loading || openSessions.length === 0}
               className="w-full rounded-xl bg-navy-700 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-800 disabled:opacity-60"
             >
-              Submit Issue
+              {t(K.STUDENT_SUBMIT_ISSUE, "Submit Issue")}
             </button>
           </form>
         </Card>
@@ -369,10 +374,10 @@ export default function StudentPortal() {
 
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">My Active QR Checkouts</h2>
+          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_ACTIVE_QR_CHECKOUTS, "My Active QR Checkouts")}</h2>
           <div className="mt-4 space-y-3">
             {myActiveCheckouts.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-300">No active QR checkouts.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_NO_ACTIVE_QR_CHECKOUTS, "No active QR checkouts.")}</p>
             )}
             {myActiveCheckouts.map((item) => (
               <div
@@ -383,7 +388,7 @@ export default function StudentPortal() {
                   Asset #{item.roomAssetID} • Class #{item.classID}
                 </p>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-                  Checked out at {new Date(item.assignedDate).toLocaleString()}
+                  {t(K.STUDENT_QR_CHECKOUT_INFO, "Checked out at")} {new Date(item.assignedDate).toLocaleString()}
                 </p>
               </div>
             ))}
@@ -391,10 +396,10 @@ export default function StudentPortal() {
         </Card>
 
         <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">My Assigned Assets</h2>
+          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_MY_ASSIGNED_ASSETS, "My Assigned Assets")}</h2>
           <div className="mt-4 space-y-3">
             {assignments.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-300">No assignments yet.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_NO_ASSIGNMENTS, "No assignments yet.")}</p>
             )}
             {assignments.slice(0, 6).map((item) => (
               <div
@@ -412,11 +417,13 @@ export default function StudentPortal() {
                         : "bg-gray-200 text-gray-700"
                     }`}
                   >
-                    {item.isActive ? "Active" : "Unassigned"}
+                    {item.isActive
+                      ? t(K.STUDENT_ACTIVE, "Active")
+                      : t(K.STUDENT_UNASSIGNED, "Unassigned")}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-                  Class #{item.classID} • Assigned {new Date(item.assignedDate).toLocaleString()}
+                  Class #{item.classID} • {t(K.STUDENT_ASSIGNED_INFO, "Assigned")} {new Date(item.assignedDate).toLocaleString()}
                 </p>
               </div>
             ))}
@@ -424,10 +431,10 @@ export default function StudentPortal() {
         </Card>
 
         <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">Open Sessions</h2>
+          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_OPEN_SESSIONS, "Open Sessions")}</h2>
           <div className="mt-4 space-y-3">
             {openSessions.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-300">No active check-ins.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_NO_ACTIVE_CHECKINS, "No active check-ins.")}</p>
             )}
             {openSessions.map((session) => (
               <div
@@ -437,10 +444,10 @@ export default function StudentPortal() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-navy-700 dark:text-white">
-                      Session #{session.sessionID}
+                      {t(K.STUDENT_SESSION_ROW, "Session")} #{session.sessionID}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-300">
-                      Asset #{session.roomAssetID} • Start {new Date(session.startTime).toLocaleString()}
+                      Asset #{session.roomAssetID} • {t(K.STUDENT_SESSION_INFO, "Start")} {new Date(session.startTime).toLocaleString()}
                     </p>
                   </div>
                   <button
@@ -448,7 +455,7 @@ export default function StudentPortal() {
                     onClick={() => handleCheckOut(session.sessionID)}
                     className="rounded-lg border border-brand-300 px-3 py-1 text-xs font-semibold text-brand-700 hover:bg-brand-50"
                   >
-                    Check Out
+                    {t(K.STUDENT_CHECKOUT_BUTTON, "Check Out")}
                   </button>
                 </div>
               </div>

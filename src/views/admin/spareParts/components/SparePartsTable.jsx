@@ -4,8 +4,11 @@ import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete, MdWarning } from "react-icons/md";
 import Card from "components/card";
 import Modal from "components/modal/Modal";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function SparePartsTable() {
+  const { t } = useLanguage();
   const [parts, setParts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -34,7 +37,7 @@ export default function SparePartsTable() {
       setParts(data || []);
     } catch (error) {
       console.error("Failed to fetch parts:", error);
-      alert(`Failed to fetch parts: ${error.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_SPARE_PARTS, "spare parts")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -55,10 +58,10 @@ export default function SparePartsTable() {
     try {
       if (editingId) {
         await sparePartService.update(editingId, formData);
-        alert("Part updated successfully");
+        alert(`${t(K.ADMIN_TABLE_PART, "Part")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await sparePartService.create(formData);
-        alert("Part created successfully");
+        alert(`${t(K.ADMIN_TABLE_PART, "Part")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -67,7 +70,7 @@ export default function SparePartsTable() {
     } catch (error) {
       console.error("Failed to save part:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert("Failed to save part: " + error.message + details);
+      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_PART, "part")}: ${error.message}${details}`);
     }
   };
 
@@ -87,14 +90,14 @@ export default function SparePartsTable() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this part?")) {
+    if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_PART, "Are you sure you want to delete this part?"))) {
       try {
         await sparePartService.delete(id);
-        alert("Part deleted successfully");
+        alert(`${t(K.ADMIN_TABLE_PART, "Part")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchParts();
       } catch (error) {
         console.error("Failed to delete part:", error);
-        alert(`Failed to delete part: ${error.message || "Unknown error"}`);
+        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_PART, "part")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -102,11 +105,11 @@ export default function SparePartsTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await sparePartService.bulkDelete(ids);
-      alert("Deleted selected parts");
+      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_PARTS, "parts")}`);
       fetchParts();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`Failed to delete selected parts: ${err.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_PARTS, "parts")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };
@@ -144,14 +147,14 @@ export default function SparePartsTable() {
           }}
           className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
-          Add Spare Part
+          {`${t(K.ADMIN_TABLE_ADD, "Add")} ${t(K.ROUTE_SPARE_PARTS, "Spare Part")}`}
         </button>
         <div className="flex flex-col gap-2 sm:flex-row md:max-w-lg">
           <input
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder="Search code, name, manufacturer"
+            placeholder={t(K.ADMIN_TABLE_SEARCH_CODE_NAME_MANUFACTURER, "Search code, name, manufacturer")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
@@ -159,15 +162,15 @@ export default function SparePartsTable() {
             onChange={(e) => setActiveFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">All Statuses</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
+            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
+            <option value="true">{t(K.ADMIN_TABLE_ACTIVE, "Active")}</option>
+            <option value="false">{t(K.ADMIN_TABLE_INACTIVE, "Inactive")}</option>
           </select>
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-8">Loading...</div>
+        <div className="text-center py-8">{t(K.ADMIN_TABLE_LOADING, "Loading...")}</div>
       ) : (
         <Table
           data={filteredParts}
@@ -175,11 +178,11 @@ export default function SparePartsTable() {
           onBulkDelete={handleBulkDelete}
           selectable={true}
           columns={[
-            { header: 'Part Code', accessor: 'partCode' },
-            { header: 'Part Name', accessor: 'partName' },
-            { header: 'Manufacturer', accessor: 'manufacturer', render: (row) => row.manufacturer || 'N/A' },
+            { header: t(K.ADMIN_TABLE_PART_CODE, 'Part Code'), accessor: 'partCode' },
+            { header: t(K.ADMIN_TABLE_PART_NAME, 'Part Name'), accessor: 'partName' },
+            { header: t(K.ADMIN_TABLE_MANUFACTURER, 'Manufacturer'), accessor: 'manufacturer', render: (row) => row.manufacturer || t(K.ADMIN_TABLE_NA, 'N/A') },
             { 
-              header: 'Stock', 
+              header: t(K.ADMIN_TABLE_STOCK, 'Stock'), 
               accessor: 'stockQuantity',
               render: (row) => (
                 <span className={row.needsReorder ? 'text-red-600 font-bold flex items-center gap-1' : ''}>
@@ -188,25 +191,25 @@ export default function SparePartsTable() {
                 </span>
               )
             },
-            { header: 'Reorder Level', accessor: 'reorderLevel' },
-            { header: 'Unit Price', accessor: 'unitPrice', render: (row) => row.unitPrice != null ? `$${parseFloat(row.unitPrice).toFixed(2)}` : 'N/A' },
-            { header: 'Active', accessor: 'isActive', render: (row) => row.isActive ? '✓' : '✗' },
+            { header: t(K.ADMIN_TABLE_REORDER_LEVEL, 'Reorder Level'), accessor: 'reorderLevel' },
+            { header: t(K.ADMIN_TABLE_UNIT_PRICE, 'Unit Price'), accessor: 'unitPrice', render: (row) => row.unitPrice != null ? `$${parseFloat(row.unitPrice).toFixed(2)}` : t(K.ADMIN_TABLE_NA, 'N/A') },
+            { header: t(K.ADMIN_TABLE_ACTIVE, 'Active'), accessor: 'isActive', render: (row) => row.isActive ? '✓' : '✗' },
             {
-              header: 'Actions',
+              header: t(K.ADMIN_TABLE_ACTIONS, 'Actions'),
               render: (row) => (
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleEdit(row)}
-                    title="Edit"
-                    aria-label="Edit"
+                    title={t(K.ADMIN_TABLE_EDIT, "Edit")}
+                    aria-label={t(K.ADMIN_TABLE_EDIT, "Edit")}
                     className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                   >
                     <MdModeEditOutline className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(row.partID)}
-                    title="Delete"
-                    aria-label="Delete"
+                    title={t(K.ADMIN_TABLE_DELETE, "Delete")}
+                    aria-label={t(K.ADMIN_TABLE_DELETE, "Delete")}
                     className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
                   >
                     <MdDelete className="h-4 w-4" />
@@ -222,7 +225,7 @@ export default function SparePartsTable() {
         <Modal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
-          title={editingId ? "Edit Spare Part" : "Add New Spare Part"}
+          title={editingId ? t(K.ADMIN_TABLE_EDIT_SPARE_PART, "Edit Spare Part") : t(K.ADMIN_TABLE_ADD_NEW_SPARE_PART, "Add New Spare Part")}
           maxWidth={"max-w-2xl"}
           footer={
             <>
@@ -231,14 +234,14 @@ export default function SparePartsTable() {
                 onClick={() => setShowModal(false)}
                 className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
               >
-                Cancel
+                {t(K.ADMIN_TABLE_CANCEL, "Cancel")}
               </button>
               <button
                 type="submit"
                 form="partForm"
                 className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
               >
-                {editingId ? "Update" : "Create"}
+                {editingId ? t(K.ADMIN_TABLE_UPDATE, "Update") : t(K.ADMIN_TABLE_CREATE, "Create")}
               </button>
             </>
           }
@@ -248,7 +251,7 @@ export default function SparePartsTable() {
               <input
                 type="text"
                 name="partCode"
-                placeholder="Part Code"
+                placeholder={t(K.ADMIN_TABLE_PART_CODE, "Part Code")}
                 value={formData.partCode}
                 onChange={handleInputChange}
                 className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -257,7 +260,7 @@ export default function SparePartsTable() {
               <input
                 type="text"
                 name="partName"
-                placeholder="Part Name"
+                placeholder={t(K.ADMIN_TABLE_PART_NAME, "Part Name")}
                 value={formData.partName}
                 onChange={handleInputChange}
                 className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -267,7 +270,7 @@ export default function SparePartsTable() {
               <input
                 type="text"
                 name="manufacturer"
-                placeholder="Manufacturer (Optional)"
+                placeholder={t(K.ADMIN_TABLE_MANUFACTURER_OPTIONAL, "Manufacturer (Optional)")}
                 value={formData.manufacturer}
                 onChange={handleInputChange}
                 className="col-span-2 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -276,7 +279,7 @@ export default function SparePartsTable() {
               <input
                 type="text"
                 name="compatibleMachineTypes"
-                placeholder="Compatible Machine Types (comma-separated)"
+                placeholder={t(K.ADMIN_TABLE_COMPATIBLE_MACHINE_TYPES, "Compatible Machine Types (comma-separated)")}
                 value={formData.compatibleMachineTypes}
                 onChange={handleInputChange}
                 className="col-span-2 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -285,7 +288,7 @@ export default function SparePartsTable() {
               <input
                 type="number"
                 name="stockQuantity"
-                placeholder="Stock Quantity"
+                placeholder={t(K.ADMIN_TABLE_STOCK_QUANTITY, "Stock Quantity")}
                 value={formData.stockQuantity}
                 onChange={handleInputChange}
                 className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -295,7 +298,7 @@ export default function SparePartsTable() {
               <input
                 type="number"
                 name="reorderLevel"
-                placeholder="Reorder Level"
+                placeholder={t(K.ADMIN_TABLE_REORDER_LEVEL, "Reorder Level")}
                 value={formData.reorderLevel}
                 onChange={handleInputChange}
                 className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -305,7 +308,7 @@ export default function SparePartsTable() {
               <input
                 type="number"
                 name="unitPrice"
-                placeholder="Unit Price"
+                placeholder={t(K.ADMIN_TABLE_UNIT_PRICE, "Unit Price")}
                 value={formData.unitPrice}
                 onChange={handleInputChange}
                 className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -321,7 +324,7 @@ export default function SparePartsTable() {
                   className="mr-2"
                   id="isActive"
                 />
-                <label htmlFor="isActive" className="dark:text-white">Active</label>
+                <label htmlFor="isActive" className="dark:text-white">{t(K.ADMIN_TABLE_ACTIVE, "Active")}</label>
               </div>
             </div>
           </form>

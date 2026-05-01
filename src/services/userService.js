@@ -224,6 +224,17 @@ export const updateUserCode = async (userId, role, code) => {
   });
 };
 
+/**
+ * Update current user's preferred language code
+ * @param {string} languageCode - e.g. "en-US", "vi-VN"
+ */
+export const updateMyLanguage = async (languageCode) => {
+  return await httpClient("/users/me/language", {
+    method: "PUT",
+    body: JSON.stringify({ languageCode }),
+  });
+};
+
 export default {
   getUserProfile,
   getUserPhoto,
@@ -233,4 +244,5 @@ export default {
   assignRole,
   removeRole,
   updateUserCode,
+  updateMyLanguage,
 };

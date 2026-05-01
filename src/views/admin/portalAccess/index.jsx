@@ -5,11 +5,13 @@ import {
   assignRole,
   removeRole,
 } from "services/userService";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 const PORTAL_ROLE_MAPPINGS = [
-  { id: "student", label: "Student Portal", role: "Student" },
-  { id: "teacher", label: "Teacher Portal", role: "Instructor" },
-  { id: "maintainer", label: "Maintainer Portal", role: "Technician" },
+  { id: "student", translationKey: K.PORTAL_STUDENT_NAME, label: "Student Portal", role: "Student" },
+  { id: "teacher", translationKey: K.PORTAL_TEACHER_NAME, label: "Teacher Portal", role: "Instructor" },
+  { id: "maintainer", translationKey: K.PORTAL_MAINTAINER_NAME, label: "Maintainer Portal", role: "Technician" },
 ];
 
 const getRoleInfo = (user, role) => {
@@ -26,6 +28,7 @@ const hasActiveRole = (user, role) => {
 };
 
 export default function PortalAccessManagement() {
+  const { t } = useLanguage();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState(new Set());
@@ -52,7 +55,7 @@ export default function PortalAccessManagement() {
       setSelectedUsers(new Set());
     } catch (error) {
       console.error("Failed to fetch users:", error);
-      alert(`Failed to fetch users: ${error.message || "Unknown error"}`);
+      alert(t(K.PORTAL_ACCESS_FETCH_FAILED, "Failed to fetch users: {error}").replace("{error}", error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")));
     } finally {
       setLoading(false);
     }
@@ -81,11 +84,12 @@ export default function PortalAccessManagement() {
 
   const processBulk = async (mode) => {
     if (selectedCount === 0) {
-      alert("Please select at least one user.");
+      alert(t(K.PORTAL_ACCESS_SELECT_USER, "Please select at least one user."));
       return;
     }
 
     const targetUsers = users.filter((user) => selectedUsers.has(user.userID));
+    const portalLabel = t(selectedPortal.translationKey, selectedPortal.label);
 
     const usersToProcess = targetUsers.filter((user) => {
       const active = hasActiveRole(user, selectedPortal.role);
@@ -95,14 +99,16 @@ export default function PortalAccessManagement() {
     if (usersToProcess.length === 0) {
       alert(
         mode === "grant"
-          ? `All selected users already have ${selectedPortal.label} access.`
-          : `None of the selected users currently have ${selectedPortal.label} access.`
+          ? t(K.PORTAL_ACCESS_ALREADY_GRANTED, "All selected users already have {portal} access.").replace("{portal}", portalLabel)
+          : t(K.PORTAL_ACCESS_NONE_TO_REVOKE, "None of the selected users currently have {portal} access.").replace("{portal}", portalLabel)
       );
       return;
     }
 
     const confirmed = window.confirm(
-      `${mode === "grant" ? "Grant" : "Revoke"} ${selectedPortal.label} for ${usersToProcess.length} user(s)?`
+      mode === "grant"
+        ? t(K.PORTAL_ACCESS_CONFIRM_GRANT, "Grant {portal} for {count} user(s)?").replace("{portal}", portalLabel).replace("{count}", usersToProcess.length)
+        : t(K.PORTAL_ACCESS_CONFIRM_REVOKE_BULK, "Revoke {portal} for {count} user(s)?").replace("{portal}", portalLabel).replace("{count}", usersToProcess.length)
     );
     if (!confirmed) return;
 
@@ -121,11 +127,16 @@ export default function PortalAccessManagement() {
       const successCount = results.length - failed.length;
 
       if (failed.length === 0) {
-        alert(`${mode === "grant" ? "Granted" : "Revoked"} ${selectedPortal.label} for ${successCount} user(s).`);
+        alert(
+          mode === "grant"
+            ? t(K.PORTAL_ACCESS_GRANTED, "Granted {portal} for {count} user(s).").replace("{portal}", portalLabel).replace("{count}", successCount)
+            : t(K.PORTAL_ACCESS_REVOKED, "Revoked {portal} for {count} user(s).").replace("{portal}", portalLabel).replace("{count}", successCount)
+        );
       } else {
         alert(
-          `${mode === "grant" ? "Granted" : "Revoked"} ${selectedPortal.label} for ${successCount} user(s). ` +
-            `${failed.length} user(s) failed. Check console for details.`
+          mode === "grant"
+            ? t(K.PORTAL_ACCESS_PARTIAL_GRANT, "Granted {portal} for {count} user(s). {failed} user(s) failed. Check console for details.").replace("{portal}", portalLabel).replace("{count}", successCount).replace("{failed}", failed.length)
+            : t(K.PORTAL_ACCESS_PARTIAL_REVOKE, "Revoked {portal} for {count} user(s). {failed} user(s) failed. Check console for details.").replace("{portal}", portalLabel).replace("{count}", successCount).replace("{failed}", failed.length)
         );
         console.error("Portal access bulk operation failures:", failed);
       }
@@ -133,33 +144,35 @@ export default function PortalAccessManagement() {
       await fetchUsers();
     } catch (error) {
       console.error("Bulk portal access operation failed:", error);
-      alert(`Bulk operation failed: ${error.message || "Unknown error"}`);
+      alert(t(K.PORTAL_ACCESS_BULK_FAILED, "Bulk operation failed: {error}").replace("{error}", error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleSingleGrant = async (user, role, label) => {
+  const handleSingleGrant = async (user, role, portalKey, portalFallback) => {
+    const portalLabel = t(portalKey, portalFallback);
     try {
       await assignRole(user.userID, role, null);
-      alert(`Granted ${label} successfully.`);
+      alert(t(K.PORTAL_ACCESS_GRANT_SUCCESS, "Granted {portal} successfully.").replace("{portal}", portalLabel));
       await fetchUsers();
     } catch (error) {
       console.error("Grant portal access failed:", error);
-      alert(`Grant failed: ${error.message || "Unknown error"}`);
+      alert(t(K.PORTAL_ACCESS_GRANT_FAILED, "Grant failed: {error}").replace("{error}", error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")));
     }
   };
 
-  const handleSingleRevoke = async (user, role, label) => {
-    if (!window.confirm(`Revoke ${label} for ${user.fullName}?`)) return;
+  const handleSingleRevoke = async (user, role, portalKey, portalFallback) => {
+    const portalLabel = t(portalKey, portalFallback);
+    if (!window.confirm(t(K.PORTAL_ACCESS_CONFIRM_SINGLE_REVOKE, "Revoke {portal} for {name}?").replace("{portal}", portalLabel).replace("{name}", user.fullName))) return;
 
     try {
       await removeRole(user.userID, role);
-      alert(`Revoked ${label} successfully.`);
+      alert(t(K.PORTAL_ACCESS_REVOKE_SUCCESS, "Revoked {portal} successfully.").replace("{portal}", portalLabel));
       await fetchUsers();
     } catch (error) {
       console.error("Revoke portal access failed:", error);
-      alert(`Revoke failed: ${error.message || "Unknown error"}`);
+      alert(t(K.PORTAL_ACCESS_REVOKE_FAILED, "Revoke failed: {error}").replace("{error}", error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")));
     }
   };
 
@@ -168,9 +181,9 @@ export default function PortalAccessManagement() {
       <Card extra="w-full shrink-0 p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h4 className="text-xl font-bold text-navy-700 dark:text-white">Portal Access Management</h4>
+            <h4 className="text-xl font-bold text-navy-700 dark:text-white">{t(K.PORTAL_ACCESS_TITLE, "Portal Access Management")}</h4>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Grant or revoke portal access by linking UserProfiles to Student / Instructor / Technician domain roles.
+              {t(K.PORTAL_ACCESS_DESCRIPTION, "Grant or revoke portal access by linking UserProfiles to Student / Instructor / Technician domain roles.")}
             </p>
           </div>
 
@@ -183,7 +196,7 @@ export default function PortalAccessManagement() {
             >
               {PORTAL_ROLE_MAPPINGS.map((portal) => (
                 <option key={portal.id} value={portal.id}>
-                  {portal.label}
+                  {t(portal.translationKey, portal.label)}
                 </option>
               ))}
             </select>
@@ -193,14 +206,14 @@ export default function PortalAccessManagement() {
               disabled={loading || submitting || selectedCount === 0}
               className="rounded bg-brand-500 px-4 py-2 text-sm text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Grant Selected ({selectedCount})
+              {t(K.PORTAL_ACCESS_GRANT_SELECTED, "Grant Selected ({count})").replace("{count}", selectedCount)}
             </button>
             <button
               onClick={() => processBulk("revoke")}
               disabled={loading || submitting || selectedCount === 0}
               className="rounded bg-red-500 px-4 py-2 text-sm text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Revoke Selected ({selectedCount})
+              {t(K.PORTAL_ACCESS_REVOKE_SELECTED, "Revoke Selected ({count})").replace("{count}", selectedCount)}
             </button>
           </div>
         </div>
@@ -208,7 +221,7 @@ export default function PortalAccessManagement() {
 
       <Card extra="w-full min-h-0 flex-1 px-2 sm:px-0">
         {loading ? (
-          <div className="py-8 text-center">Loading...</div>
+          <div className="py-8 text-center">{t(K.ADMIN_TABLE_LOADING, "Loading...")}</div>
         ) : (
           <div className="h-full min-h-0 overflow-auto">
             <table className="w-full border-collapse">
@@ -222,19 +235,19 @@ export default function PortalAccessManagement() {
                       disabled={submitting}
                     />
                   </th>
-                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">Full Name</th>
-                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">Email</th>
-                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">Department</th>
-                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">Student Portal</th>
-                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">Teacher Portal</th>
-                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">Maintainer Portal</th>
+                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.ADMIN_TABLE_FULL_NAME, "Full Name")}</th>
+                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.ADMIN_TABLE_EMAIL, "Email")}</th>
+                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.ADMIN_TABLE_DEPARTMENT, "Department")}</th>
+                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.PORTAL_STUDENT_NAME, "Student Portal")}</th>
+                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.PORTAL_TEACHER_NAME, "Teacher Portal")}</th>
+                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.PORTAL_MAINTAINER_NAME, "Maintainer Portal")}</th>
                 </tr>
               </thead>
               <tbody>
                 {users.length === 0 && (
                   <tr>
                     <td colSpan={7} className="p-4 text-center text-gray-500">
-                      No users found
+                      {t(K.PORTAL_ACCESS_NO_USERS, "No users found")}
                     </td>
                   </tr>
                 )}
@@ -261,18 +274,18 @@ export default function PortalAccessManagement() {
                         {studentActive ? (
                           <button
                             className="rounded bg-red-100 px-2 py-1 text-xs text-red-700 hover:bg-red-200"
-                            onClick={() => handleSingleRevoke(user, "Student", "Student Portal")}
+                            onClick={() => handleSingleRevoke(user, "Student", K.PORTAL_STUDENT_NAME, "Student Portal")}
                             disabled={submitting}
                           >
-                            Revoke
+                            {t(K.PORTAL_ACCESS_REVOKE, "Revoke")}
                           </button>
                         ) : (
                           <button
                             className="rounded bg-green-100 px-2 py-1 text-xs text-green-700 hover:bg-green-200"
-                            onClick={() => handleSingleGrant(user, "Student", "Student Portal")}
+                            onClick={() => handleSingleGrant(user, "Student", K.PORTAL_STUDENT_NAME, "Student Portal")}
                             disabled={submitting}
                           >
-                            Grant
+                            {t(K.PORTAL_ACCESS_GRANT, "Grant")}
                           </button>
                         )}
                       </td>
@@ -280,18 +293,18 @@ export default function PortalAccessManagement() {
                         {teacherActive ? (
                           <button
                             className="rounded bg-red-100 px-2 py-1 text-xs text-red-700 hover:bg-red-200"
-                            onClick={() => handleSingleRevoke(user, "Instructor", "Teacher Portal")}
+                            onClick={() => handleSingleRevoke(user, "Instructor", K.PORTAL_TEACHER_NAME, "Teacher Portal")}
                             disabled={submitting}
                           >
-                            Revoke
+                            {t(K.PORTAL_ACCESS_REVOKE, "Revoke")}
                           </button>
                         ) : (
                           <button
                             className="rounded bg-green-100 px-2 py-1 text-xs text-green-700 hover:bg-green-200"
-                            onClick={() => handleSingleGrant(user, "Instructor", "Teacher Portal")}
+                            onClick={() => handleSingleGrant(user, "Instructor", K.PORTAL_TEACHER_NAME, "Teacher Portal")}
                             disabled={submitting}
                           >
-                            Grant
+                            {t(K.PORTAL_ACCESS_GRANT, "Grant")}
                           </button>
                         )}
                       </td>
@@ -299,18 +312,18 @@ export default function PortalAccessManagement() {
                         {maintainerActive ? (
                           <button
                             className="rounded bg-red-100 px-2 py-1 text-xs text-red-700 hover:bg-red-200"
-                            onClick={() => handleSingleRevoke(user, "Technician", "Maintainer Portal")}
+                            onClick={() => handleSingleRevoke(user, "Technician", K.PORTAL_MAINTAINER_NAME, "Maintainer Portal")}
                             disabled={submitting}
                           >
-                            Revoke
+                            {t(K.PORTAL_ACCESS_REVOKE, "Revoke")}
                           </button>
                         ) : (
                           <button
                             className="rounded bg-green-100 px-2 py-1 text-xs text-green-700 hover:bg-green-200"
-                            onClick={() => handleSingleGrant(user, "Technician", "Maintainer Portal")}
+                            onClick={() => handleSingleGrant(user, "Technician", K.PORTAL_MAINTAINER_NAME, "Maintainer Portal")}
                             disabled={submitting}
                           >
-                            Grant
+                            {t(K.PORTAL_ACCESS_GRANT, "Grant")}
                           </button>
                         )}
                       </td>

@@ -8,8 +8,11 @@ import {
 } from "services/api";
 import assetService from "services/assetService";
 import { getCurrentUser } from "services/userService";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function TeacherPortal() {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
@@ -64,7 +67,7 @@ export default function TeacherPortal() {
       );
       setClasses(classList || []);
     } catch (error) {
-      showToast(`Failed to load teacher workspace: ${error.message}`, true);
+      showToast(`${t(K.TEACHER_LOAD_FAILED, "Failed to load teacher workspace")}: ${error.message}`, true);
     } finally {
       setLoading(false);
     }
@@ -85,25 +88,28 @@ export default function TeacherPortal() {
         isActive: true,
       });
       setAssignForm({ studentID: "", classID: "", roomAssetID: "" });
-      showToast("Asset assigned successfully.");
+      showToast(t(K.TEACHER_ASSIGN_SUCCESS, "Asset assigned successfully."));
       await loadData();
     } catch (error) {
-      showToast(`Assignment failed: ${error.message}`, true);
+      showToast(`${t(K.TEACHER_ASSIGN_FAILED, "Assignment failed")}: ${error.message}`, true);
     }
   };
 
   const handleForceReturn = async (assignmentId) => {
-    const reason = window.prompt("Enter force return reason:", "Returned by teacher/admin");
+    const reason = window.prompt(
+      t(K.TEACHER_FORCE_RETURN_REASON, "Enter force return reason:"),
+      t(K.TEACHER_FORCE_RETURN_DEFAULT_REASON, "Returned by teacher/admin")
+    );
     if (!reason || !reason.trim()) {
       return;
     }
 
     try {
       await studentEquipmentAssignmentService.forceReturn(assignmentId, reason.trim());
-      showToast("Asset force-returned.");
+      showToast(t(K.TEACHER_FORCE_RETURN_SUCCESS, "Asset force-returned."));
       await loadData();
     } catch (error) {
-      showToast(`Force return failed: ${error.message}`, true);
+      showToast(`${t(K.TEACHER_FORCE_RETURN_FAILED, "Force return failed")}: ${error.message}`, true);
     }
   };
 
@@ -117,32 +123,32 @@ export default function TeacherPortal() {
         instructorNotified: true,
       });
       setIssueForm({ sessionID: "", studentDescription: "" });
-      showToast("Issue reported successfully.");
+      showToast(t(K.TEACHER_ISSUE_REPORTED, "Issue reported successfully."));
       await loadData();
     } catch (error) {
-      showToast(`Issue report failed: ${error.message}`, true);
+      showToast(`${t(K.TEACHER_ISSUE_REPORT_FAILED, "Issue report failed")}: ${error.message}`, true);
     }
   };
 
   return (
-    <PortalLayout title="Teacher Portal">
+    <PortalLayout title="Teacher Portal" titleKey={K.TEACHER_PORTAL_TITLE}>
       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
         <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">Available Assets</p>
+          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.TEACHER_AVAILABLE_ASSETS, "Available Assets")}</p>
           <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{availableAssets.length}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">Good condition and ready for use</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.TEACHER_READY_FOR_USE, "Good condition and ready for use")}</p>
         </Card>
         <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">Active Assignments</p>
+          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.TEACHER_ACTIVE_ASSIGNMENTS, "Active Assignments")}</p>
           <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{activeAssignments.length}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">Currently in student hands</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.TEACHER_IN_STUDENT_HANDS, "Currently in student hands")}</p>
         </Card>
         <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">Open Reports</p>
+          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.TEACHER_OPEN_REPORTS, "Open Reports")}</p>
           <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">
             {recentIssues.filter((issue) => !issue.resolutionTime).length}
           </p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">Teacher/student reported issues</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.TEACHER_REPORTED_ISSUES, "Teacher/student reported issues")}</p>
         </Card>
       </div>
 
@@ -160,7 +166,7 @@ export default function TeacherPortal() {
 
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">Assign Asset to Student</h2>
+          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.TEACHER_ASSIGN_TITLE, "Assign Asset to Student")}</h2>
           <form className="mt-4 space-y-3" onSubmit={handleAssignAsset}>
             <input
               type="number"
@@ -168,7 +174,7 @@ export default function TeacherPortal() {
               required
               value={assignForm.studentID}
               onChange={(e) => setAssignForm((prev) => ({ ...prev, studentID: e.target.value }))}
-              placeholder="Student ID"
+              placeholder={t(K.TEACHER_STUDENT_ID, "Student ID")}
               className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
             />
             <select
@@ -177,7 +183,7 @@ export default function TeacherPortal() {
               onChange={(e) => setAssignForm((prev) => ({ ...prev, classID: e.target.value }))}
               className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
             >
-              <option value="">Select class</option>
+              <option value="">{t(K.TEACHER_SELECT_CLASS, "Select class")}</option>
               {classes.map((item) => (
                 <option key={item.classID} value={item.classID}>
                   {item.className} ({item.classCode})
@@ -190,7 +196,7 @@ export default function TeacherPortal() {
               onChange={(e) => setAssignForm((prev) => ({ ...prev, roomAssetID: e.target.value }))}
               className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
             >
-              <option value="">Select available asset</option>
+              <option value="">{t(K.TEACHER_SELECT_AVAILABLE_ASSET, "Select available asset")}</option>
               {availableAssets.map((item) => (
                 <option key={item.roomAssetID} value={item.roomAssetID}>
                   {item.assetCode || item.assetName || `Asset ${item.assetID}`} • SN {item.serialNumber}
@@ -202,15 +208,15 @@ export default function TeacherPortal() {
               disabled={loading}
               className="w-full rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
             >
-              Assign Now
+              {t(K.TEACHER_ASSIGN_NOW, "Assign Now")}
             </button>
           </form>
         </Card>
 
         <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">Report Asset Issue</h2>
+          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.TEACHER_REPORT_ISSUE_TITLE, "Report Asset Issue")}</h2>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-            Submit quick issue reports for ongoing sessions.
+            {t(K.TEACHER_REPORT_ISSUE_HINT, "Submit quick issue reports for ongoing sessions.")}
           </p>
           <form className="mt-4 space-y-3" onSubmit={handleIssueReport}>
             <input
@@ -219,7 +225,7 @@ export default function TeacherPortal() {
               required
               value={issueForm.sessionID}
               onChange={(e) => setIssueForm((prev) => ({ ...prev, sessionID: e.target.value }))}
-              placeholder="Practice Session ID"
+              placeholder={t(K.TEACHER_SESSION_ID, "Practice Session ID")}
               className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
             />
             <textarea
@@ -229,7 +235,7 @@ export default function TeacherPortal() {
               onChange={(e) =>
                 setIssueForm((prev) => ({ ...prev, studentDescription: e.target.value }))
               }
-              placeholder="Describe the issue and impact"
+              placeholder={t(K.TEACHER_DESCRIBE_ISSUE_IMPACT, "Describe the issue and impact")}
               className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
             />
             <button
@@ -237,7 +243,7 @@ export default function TeacherPortal() {
               disabled={loading}
               className="w-full rounded-xl bg-navy-700 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-800 disabled:opacity-60"
             >
-              Send Issue Report
+              {t(K.TEACHER_SEND_ISSUE_REPORT, "Send Issue Report")}
             </button>
           </form>
         </Card>
@@ -245,10 +251,10 @@ export default function TeacherPortal() {
 
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">Live Assignments</h2>
+          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.TEACHER_LIVE_ASSIGNMENTS, "Live Assignments")}</h2>
           <div className="mt-4 space-y-3">
             {visibleAssignments.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-300">No active assignments.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.TEACHER_NO_ACTIVE_ASSIGNMENTS, "No active assignments.")}</p>
             )}
             {visibleAssignments.map((item) => (
               <div
@@ -261,7 +267,7 @@ export default function TeacherPortal() {
                       Student #{item.studentID} • Class #{item.classID}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-300">
-                      RoomAsset #{item.roomAssetID} • Assigned {new Date(item.assignedDate).toLocaleString()}
+                      RoomAsset #{item.roomAssetID} • {t(K.TEACHER_ASSIGNMENT_INFO, "Assigned")} {new Date(item.assignedDate).toLocaleString()}
                     </p>
                   </div>
                   <button
@@ -269,7 +275,7 @@ export default function TeacherPortal() {
                     onClick={() => handleForceReturn(item.assignmentID)}
                     className="rounded-lg border border-amber-300 px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-50"
                   >
-                    Force Return
+                    {t(K.TEACHER_FORCE_RETURN, "Force Return")}
                   </button>
                 </div>
               </div>
@@ -278,10 +284,10 @@ export default function TeacherPortal() {
         </Card>
 
         <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">Recent Issue Feed</h2>
+          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.TEACHER_RECENT_ISSUES, "Recent Issue Feed")}</h2>
           <div className="mt-4 space-y-3">
             {visibleIssues.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-300">No issues reported yet.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.TEACHER_NO_ISSUES, "No issues reported yet.")}</p>
             )}
             {visibleIssues.map((issue) => (
               <div
@@ -290,7 +296,7 @@ export default function TeacherPortal() {
               >
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-navy-700 dark:text-white">
-                    Session #{issue.sessionID}
+                    {t(K.TEACHER_SESSION_LABEL, "Session")} #{issue.sessionID}
                   </p>
                   <span
                     className={`rounded-full px-2 py-1 text-[10px] font-bold ${
@@ -299,11 +305,13 @@ export default function TeacherPortal() {
                         : "bg-orange-100 text-orange-700"
                     }`}
                   >
-                    {issue.resolutionTime ? "Resolved" : "Open"}
+                    {issue.resolutionTime
+                      ? t(K.TEACHER_RESOLVED, "Resolved")
+                      : t(K.TEACHER_OPEN, "Open")}
                   </span>
                 </div>
                 <p className="mt-1 line-clamp-2 text-xs text-gray-600 dark:text-gray-300">
-                  {issue.studentDescription || "No details provided."}
+                  {issue.studentDescription || t(K.TEACHER_NO_DETAILS, "No details provided.")}
                 </p>
               </div>
             ))}

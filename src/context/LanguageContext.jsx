@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { configurationService } from "services/configurationService";
+import { updateMyLanguage } from "services/userService";
+import { useAuth } from "context/AuthContext";
+import { getFallbackBundle } from "i18n/fallbackTranslations";
 
 /**
  * LanguageContext
@@ -16,11 +19,15 @@ const STORAGE_KEY = "app_language";
 const DEFAULT_LANGUAGE = "en-US";
 
 export const LanguageProvider = ({ children }) => {
+  const { currentUser, isAuthenticated } = useAuth();
   const [language, setLanguageState] = useState(
     () => localStorage.getItem(STORAGE_KEY) || DEFAULT_LANGUAGE
   );
   const [languages, setLanguages] = useState([]);
   const [loadingLanguages, setLoadingLanguages] = useState(true);
+  const [translations, setTranslations] = useState(() =>
+    getFallbackBundle(localStorage.getItem(STORAGE_KEY) || DEFAULT_LANGUAGE)
+  );
 
   // Fetch available languages from the configuration endpoint
   useEffect(() => {
@@ -48,14 +55,91 @@ export const LanguageProvider = ({ children }) => {
     return () => { cancelled = true; };
   }, []);
 
+  // Keep UI language aligned with profile preference when available.
+  // Only react to profile changes; do not override a user toggle in-flight.
+  useEffect(() => {
+    const preferredLanguage = currentUser?.preferredLanguageCode;
+    if (!preferredLanguage) {
+      return;
+    }
+
+    setLanguageState((previousLanguage) => {
+      if (previousLanguage === preferredLanguage) {
+        return previousLanguage;
+      }
+
+      localStorage.setItem(STORAGE_KEY, preferredLanguage);
+      return preferredLanguage;
+    });
+  }, [currentUser?.preferredLanguageCode]);
+
+  // Fetch translated UI labels from configuration items and merge with fallback bundle.
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchUiTranslations = async () => {
+      const fallbackBundle = getFallbackBundle(language);
+      setTranslations(fallbackBundle);
+
+      try {
+        const items = await configurationService.getItems("UiText", language);
+        if (cancelled || !Array.isArray(items)) {
+          return;
+        }
+
+        const remoteBundle = items.reduce((acc, item) => {
+          if (item?.itemCode && item?.label) {
+            acc[item.itemCode] = item.label;
+          }
+          return acc;
+        }, {});
+
+        setTranslations({
+          ...fallbackBundle,
+          ...remoteBundle,
+        });
+      } catch (err) {
+        console.warn("Failed to load UiText translations from configuration items:", err.message);
+      }
+    };
+
+    fetchUiTranslations();
+    return () => {
+      cancelled = true;
+    };
+  }, [language]);
+
   /**
    * Change the active language and persist to localStorage
    * @param {string} langCode - e.g. "vi-VN"
    */
-  const setLanguage = useCallback((langCode) => {
+  const setLanguage = useCallback(async (langCode) => {
+    if (!langCode || langCode === language) {
+      return;
+    }
+
     setLanguageState(langCode);
     localStorage.setItem(STORAGE_KEY, langCode);
-  }, []);
+
+    if (isAuthenticated) {
+      try {
+        await updateMyLanguage(langCode);
+      } catch (err) {
+        console.warn("Failed to persist preferred language to profile:", err.message);
+      }
+    }
+  }, [isAuthenticated, language]);
+
+  /**
+   * Resolve a translation key to localized text.
+   */
+  const t = useCallback((key, fallback = null) => {
+    if (!key) {
+      return fallback || "";
+    }
+
+    return translations[key] || fallback || key;
+  }, [translations]);
 
   const value = {
     /** Current language code, e.g. "en-US" */
@@ -66,6 +150,8 @@ export const LanguageProvider = ({ children }) => {
     languages,
     /** Whether the language list is still loading */
     loadingLanguages,
+    /** Translation lookup function */
+    t,
   };
 
   return (

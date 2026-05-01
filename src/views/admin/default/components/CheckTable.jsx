@@ -2,6 +2,8 @@ import React from "react";
 import CardMenu from "components/card/CardMenu";
 import Checkbox from "components/checkbox";
 import Card from "components/card";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 import {
   createColumnHelper,
@@ -12,6 +14,7 @@ import {
 } from "@tanstack/react-table";
 
 function CheckTable(props) {
+  const { t } = useLanguage();
   const { tableData } = props;
   const [sorting, setSorting] = React.useState([]);
   let defaultData = tableData;
@@ -19,7 +22,7 @@ function CheckTable(props) {
     columnHelper.accessor("name", {
       id: "name",
       header: () => (
-        <p className="text-sm font-bold text-gray-600 dark:text-white">NAME</p>
+        <p className="text-sm font-bold text-gray-600 dark:text-white">{t(K.ADMIN_TABLE_NAME, "Name")}</p>
       ),
       cell: (info) => (
         <div className="flex items-center">
@@ -38,7 +41,7 @@ function CheckTable(props) {
       id: "progress",
       header: () => (
         <p className="text-sm font-bold text-gray-600 dark:text-white">
-          PROGRESS
+          {t(K.ADMIN_TABLE_PROGRESS, "Progress")}
         </p>
       ),
       cell: (info) => (
@@ -51,7 +54,7 @@ function CheckTable(props) {
       id: "quantity",
       header: () => (
         <p className="text-sm font-bold text-gray-600 dark:text-white">
-          QUANTITY
+          {t(K.ADMIN_TABLE_QUANTITY, "Quantity")}
         </p>
       ),
       cell: (info) => (
@@ -63,7 +66,7 @@ function CheckTable(props) {
     columnHelper.accessor("date", {
       id: "date",
       header: () => (
-        <p className="text-sm font-bold text-gray-600 dark:text-white">DATE</p>
+        <p className="text-sm font-bold text-gray-600 dark:text-white">{t(K.ADMIN_TABLE_DATE, "Date")}</p>
       ),
       cell: (info) => (
         <p className="text-sm font-bold text-navy-700 dark:text-white">
@@ -88,7 +91,7 @@ function CheckTable(props) {
     <Card extra={"w-full h-full sm:overflow-auto px-6"}>
       <header className="relative flex items-center justify-between pt-4">
         <div className="text-xl font-bold text-navy-700 dark:text-white">
-          Check Table
+          {t(K.ADMIN_TABLE_CHECK_TABLE, "Check Table")}
         </div>
 
         <CardMenu />

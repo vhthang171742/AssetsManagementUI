@@ -3,6 +3,8 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import DashIcon from "components/icons/DashIcon";
 import { useAuth } from "context/AuthContext";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 import { MdExpandMore } from "react-icons/md";
 // chakra imports
 
@@ -11,21 +13,25 @@ const MENU_GROUPS = [
   {
     id: "asset-management",
     label: "Asset Management",
+    translationKey: K.MENU_GROUP_ASSET_MANAGEMENT,
     items: ["departments", "categories", "assets", "rooms", "production-lines", "handovers", "worker-equipment", "equipment-usage"]
   },
   {
     id: "training",
     label: "Training Mode",
+    translationKey: K.MENU_GROUP_TRAINING,
     items: ["courses", "classes", "asset-course-mappings", "student-equipment-assignments"]
   },
   {
     id: "maintenance",
     label: "Maintenance",
+    translationKey: K.MENU_GROUP_MAINTENANCE,
     items: ["spare-parts", "maintenance-schedules", "maintenance-records", "maintenance-spare-part-usages"]
   },
   {
     id: "admin",
     label: "Administration",
+    translationKey: K.MENU_GROUP_ADMINISTRATION,
     items: ["users", "portal-access", "configuration"]
   }
 ];
@@ -34,6 +40,7 @@ export function SidebarLinks(props) {
   // Chakra color mode
   let location = useLocation();
   const { userRoles } = useAuth();
+  const { t } = useLanguage();
   const [expandedGroups, setExpandedGroups] = useState(new Set(["asset-management"]));
 
   const { routes } = props;
@@ -85,7 +92,7 @@ export function SidebarLinks(props) {
                   : "font-medium text-gray-600"
               }`}
             >
-              {route.name}
+              {t(route.translationKey, route.name)}
             </p>
           </li>
           {activeRoute(route.path) ? (
@@ -131,7 +138,7 @@ export function SidebarLinks(props) {
                 : "text-gray-600 dark:text-gray-400"
             }`}
           >
-            {group.label}
+            {t(group.translationKey, group.label)}
           </span>
           <MdExpandMore
             className={`h-5 w-5 transition-transform ${

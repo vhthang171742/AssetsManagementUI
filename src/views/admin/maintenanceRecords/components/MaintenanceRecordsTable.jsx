@@ -5,8 +5,11 @@ import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Card from "components/card";
 import Modal from "components/modal/Modal";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function MaintenanceRecordsTable() {
+  const { t } = useLanguage();
   const [records, setRecords] = useState([]);
   const [assets, setAssets] = useState([]);
   const [maintenanceTypes, setMaintenanceTypes] = useState([]);
@@ -49,7 +52,7 @@ export default function MaintenanceRecordsTable() {
       setRecords(data || []);
     } catch (error) {
       console.error("Failed to fetch records:", error);
-      alert(`Failed to fetch records: ${error.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_MAINTENANCE_RECORDS, "maintenance records")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -127,10 +130,10 @@ export default function MaintenanceRecordsTable() {
 
       if (editingId) {
         await maintenanceRecordService.update(editingId, payload);
-        alert("Record updated successfully");
+        alert(`${t(K.ADMIN_TABLE_RECORD, "Record")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await maintenanceRecordService.create(payload);
-        alert("Record created successfully");
+        alert(`${t(K.ADMIN_TABLE_RECORD, "Record")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -139,7 +142,7 @@ export default function MaintenanceRecordsTable() {
     } catch (error) {
       console.error("Failed to save record:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert("Failed to save record: " + error.message + details);
+      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_RECORD, "record")}: ${error.message}${details}`);
     }
   };
 
@@ -161,14 +164,14 @@ export default function MaintenanceRecordsTable() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this record?")) {
+    if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_RECORD, "Are you sure you want to delete this record?"))) {
       try {
         await maintenanceRecordService.delete(id);
-        alert("Record deleted successfully");
+        alert(`${t(K.ADMIN_TABLE_RECORD, "Record")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchRecords();
       } catch (error) {
         console.error("Failed to delete record:", error);
-        alert(`Failed to delete record: ${error.message || "Unknown error"}`);
+        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_RECORD, "record")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -176,11 +179,11 @@ export default function MaintenanceRecordsTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await maintenanceRecordService.bulkDelete(ids);
-      alert("Deleted selected records");
+      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_RECORDS, "records")}`);
       fetchRecords();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`Failed to delete selected records: ${err.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_RECORDS, "records")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };
@@ -202,18 +205,18 @@ export default function MaintenanceRecordsTable() {
 
   const getAssetName = (assetID) => {
     const asset = assets.find((a) => a.assetID === assetID);
-    return asset ? asset.assetName : "Unknown";
+    return asset ? asset.assetName : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
   };
 
   const getMaintenanceTypeName = (itemID) => {
     const type = maintenanceTypes.find((t) => t.itemID === itemID);
-    return type ? type.label : "Unknown";
+    return type ? type.label : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
   };
 
   const getTechnicianName = (technicianID) => {
-    if (!technicianID) return "N/A";
+    if (!technicianID) return t(K.ADMIN_TABLE_NA, "N/A");
     const tech = technicians.find((t) => t.technicianID === technicianID);
-    return tech ? tech.fullName : "Unknown";
+    return tech ? tech.fullName : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
   };
 
   const filteredRecords = useMemo(() => {
@@ -240,14 +243,14 @@ export default function MaintenanceRecordsTable() {
           }}
           className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
-          Add Maintenance Record
+          {t(K.ADMIN_TABLE_ADD_MAINTENANCE_RECORD, "Add Maintenance Record")}
         </button>
         <div className="flex flex-col gap-2 sm:flex-row md:max-w-3xl">
           <input
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder="Search asset, technician, root cause"
+            placeholder={t(K.ADMIN_TABLE_SEARCH_ASSET_TECHNICIAN_ROOT_CAUSE, "Search asset, technician, root cause")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
@@ -255,7 +258,7 @@ export default function MaintenanceRecordsTable() {
             onChange={(e) => setAssetFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">All Assets</option>
+            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ROUTE_ASSETS, "Assets")}`}</option>
             {assets.map((a) => (
               <option key={a.assetID} value={a.assetID}>{a.assetName}</option>
             ))}
@@ -265,7 +268,7 @@ export default function MaintenanceRecordsTable() {
             onChange={(e) => setTypeFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">All Types</option>
+            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_TYPES, "Types")}`}</option>
             {maintenanceTypes.map((t) => (
               <option key={t.itemID} value={t.itemID}>{t.label}</option>
             ))}
@@ -275,7 +278,7 @@ export default function MaintenanceRecordsTable() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">All Completion Statuses</option>
+            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_COMPLETION_STATUSES, "Completion Statuses")}`}</option>
             {completionStatuses.map((s) => (
               <option key={s.itemID} value={s.itemID}>{s.label}</option>
             ))}
@@ -284,7 +287,7 @@ export default function MaintenanceRecordsTable() {
       </div>
 
       {loading ? (
-        <div className="text-center py-8">Loading...</div>
+        <div className="text-center py-8">{t(K.ADMIN_TABLE_LOADING, "Loading...")}</div>
       ) : (
         <Table
           data={filteredRecords}
@@ -292,27 +295,27 @@ export default function MaintenanceRecordsTable() {
           onBulkDelete={handleBulkDelete}
           selectable={true}
           columns={[
-            { header: 'Asset', accessor: 'assetID', render: (row) => getAssetName(row.assetID) },
-            { header: 'Type', accessor: 'maintenanceTypeItemID', render: (row) => getMaintenanceTypeName(row.maintenanceTypeItemID) },
-            { header: 'Date', accessor: 'maintenanceDate', render: (row) => new Date(row.maintenanceDate).toLocaleDateString() },
-            { header: 'Technician', accessor: 'technicianID', render: (row) => getTechnicianName(row.technicianID) },
-            { header: 'Duration (min)', accessor: 'repairDurationMinutes' },
+            { header: t(K.ADMIN_TABLE_ASSET, 'Asset'), accessor: 'assetID', render: (row) => getAssetName(row.assetID) },
+            { header: t(K.ADMIN_TABLE_TYPE, 'Type'), accessor: 'maintenanceTypeItemID', render: (row) => getMaintenanceTypeName(row.maintenanceTypeItemID) },
+            { header: t(K.ADMIN_TABLE_DATE, 'Date'), accessor: 'maintenanceDate', render: (row) => new Date(row.maintenanceDate).toLocaleDateString() },
+            { header: t(K.ADMIN_TABLE_TECHNICIAN, 'Technician'), accessor: 'technicianID', render: (row) => getTechnicianName(row.technicianID) },
+            { header: t(K.ADMIN_TABLE_DURATION_MIN, 'Duration (min)'), accessor: 'repairDurationMinutes' },
             {
-              header: 'Actions',
+              header: t(K.ADMIN_TABLE_ACTIONS, 'Actions'),
               render: (row) => (
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleEdit(row)}
-                    title="Edit"
-                    aria-label="Edit"
+                    title={t(K.ADMIN_TABLE_EDIT, "Edit")}
+                    aria-label={t(K.ADMIN_TABLE_EDIT, "Edit")}
                     className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                   >
                     <MdModeEditOutline className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(row.recordID)}
-                    title="Delete"
-                    aria-label="Delete"
+                    title={t(K.ADMIN_TABLE_DELETE, "Delete")}
+                    aria-label={t(K.ADMIN_TABLE_DELETE, "Delete")}
                     className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
                   >
                     <MdDelete className="h-4 w-4" />
@@ -328,7 +331,7 @@ export default function MaintenanceRecordsTable() {
         <Modal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
-          title={editingId ? "Edit Maintenance Record" : "Add New Maintenance Record"}
+          title={editingId ? t(K.ADMIN_TABLE_EDIT_MAINTENANCE_RECORD, "Edit Maintenance Record") : t(K.ADMIN_TABLE_ADD_NEW_MAINTENANCE_RECORD, "Add New Maintenance Record")}
           maxWidth={"max-w-3xl"}
           footer={
             <>
@@ -337,14 +340,14 @@ export default function MaintenanceRecordsTable() {
                 onClick={() => setShowModal(false)}
                 className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
               >
-                Cancel
+                {t(K.ADMIN_TABLE_CANCEL, "Cancel")}
               </button>
               <button
                 type="submit"
                 form="recordForm"
                 className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
               >
-                {editingId ? "Update" : "Create"}
+                {editingId ? t(K.ADMIN_TABLE_UPDATE, "Update") : t(K.ADMIN_TABLE_CREATE, "Create")}
               </button>
             </>
           }
@@ -358,7 +361,7 @@ export default function MaintenanceRecordsTable() {
                 className="col-span-2 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 required
               >
-                <option value="">Select Asset</option>
+                <option value="">{t(K.ADMIN_TABLE_SELECT_ASSET, "Select Asset")}</option>
                 {assets.map((asset) => (
                   <option key={asset.assetID} value={asset.assetID}>
                     {asset.assetName} ({asset.assetCode})
@@ -373,7 +376,7 @@ export default function MaintenanceRecordsTable() {
                 className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 required
               >
-                <option value="">Select Maintenance Type</option>
+                <option value="">{t(K.ADMIN_TABLE_SELECT_MAINTENANCE_TYPE, "Select Maintenance Type")}</option>
                 {maintenanceTypes.map((type) => (
                   <option key={type.itemID} value={type.itemID}>
                     {type.label}
@@ -382,7 +385,7 @@ export default function MaintenanceRecordsTable() {
               </select>
 
               <div className="col-span-1">
-                <label className="block text-sm font-medium mb-1 dark:text-white">Maintenance Date</label>
+                <label className="block text-sm font-medium mb-1 dark:text-white">{t(K.ADMIN_TABLE_MAINTENANCE_DATE, "Maintenance Date")}</label>
                 <input
                   type="datetime-local"
                   name="maintenanceDate"
@@ -399,7 +402,7 @@ export default function MaintenanceRecordsTable() {
                 onChange={handleInputChange}
                 className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
-                <option value="">Select Technician (Optional)</option>
+                <option value="">{t(K.ADMIN_TABLE_SELECT_TECHNICIAN_OPTIONAL, "Select Technician (Optional)")}</option>
                 {technicians.map((tech) => (
                   <option key={tech.technicianID} value={tech.technicianID}>
                     {tech.fullName}
@@ -410,7 +413,7 @@ export default function MaintenanceRecordsTable() {
               <input
                 type="number"
                 name="repairDurationMinutes"
-                placeholder="Repair Duration (minutes)"
+                placeholder={t(K.ADMIN_TABLE_REPAIR_DURATION_MINUTES, "Repair Duration (minutes)")}
                 value={formData.repairDurationMinutes}
                 onChange={handleInputChange}
                 className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -422,7 +425,7 @@ export default function MaintenanceRecordsTable() {
                 onChange={handleInputChange}
                 className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
-                <option value="">Select Failure Category (Optional)</option>
+                <option value="">{t(K.ADMIN_TABLE_SELECT_FAILURE_CATEGORY_OPTIONAL, "Select Failure Category (Optional)")}</option>
                 {failureCategories.map((cat) => (
                   <option key={cat.itemID} value={cat.itemID}>
                     {cat.label}
@@ -436,7 +439,7 @@ export default function MaintenanceRecordsTable() {
                 onChange={handleInputChange}
                 className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
-                <option value="">Select Completion Status (Optional)</option>
+                <option value="">{t(K.ADMIN_TABLE_SELECT_COMPLETION_STATUS_OPTIONAL, "Select Completion Status (Optional)")}</option>
                 {completionStatuses.map((status) => (
                   <option key={status.itemID} value={status.itemID}>
                     {status.label}
@@ -446,7 +449,7 @@ export default function MaintenanceRecordsTable() {
 
               <textarea
                 name="rootCause"
-                placeholder="Root Cause"
+                placeholder={t(K.ADMIN_TABLE_ROOT_CAUSE, "Root Cause")}
                 value={formData.rootCause}
                 onChange={handleInputChange}
                 className="col-span-2 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -455,7 +458,7 @@ export default function MaintenanceRecordsTable() {
 
               <textarea
                 name="notes"
-                placeholder="Notes"
+                placeholder={t(K.ADMIN_TABLE_NOTES, "Notes")}
                 value={formData.notes}
                 onChange={handleInputChange}
                 className="col-span-2 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"

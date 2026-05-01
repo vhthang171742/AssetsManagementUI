@@ -4,8 +4,11 @@ import Card from "components/card";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function CategoriesTable() {
+  const { t } = useLanguage();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -27,7 +30,7 @@ export default function CategoriesTable() {
       setCategories(data || []);
     } catch (error) {
       console.error("Failed to fetch categories:", error);
-      alert(`Failed to fetch categories: ${error.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_CATEGORIES, "categories")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -46,10 +49,10 @@ export default function CategoriesTable() {
     try {
       if (editingId) {
         await assetCategoryService.update(editingId, formData);
-        alert("Category updated successfully");
+        alert(`${t(K.ADMIN_TABLE_CATEGORY, "Category")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await assetCategoryService.create(formData);
-        alert("Category created successfully");
+        alert(`${t(K.ADMIN_TABLE_CATEGORY, "Category")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -61,7 +64,7 @@ export default function CategoriesTable() {
     } catch (error) {
       console.error("Failed to save category:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert("Failed to save category: " + error.message + details);
+      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_CATEGORY, "category")}: ${error.message}${details}`);
     }
   };
 
@@ -75,14 +78,14 @@ export default function CategoriesTable() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this category?")) {
+    if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_CATEGORY, "Are you sure you want to delete this category?"))) {
       try {
         await assetCategoryService.delete(id);
-        alert("Category deleted successfully");
+        alert(`${t(K.ADMIN_TABLE_CATEGORY, "Category")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchCategories();
       } catch (error) {
         console.error("Failed to delete category:", error);
-        alert(`Failed to delete category: ${error.message || "Unknown error"}`);
+        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_CATEGORY, "category")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -90,11 +93,11 @@ export default function CategoriesTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await assetCategoryService.bulkDelete(ids);
-      alert("Deleted selected categories");
+      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_CATEGORIES, "categories")}`);
       fetchCategories();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`Failed to delete selected categories: ${err.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_CATEGORIES, "categories")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };
@@ -122,19 +125,19 @@ export default function CategoriesTable() {
           }}
           className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
-          Add Category
+          {`${t(K.ADMIN_TABLE_ADD, "Add")} ${t(K.ADMIN_TABLE_CATEGORY, "Category")}`}
         </button>
         <input
           type="text"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          placeholder="Search name, description"
+          placeholder={t(K.ADMIN_TABLE_SEARCH_NAME_DESCRIPTION, "Search name, description")}
           className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white md:w-64"
         />
       </div>
 
       {loading ? (
-        <div className="text-center py-8">Loading...</div>
+        <div className="text-center py-8">{t(K.ADMIN_TABLE_LOADING, "Loading...")}</div>
       ) : (
         <Table
           data={filteredCategories}
@@ -143,24 +146,24 @@ export default function CategoriesTable() {
           selectable={true}
           idField="categoryID"
           columns={[
-            { header: 'Category Name', accessor: 'categoryName' },
-            { header: 'Description', accessor: 'description' },
+            { header: t(K.ADMIN_TABLE_CATEGORY_NAME, "Category Name"), accessor: 'categoryName' },
+            { header: t(K.ADMIN_TABLE_DESCRIPTION, "Description"), accessor: 'description' },
             {
-              header: 'Actions',
+              header: t(K.ADMIN_TABLE_ACTIONS, "Actions"),
               render: (row) => (
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleEdit(row)}
-                    title="Edit"
-                    aria-label="Edit"
+                    title={t(K.ADMIN_TABLE_EDIT, "Edit")}
+                    aria-label={t(K.ADMIN_TABLE_EDIT, "Edit")}
                     className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                   >
                     <MdModeEditOutline className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(row.categoryID)}
-                    title="Delete"
-                    aria-label="Delete"
+                    title={t(K.ADMIN_TABLE_DELETE, "Delete")}
+                    aria-label={t(K.ADMIN_TABLE_DELETE, "Delete")}
                     className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
                   >
                     <MdDelete className="h-4 w-4" />
@@ -177,7 +180,7 @@ export default function CategoriesTable() {
         <Modal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
-          title={editingId ? "Edit Category" : "Add New Category"}
+          title={editingId ? `${t(K.ADMIN_TABLE_EDIT, "Edit")} ${t(K.ADMIN_TABLE_CATEGORY, "Category")}` : `${t(K.ADMIN_TABLE_ADD_NEW, "Add New")} ${t(K.ADMIN_TABLE_CATEGORY, "Category")}`}
           maxWidth={"max-w-md"}
           footer={
             <>
@@ -186,25 +189,25 @@ export default function CategoriesTable() {
                 onClick={() => setShowModal(false)}
                 className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
               >
-                Cancel
+                {t(K.ADMIN_TABLE_CANCEL, "Cancel")}
               </button>
               <button
                 type="submit"
                 form="categoryForm"
                 className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
               >
-                {editingId ? "Update" : "Create"}
+                {editingId ? t(K.ADMIN_TABLE_UPDATE, "Update") : t(K.ADMIN_TABLE_CREATE, "Create")}
               </button>
             </>
           }
         >
           <form id="categoryForm" onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2 dark:text-white">Category Name</label>
+              <label className="block text-sm font-medium mb-2 dark:text-white">{t(K.ADMIN_TABLE_CATEGORY_NAME, "Category Name")}</label>
               <input
                 type="text"
                 name="categoryName"
-                placeholder="Category Name"
+                placeholder={t(K.ADMIN_TABLE_CATEGORY_NAME, "Category Name")}
                 value={formData.categoryName}
                 onChange={handleInputChange}
                 className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -212,10 +215,10 @@ export default function CategoriesTable() {
               />
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2 dark:text-white">Description</label>
+              <label className="block text-sm font-medium mb-2 dark:text-white">{t(K.ADMIN_TABLE_DESCRIPTION, "Description")}</label>
               <textarea
                 name="description"
-                placeholder="Description"
+                placeholder={t(K.ADMIN_TABLE_DESCRIPTION, "Description")}
                 value={formData.description}
                 onChange={handleInputChange}
                 className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"

@@ -4,8 +4,11 @@ import Card from "components/card";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function EquipmentUsageTable() {
+  const { t } = useLanguage();
   const [usageLogs, setUsageLogs] = useState([]);
   const [workers, setWorkers] = useState([]);
   const [equipment, setEquipment] = useState([]);
@@ -41,7 +44,7 @@ export default function EquipmentUsageTable() {
       setUsageLogs(data || []);
     } catch (error) {
       console.error("Failed to fetch usage logs:", error);
-      alert(`Failed to fetch usage logs: ${error.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_USAGE_LOGS, "usage logs")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -103,7 +106,7 @@ export default function EquipmentUsageTable() {
           const details = validation?.errors?.length
             ? "\n• " + validation.errors.join("\n• ")
             : "\n• Please refresh and select valid Equipment, Worker, and Production Line values.";
-          alert("Cannot save usage log due to reference validation errors:" + details);
+          alert(t(K.ADMIN_TABLE_REFERENCE_VALIDATION_ERRORS_USAGE_LOG, "Cannot save usage log due to reference validation errors:") + details);
           return;
         }
       } catch (validationError) {
@@ -116,10 +119,10 @@ export default function EquipmentUsageTable() {
 
       if (editingId) {
         await equipmentUsageService.update(editingId, formData);
-        alert("Usage log updated successfully");
+        alert(`${t(K.ADMIN_TABLE_USAGE_LOG, "Usage log")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await equipmentUsageService.create(formData);
-        alert("Usage log created successfully");
+        alert(`${t(K.ADMIN_TABLE_USAGE_LOG, "Usage log")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -140,7 +143,7 @@ export default function EquipmentUsageTable() {
       const details = Array.isArray(error.errors) && error.errors.length
         ? "\n• " + error.errors.join("\n• ")
         : "";
-      alert(`Failed to save usage log: ${error.message || "Unknown error"}${details}`);
+      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_USAGE_LOG, "usage log")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}${details}`);
     }
   };
 
@@ -161,14 +164,14 @@ export default function EquipmentUsageTable() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this usage log?")) {
+    if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_USAGE_LOG, "Are you sure you want to delete this usage log?"))) {
       try {
         await equipmentUsageService.delete(id);
-        alert("Usage log deleted successfully");
+        alert(`${t(K.ADMIN_TABLE_USAGE_LOG, "Usage log")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchUsageLogs();
       } catch (error) {
         console.error("Failed to delete usage log:", error);
-        alert(`Failed to delete usage log: ${error.message || "Unknown error"}`);
+        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_USAGE_LOG, "usage log")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -176,59 +179,59 @@ export default function EquipmentUsageTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await equipmentUsageService.bulkDelete(ids);
-      alert("Deleted selected usage logs");
+      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_USAGE_LOGS, "usage logs")}`);
       fetchUsageLogs();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`Failed to delete selected usage logs: ${err.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_USAGE_LOGS, "usage logs")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };
 
   const columns = [
     {
-      header: "Equipment",
+      header: t(K.ADMIN_TABLE_EQUIPMENT, "Equipment"),
       accessor: (row) =>
-        equipment.find((e) => e.roomAssetID === row.roomAssetID)?.assetName || "N/A",
+        equipment.find((e) => e.roomAssetID === row.roomAssetID)?.assetName || t(K.ADMIN_TABLE_NA, "N/A"),
     },
     {
-      header: "Worker",
+      header: t(K.ADMIN_TABLE_WORKER, "Worker"),
       accessor: (row) =>
-      workers.find((w) => w.workerRole?.workerID === row.workerID)?.fullName || "N/A",
+      workers.find((w) => w.workerRole?.workerID === row.workerID)?.fullName || t(K.ADMIN_TABLE_NA, "N/A"),
     },
     {
-      header: "Production Line",
+      header: t(K.ADMIN_TABLE_PRODUCTION_LINE, "Production Line"),
       accessor: (row) =>
-        lines.find((l) => l.productionLineID === row.productionLineID)?.lineName || "N/A",
+        lines.find((l) => l.productionLineID === row.productionLineID)?.lineName || t(K.ADMIN_TABLE_NA, "N/A"),
     },
     {
-      header: "Start Time",
+      header: t(K.ADMIN_TABLE_START_TIME, "Start Time"),
       accessor: (row) => new Date(row.startTime).toLocaleString(),
     },
     {
-      header: "End Time",
+      header: t(K.ADMIN_TABLE_END_TIME, "End Time"),
       accessor: (row) =>
         row.endTime ? new Date(row.endTime).toLocaleString() : "—",
     },
     {
-      header: "Running Minutes",
+      header: t(K.ADMIN_TABLE_RUNNING_MINUTES, "Running Minutes"),
       accessor: "runningMinutes",
     },
     {
-      header: "Actions",
+      header: t(K.ADMIN_TABLE_ACTIONS, "Actions"),
       cell: (row) => (
         <div className="flex gap-2">
           <button
             onClick={() => handleEdit(row)}
             className="text-blue-500 hover:text-blue-700 transition-colors"
-            title="Edit"
+            title={t(K.ADMIN_TABLE_EDIT, "Edit")}
           >
             <MdModeEditOutline className="h-5 w-5" />
           </button>
           <button
             onClick={() => handleDelete(row.usageLogID)}
             className="text-red-500 hover:text-red-700 transition-colors"
-            title="Delete"
+            title={t(K.ADMIN_TABLE_DELETE, "Delete")}
           >
             <MdDelete className="h-5 w-5" />
           </button>
@@ -269,14 +272,14 @@ export default function EquipmentUsageTable() {
           }}
           className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
-          Log Equipment Usage
+          {t(K.ADMIN_TABLE_LOG_EQUIPMENT_USAGE, "Log Equipment Usage")}
         </button>
         <div className="flex flex-col gap-2 sm:flex-row md:max-w-lg">
           <input
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder="Search worker, equipment"
+            placeholder={t(K.ADMIN_TABLE_SEARCH_WORKER_EQUIPMENT, "Search worker, equipment")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
@@ -284,7 +287,7 @@ export default function EquipmentUsageTable() {
             onChange={(e) => setLineFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">All Production Lines</option>
+            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_PRODUCTION_LINES, "Production Lines")}`}</option>
             {lines.map((l) => (
               <option key={l.productionLineID} value={l.productionLineID}>{l.lineName}</option>
             ))}
@@ -293,7 +296,7 @@ export default function EquipmentUsageTable() {
       </div>
 
       {loading ? (
-        <div className="py-8 text-center">Loading...</div>
+        <div className="py-8 text-center">{t(K.ADMIN_TABLE_LOADING, "Loading...")}</div>
       ) : (
         <Table
           columns={columns}
@@ -309,7 +312,7 @@ export default function EquipmentUsageTable() {
             setShowModal(false);
             setEditingId(null);
           }}
-          title={editingId ? "Edit Usage Log" : "Log Equipment Usage"}
+          title={editingId ? t(K.ADMIN_TABLE_EDIT_USAGE_LOG, "Edit Usage Log") : t(K.ADMIN_TABLE_LOG_EQUIPMENT_USAGE, "Log Equipment Usage")}
           footer={
             <>
               <button
@@ -320,14 +323,14 @@ export default function EquipmentUsageTable() {
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
               >
-                Cancel
+                {t(K.ADMIN_TABLE_CANCEL, "Cancel")}
               </button>
               <button
                 type="submit"
                 form="equipment-usage-form"
                 className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
               >
-                {editingId ? "Update" : "Log Usage"}
+                {editingId ? t(K.ADMIN_TABLE_UPDATE, "Update") : t(K.ADMIN_TABLE_LOG_USAGE, "Log Usage")}
               </button>
             </>
           }
@@ -335,7 +338,7 @@ export default function EquipmentUsageTable() {
           <form id="equipment-usage-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
               <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
-                Equipment
+                {t(K.ADMIN_TABLE_EQUIPMENT, "Equipment")}
               </label>
               <select
                 name="roomAssetID"
@@ -344,7 +347,7 @@ export default function EquipmentUsageTable() {
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
-                <option value="">Select Equipment</option>
+                <option value="">{t(K.ADMIN_TABLE_SELECT_EQUIPMENT, "Select Equipment")}</option>
                 {equipment.map((item) => (
                   <option key={item.roomAssetID} value={item.roomAssetID}>
                     {item.assetName} ({item.serialNumber})
@@ -355,7 +358,7 @@ export default function EquipmentUsageTable() {
 
             <div>
               <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
-                Worker
+                {t(K.ADMIN_TABLE_WORKER, "Worker")}
               </label>
               <select
                 name="workerID"
@@ -364,7 +367,7 @@ export default function EquipmentUsageTable() {
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
-                <option value="">Select Worker</option>
+                <option value="">{t(K.ADMIN_TABLE_SELECT_WORKER, "Select Worker")}</option>
                 {workers.map((worker) => (
                   <option key={worker.userID} value={worker.workerRole.workerID}>
                     {worker.fullName || worker.email}
@@ -375,7 +378,7 @@ export default function EquipmentUsageTable() {
 
             <div>
               <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
-                Production Line
+                {t(K.ADMIN_TABLE_PRODUCTION_LINE, "Production Line")}
               </label>
               <select
                 name="productionLineID"
@@ -384,7 +387,7 @@ export default function EquipmentUsageTable() {
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
-                <option value="">Select Production Line</option>
+                <option value="">{t(K.ADMIN_TABLE_SELECT_PRODUCTION_LINE, "Select Production Line")}</option>
                 {lines.map((line) => (
                   <option key={line.productionLineID} value={line.productionLineID}>
                     {line.lineName} ({line.lineCode})
@@ -395,7 +398,7 @@ export default function EquipmentUsageTable() {
 
             <div>
               <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
-                Start Time
+                {t(K.ADMIN_TABLE_START_TIME, "Start Time")}
               </label>
               <input
                 type="datetime-local"
@@ -414,7 +417,7 @@ export default function EquipmentUsageTable() {
 
             <div>
               <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
-                End Time (Optional)
+                {t(K.ADMIN_TABLE_END_TIME_OPTIONAL, "End Time (Optional)")}
               </label>
               <input
                 type="datetime-local"
@@ -434,7 +437,7 @@ export default function EquipmentUsageTable() {
 
             <div>
               <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
-                Running Minutes
+                {t(K.ADMIN_TABLE_RUNNING_MINUTES, "Running Minutes")}
               </label>
               <input
                 type="number"
@@ -442,13 +445,13 @@ export default function EquipmentUsageTable() {
                 value={formData.runningMinutes}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="e.g., 480"
+                placeholder={t(K.ADMIN_TABLE_RUNNING_MINUTES_EXAMPLE, "e.g., 480")}
               />
             </div>
 
             <div>
               <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
-                Downtime Minutes
+                {t(K.ADMIN_TABLE_DOWNTIME_MINUTES, "Downtime Minutes")}
               </label>
               <input
                 type="number"
@@ -456,13 +459,13 @@ export default function EquipmentUsageTable() {
                 value={formData.downtimeMinutes}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="e.g., 30"
+                placeholder={t(K.ADMIN_TABLE_DOWNTIME_MINUTES_EXAMPLE, "e.g., 30")}
               />
             </div>
 
             <div>
               <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
-                Stitch Count (Optional)
+                {t(K.ADMIN_TABLE_STITCH_COUNT_OPTIONAL, "Stitch Count (Optional)")}
               </label>
               <input
                 type="number"
@@ -470,20 +473,20 @@ export default function EquipmentUsageTable() {
                 value={formData.stitchCount}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="e.g., 5000"
+                placeholder={t(K.ADMIN_TABLE_STITCH_COUNT_EXAMPLE, "e.g., 5000")}
               />
             </div>
 
             <div>
               <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
-                Notes
+                {t(K.ADMIN_TABLE_NOTES, "Notes")}
               </label>
               <textarea
                 name="notes"
                 value={formData.notes}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="Add any notes about the usage"
+                placeholder={t(K.ADMIN_TABLE_ADD_NOTES_USAGE, "Add any notes about the usage")}
                 rows="3"
               />
             </div>

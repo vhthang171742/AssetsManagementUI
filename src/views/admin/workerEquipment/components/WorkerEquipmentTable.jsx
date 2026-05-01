@@ -4,8 +4,11 @@ import Card from "components/card";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function WorkerEquipmentTable() {
+  const { t } = useLanguage();
   const [assignments, setAssignments] = useState([]);
   const [workers, setWorkers] = useState([]);
   const [equipment, setEquipment] = useState([]);
@@ -34,7 +37,7 @@ export default function WorkerEquipmentTable() {
       setAssignments(data || []);
     } catch (error) {
       console.error("Failed to fetch assignments:", error);
-      alert(`Failed to fetch assignments: ${error.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_ASSIGNMENTS, "assignments")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -89,7 +92,7 @@ export default function WorkerEquipmentTable() {
           const details = validation?.errors?.length
             ? "\n• " + validation.errors.join("\n• ")
             : "\n• Please refresh and select valid Worker and Equipment values.";
-          alert("Cannot save assignment due to reference validation errors:" + details);
+          alert(t(K.ADMIN_TABLE_REFERENCE_VALIDATION_ERRORS, "Cannot save assignment due to reference validation errors:") + details);
           return;
         }
       } catch (validationError) {
@@ -102,10 +105,10 @@ export default function WorkerEquipmentTable() {
 
       if (editingId) {
         await workerEquipmentService.update(editingId, formData);
-        alert("Assignment updated successfully");
+        alert(`${t(K.ADMIN_TABLE_ASSIGNMENT, "Assignment")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await workerEquipmentService.create(formData);
-        alert("Assignment created successfully");
+        alert(`${t(K.ADMIN_TABLE_ASSIGNMENT, "Assignment")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -121,7 +124,7 @@ export default function WorkerEquipmentTable() {
       const details = Array.isArray(error.errors) && error.errors.length
         ? "\n• " + error.errors.join("\n• ")
         : "";
-      alert(`Failed to save assignment: ${error.message || "Unknown error"}${details}`);
+      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_ASSIGNMENT, "assignment")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}${details}`);
     }
   };
 
@@ -137,14 +140,14 @@ export default function WorkerEquipmentTable() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this assignment?")) {
+    if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_ASSIGNMENT, "Are you sure you want to delete this assignment?"))) {
       try {
         await workerEquipmentService.delete(id);
-        alert("Assignment deleted successfully");
+        alert(`${t(K.ADMIN_TABLE_ASSIGNMENT, "Assignment")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchAssignments();
       } catch (error) {
         console.error("Failed to delete assignment:", error);
-        alert(`Failed to delete assignment: ${error.message || "Unknown error"}`);
+        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_ASSIGNMENT, "assignment")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -152,54 +155,54 @@ export default function WorkerEquipmentTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await workerEquipmentService.bulkDelete(ids);
-      alert("Deleted selected assignments");
+      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_ASSIGNMENTS, "assignments")}`);
       fetchAssignments();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`Failed to delete selected assignments: ${err.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_ASSIGNMENTS, "assignments")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };
 
   const columns = [
     {
-      header: "Worker",
+      header: t(K.ADMIN_TABLE_WORKER, "Worker"),
       accessor: (row) =>
-      workers.find((w) => w.workerRole?.workerID === row.workerID)?.fullName || "N/A",
+      workers.find((w) => w.workerRole?.workerID === row.workerID)?.fullName || t(K.ADMIN_TABLE_NA, "N/A"),
     },
     {
-      header: "Equipment",
+      header: t(K.ADMIN_TABLE_EQUIPMENT, "Equipment"),
       accessor: (row) =>
-        equipment.find((e) => e.roomAssetID === row.roomAssetID)?.assetName || "N/A",
+        equipment.find((e) => e.roomAssetID === row.roomAssetID)?.assetName || t(K.ADMIN_TABLE_NA, "N/A"),
     },
     {
-      header: "Assigned Date",
+      header: t(K.ADMIN_TABLE_ASSIGNED_DATE, "Assigned Date"),
       accessor: (row) => new Date(row.assignedDate).toLocaleDateString(),
     },
     {
-      header: "Unassigned Date",
+      header: t(K.ADMIN_TABLE_UNASSIGNED_DATE, "Unassigned Date"),
       accessor: (row) =>
         row.unassignedDate ? new Date(row.unassignedDate).toLocaleDateString() : "—",
     },
     {
-      header: "Status",
-      accessor: (row) => (row.unassignedDate ? "Unassigned" : "Active"),
+      header: t(K.ADMIN_TABLE_STATUS, "Status"),
+      accessor: (row) => (row.unassignedDate ? t(K.ADMIN_TABLE_UNASSIGNED, "Unassigned") : t(K.ADMIN_TABLE_ACTIVE, "Active")),
     },
     {
-      header: "Actions",
+      header: t(K.ADMIN_TABLE_ACTIONS, "Actions"),
       cell: (row) => (
         <div className="flex gap-2">
           <button
             onClick={() => handleEdit(row)}
             className="text-blue-500 hover:text-blue-700 transition-colors"
-            title="Edit"
+            title={t(K.ADMIN_TABLE_EDIT, "Edit")}
           >
             <MdModeEditOutline className="h-5 w-5" />
           </button>
           <button
             onClick={() => handleDelete(row.assignmentID)}
             className="text-red-500 hover:text-red-700 transition-colors"
-            title="Delete"
+            title={t(K.ADMIN_TABLE_DELETE, "Delete")}
           >
             <MdDelete className="h-5 w-5" />
           </button>
@@ -236,14 +239,14 @@ export default function WorkerEquipmentTable() {
           }}
           className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
-          Add Assignment
+          {`${t(K.ADMIN_TABLE_ADD, "Add")} ${t(K.ADMIN_TABLE_ASSIGNMENT, "Assignment")}`}
         </button>
         <div className="flex flex-col gap-2 sm:flex-row md:max-w-lg">
           <input
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder="Search worker, equipment"
+            placeholder={t(K.ADMIN_TABLE_SEARCH_WORKER_EQUIPMENT, "Search worker, equipment")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
@@ -251,15 +254,15 @@ export default function WorkerEquipmentTable() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="unassigned">Unassigned</option>
+            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
+            <option value="active">{t(K.ADMIN_TABLE_ACTIVE, "Active")}</option>
+            <option value="unassigned">{t(K.ADMIN_TABLE_UNASSIGNED, "Unassigned")}</option>
           </select>
         </div>
       </div>
 
       {loading ? (
-        <div className="py-8 text-center">Loading...</div>
+        <div className="py-8 text-center">{t(K.ADMIN_TABLE_LOADING, "Loading...")}</div>
       ) : (
         <Table
           columns={columns}
@@ -277,8 +280,8 @@ export default function WorkerEquipmentTable() {
           }}
           title={
             editingId
-              ? "Edit Worker Equipment Assignment"
-              : "Add Worker Equipment Assignment"
+              ? t(K.ADMIN_TABLE_EDIT_WORKER_EQUIPMENT_ASSIGNMENT, "Edit Worker Equipment Assignment")
+              : t(K.ADMIN_TABLE_ADD_WORKER_EQUIPMENT_ASSIGNMENT, "Add Worker Equipment Assignment")
           }
           footer={
             <>
@@ -290,14 +293,14 @@ export default function WorkerEquipmentTable() {
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
               >
-                Cancel
+                {t(K.ADMIN_TABLE_CANCEL, "Cancel")}
               </button>
               <button
                 type="submit"
                 form="worker-equipment-form"
                 className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
               >
-                {editingId ? "Update" : "Create"}
+                {editingId ? t(K.ADMIN_TABLE_UPDATE, "Update") : t(K.ADMIN_TABLE_CREATE, "Create")}
               </button>
             </>
           }
@@ -305,7 +308,7 @@ export default function WorkerEquipmentTable() {
           <form id="worker-equipment-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
               <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
-                Worker
+                {t(K.ADMIN_TABLE_WORKER, "Worker")}
               </label>
               <select
                 name="workerID"
@@ -314,7 +317,7 @@ export default function WorkerEquipmentTable() {
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
-                <option value="">Select Worker</option>
+                <option value="">{t(K.ADMIN_TABLE_SELECT_WORKER, "Select Worker")}</option>
                 {workers.map((worker) => (
                   <option key={worker.userID} value={worker.workerRole.workerID}>
                     {worker.fullName || worker.email}
@@ -325,7 +328,7 @@ export default function WorkerEquipmentTable() {
 
             <div>
               <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
-                Equipment
+                {t(K.ADMIN_TABLE_EQUIPMENT, "Equipment")}
               </label>
               <select
                 name="roomAssetID"
@@ -334,7 +337,7 @@ export default function WorkerEquipmentTable() {
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
-                <option value="">Select Equipment</option>
+                <option value="">{t(K.ADMIN_TABLE_SELECT_EQUIPMENT, "Select Equipment")}</option>
                 {equipment.map((item) => (
                   <option key={item.roomAssetID} value={item.roomAssetID}>
                     {item.assetName} ({item.serialNumber})
@@ -345,7 +348,7 @@ export default function WorkerEquipmentTable() {
 
             <div>
               <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
-                Assigned Date
+                {t(K.ADMIN_TABLE_ASSIGNED_DATE, "Assigned Date")}
               </label>
               <input
                 type="date"
@@ -359,7 +362,7 @@ export default function WorkerEquipmentTable() {
 
             <div>
               <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
-                Unassigned Date (Optional)
+                {t(K.ADMIN_TABLE_UNASSIGNED_DATE_OPTIONAL, "Unassigned Date (Optional)")}
               </label>
               <input
                 type="date"

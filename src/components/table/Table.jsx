@@ -1,4 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 // Shared Table component
 // Props:
@@ -20,6 +22,7 @@ export default function Table({
   selectable = true,
   idField = "assetID",
 }) {
+  const { t } = useLanguage();
   const [selected, setSelected] = useState(new Set());
   const [page, setPage] = useState(1);
   const [currentPageSize, setCurrentPageSize] = useState(pageSize);
@@ -68,13 +71,13 @@ export default function Table({
     if (!onBulkDelete) return;
     const ids = Array.from(selected);
     if (ids.length === 0) return;
-    if (!window.confirm(`Delete ${ids.length} selected item(s)?`)) return;
+    if (!window.confirm(t(K.TABLE_CONFIRM_DELETE_SELECTED, "Delete selected items?"))) return;
     try {
       await onBulkDelete(ids);
       setSelected(new Set());
     } catch (err) {
       console.error(err);
-      alert("Bulk delete failed: " + (err.message || err));
+      alert(`${t(K.TABLE_BULK_DELETE_FAILED, "Bulk delete failed")}: ${err.message || err}`);
     }
   };
 
@@ -122,7 +125,7 @@ export default function Table({
             {pageData.length === 0 && (
               <tr>
                 <td colSpan={columns.length + (selectable ? 1 : 0)} className="p-6 text-center text-gray-500 dark:text-gray-400">
-                  No data
+                  {t(K.TABLE_NO_DATA, "No data")}
                 </td>
               </tr>
             )}
@@ -138,14 +141,14 @@ export default function Table({
               disabled={selected.size === 0}
               className={`px-3 py-1 rounded text-white ${selected.size === 0 ? 'bg-gray-300 dark:bg-gray-600' : 'bg-red-500 hover:bg-red-600'}`}
             >
-              Delete Selected ({selected.size})
+              {t(K.TABLE_DELETE_SELECTED, "Delete Selected")} ({selected.size})
             </button>
           )}
         </div>
 
         <div className="flex items-center space-x-2">
           <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-            Rows
+            {t(K.TABLE_ROWS, "Rows")}
             <select
               value={currentPageSize}
               onChange={(e) => {
@@ -161,20 +164,20 @@ export default function Table({
               ))}
             </select>
           </label>
-          <div className="text-sm text-gray-600 dark:text-gray-400">Page {page} / {totalPages}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t(K.TABLE_PAGE, "Page")} {page} / {totalPages}</div>
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
             className="px-2 py-1 border rounded disabled:opacity-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
           >
-            Prev
+            {t(K.TABLE_PREV, "Prev")}
           </button>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
             className="px-2 py-1 border rounded disabled:opacity-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
           >
-            Next
+            {t(K.TABLE_NEXT, "Next")}
           </button>
         </div>
       </div>

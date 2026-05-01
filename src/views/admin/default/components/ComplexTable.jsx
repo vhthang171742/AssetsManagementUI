@@ -3,6 +3,8 @@ import CardMenu from "components/card/CardMenu";
 import Card from "components/card";
 import Progress from "components/progress";
 import { MdCancel, MdCheckCircle, MdOutlineError } from "react-icons/md";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 import {
   createColumnHelper,
@@ -16,6 +18,7 @@ const columnHelper = createColumnHelper();
 
 // const columns = columnsDataCheck;
 export default function ComplexTable(props) {
+  const { t } = useLanguage();
   const { tableData } = props;
   const [sorting, setSorting] = React.useState([]);
   let defaultData = tableData;
@@ -23,7 +26,7 @@ export default function ComplexTable(props) {
     columnHelper.accessor("name", {
       id: "name",
       header: () => (
-        <p className="text-sm font-bold text-gray-600 dark:text-white">NAME</p>
+        <p className="text-sm font-bold text-gray-600 dark:text-white">{t(K.ADMIN_TABLE_NAME, "Name")}</p>
       ),
       cell: (info) => (
         <p className="text-sm font-bold text-navy-700 dark:text-white">
@@ -35,7 +38,7 @@ export default function ComplexTable(props) {
       id: "status",
       header: () => (
         <p className="text-sm font-bold text-gray-600 dark:text-white">
-          STATUS
+          {t(K.ADMIN_TABLE_STATUS, "Status")}
         </p>
       ),
       cell: (info) => (
@@ -48,7 +51,13 @@ export default function ComplexTable(props) {
             <MdOutlineError className="text-amber-500 me-1 dark:text-amber-300" />
           ) : null}
           <p className="text-sm font-bold text-navy-700 dark:text-white">
-            {info.getValue()}
+            {info.getValue() === "Approved"
+              ? t(K.ADMIN_TABLE_APPROVED, "Approved")
+              : info.getValue() === "Disable"
+              ? t(K.ADMIN_TABLE_DISABLED, "Disabled")
+              : info.getValue() === "Error"
+              ? t(K.ADMIN_TABLE_ERROR, "Error")
+              : info.getValue()}
           </p>
         </div>
       ),
@@ -56,7 +65,7 @@ export default function ComplexTable(props) {
     columnHelper.accessor("date", {
       id: "date",
       header: () => (
-        <p className="text-sm font-bold text-gray-600 dark:text-white">DATE</p>
+        <p className="text-sm font-bold text-gray-600 dark:text-white">{t(K.ADMIN_TABLE_DATE, "Date")}</p>
       ),
       cell: (info) => (
         <p className="text-sm font-bold text-navy-700 dark:text-white">
@@ -68,7 +77,7 @@ export default function ComplexTable(props) {
       id: "progress",
       header: () => (
         <p className="text-sm font-bold text-gray-600 dark:text-white">
-          PROGRESS
+          {t(K.ADMIN_TABLE_PROGRESS, "Progress")}
         </p>
       ),
       cell: (info) => (
@@ -94,7 +103,7 @@ export default function ComplexTable(props) {
     <Card extra={"w-full h-full px-6 pb-6 sm:overflow-x-auto"}>
       <div className="relative flex items-center justify-between pt-4">
         <div className="text-xl font-bold text-navy-700 dark:text-white">
-          Complex Table
+          {t(K.ADMIN_TABLE_COMPLEX_TABLE, "Complex Table")}
         </div>
         <CardMenu />
       </div>

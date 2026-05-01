@@ -6,8 +6,11 @@ import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Card from "components/card";
 import Modal from "components/modal/Modal";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function AssetsTable() {
+  const { t } = useLanguage();
   const [assets, setAssets] = useState([]);
   const [categories, setCategories] = useState([]);
   const [units, setUnits] = useState([]);
@@ -48,7 +51,7 @@ export default function AssetsTable() {
       setAssets(data || []);
     } catch (error) {
       console.error("Failed to fetch assets:", error);
-      alert(`Failed to fetch assets: ${error.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_ASSETS, "assets")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -94,10 +97,10 @@ export default function AssetsTable() {
     try {
       if (editingId) {
         await assetService.update(editingId, formData);
-        alert("Asset updated successfully");
+        alert(`${t(K.ADMIN_TABLE_ASSET, "Asset")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await assetService.create(formData);
-        alert("Asset created successfully");
+        alert(`${t(K.ADMIN_TABLE_ASSET, "Asset")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -120,7 +123,7 @@ export default function AssetsTable() {
     } catch (error) {
       console.error("Failed to save asset:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert("Failed to save asset: " + error.message + details);
+      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_ASSET, "asset")}: ${error.message}${details}`);
     }
   };
 
@@ -131,14 +134,14 @@ export default function AssetsTable() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this asset?")) {
+    if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_ASSET, "Are you sure you want to delete this asset?"))) {
       try {
         await assetService.delete(id);
-        alert("Asset deleted successfully");
+        alert(`${t(K.ADMIN_TABLE_ASSET, "Asset")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchAssets();
       } catch (error) {
         console.error("Failed to delete asset:", error);
-        alert(`Failed to delete asset: ${error.message || "Unknown error"}`);
+        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_ASSET, "asset")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -146,18 +149,18 @@ export default function AssetsTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await assetService.bulkDelete(ids);
-      alert("Deleted selected assets");
+      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ROUTE_ASSETS, "assets")}`);
       fetchAssets();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`Failed to delete selected assets: ${err.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ROUTE_ASSETS, "assets")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };
 
   const getCategoryName = (categoryID) => {
     const category = categories.find((c) => c.categoryID === categoryID);
-    return category ? category.categoryName : "Unknown";
+    return category ? category.categoryName : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
   };
 
   const countryOptions = useMemo(() => {
@@ -215,7 +218,7 @@ export default function AssetsTable() {
           }}
           className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
-          Add Asset
+          {`${t(K.ADMIN_TABLE_ADD, "Add")} ${t(K.ADMIN_TABLE_ASSET, "Asset")}`}
         </button>
 
         <div className="grid w-full gap-2 sm:grid-cols-3 md:max-w-3xl">
@@ -223,7 +226,7 @@ export default function AssetsTable() {
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder="Search code, name, brand, model"
+            placeholder={t(K.ADMIN_TABLE_SEARCH_CODE_NAME_BRAND_MODEL, "Search code, name, brand, model")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
@@ -231,7 +234,7 @@ export default function AssetsTable() {
             onChange={(e) => setCategoryFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">All Categories</option>
+            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ROUTE_CATEGORIES, "Categories")}`}</option>
             {categories.map((cat) => (
               <option key={cat.categoryID} value={cat.categoryID}>
                 {cat.categoryName}
@@ -243,7 +246,7 @@ export default function AssetsTable() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">All Statuses</option>
+            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
             {statuses.map((status) => (
               <option key={status.itemCode} value={status.itemCode}>
                 {status.label}
@@ -254,7 +257,7 @@ export default function AssetsTable() {
       </div>
 
       {loading ? (
-        <div className="text-center py-8">Loading...</div>
+        <div className="text-center py-8">{t(K.ADMIN_TABLE_LOADING, "Loading...")}</div>
       ) : (
         <Table
           data={filteredAssets}
@@ -262,29 +265,29 @@ export default function AssetsTable() {
           onBulkDelete={handleBulkDelete}
           selectable={true}
           columns={[
-            { header: 'Code', accessor: 'assetCode' },
-            { header: 'Name', accessor: 'assetName' },
-            { header: 'Category', accessor: 'categoryID', render: (row) => getCategoryName(row.categoryID) },
-            { header: 'Status', accessor: 'status', render: (row) => row.status || 'N/A' },
-            { header: 'Brand', accessor: 'brand' },
-            { header: 'Quantity', accessor: 'quantity' },
-            { header: 'Unit Price', accessor: 'unitPrice', render: (row) => (row.unitPrice != null ? `$${parseFloat(row.unitPrice).toFixed(2)}` : '') },
+            { header: t(K.ADMIN_TABLE_CODE, 'Code'), accessor: 'assetCode' },
+            { header: t(K.ADMIN_TABLE_NAME, 'Name'), accessor: 'assetName' },
+            { header: t(K.ADMIN_TABLE_CATEGORY, 'Category'), accessor: 'categoryID', render: (row) => getCategoryName(row.categoryID) },
+            { header: t(K.ADMIN_TABLE_STATUS, 'Status'), accessor: 'status', render: (row) => row.status || t(K.ADMIN_TABLE_NA, 'N/A') },
+            { header: t(K.ADMIN_TABLE_BRAND, 'Brand'), accessor: 'brand' },
+            { header: t(K.ADMIN_TABLE_QUANTITY, 'Quantity'), accessor: 'quantity' },
+            { header: t(K.ADMIN_TABLE_UNIT_PRICE, 'Unit Price'), accessor: 'unitPrice', render: (row) => (row.unitPrice != null ? `$${parseFloat(row.unitPrice).toFixed(2)}` : '') },
             {
-              header: 'Actions',
+              header: t(K.ADMIN_TABLE_ACTIONS, 'Actions'),
               render: (row) => (
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleEdit(row)}
-                    title="Edit"
-                    aria-label="Edit"
+                    title={t(K.ADMIN_TABLE_EDIT, "Edit")}
+                    aria-label={t(K.ADMIN_TABLE_EDIT, "Edit")}
                     className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                   >
                     <MdModeEditOutline className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(row.assetID)}
-                    title="Delete"
-                    aria-label="Delete"
+                    title={t(K.ADMIN_TABLE_DELETE, "Delete")}
+                    aria-label={t(K.ADMIN_TABLE_DELETE, "Delete")}
                     className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
                   >
                     <MdDelete className="h-4 w-4" />
@@ -303,7 +306,7 @@ export default function AssetsTable() {
           <Modal
             isOpen={showModal}
             onClose={() => setShowModal(false)}
-            title={editingId ? "Edit Asset" : "Add New Asset"}
+            title={editingId ? `${t(K.ADMIN_TABLE_EDIT, "Edit")} ${t(K.ADMIN_TABLE_ASSET, "Asset")}` : `${t(K.ADMIN_TABLE_ADD_NEW, "Add New")} ${t(K.ADMIN_TABLE_ASSET, "Asset")}`}
             maxWidth={"max-w-2xl"}
             footer={
               <>
@@ -312,14 +315,14 @@ export default function AssetsTable() {
                   onClick={() => setShowModal(false)}
                   className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
                 >
-                  Cancel
+                  {t(K.ADMIN_TABLE_CANCEL, "Cancel")}
                 </button>
                 <button
                   type="submit"
                   form="assetForm"
                   className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
                 >
-                  {editingId ? "Update" : "Create"}
+                  {editingId ? t(K.ADMIN_TABLE_UPDATE, "Update") : t(K.ADMIN_TABLE_CREATE, "Create")}
                 </button>
               </>
             }
@@ -329,7 +332,7 @@ export default function AssetsTable() {
                 <input
                   type="text"
                   name="assetCode"
-                  placeholder="Asset Code"
+                  placeholder={t(K.ADMIN_TABLE_ASSET_CODE, "Asset Code")}
                   value={formData.assetCode}
                   onChange={handleInputChange}
                   className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -338,7 +341,7 @@ export default function AssetsTable() {
                 <input
                   type="text"
                   name="assetName"
-                  placeholder="Asset Name"
+                  placeholder={t(K.ADMIN_TABLE_ASSET_NAME, "Asset Name")}
                   value={formData.assetName}
                   onChange={handleInputChange}
                   className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -351,7 +354,7 @@ export default function AssetsTable() {
                   className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   required
                 >
-                  <option value="">Select Category</option>
+                  <option value="">{t(K.ADMIN_TABLE_SELECT_CATEGORY, "Select Category")}</option>
                   {categories.map((cat) => (
                     <option key={cat.categoryID} value={cat.categoryID}>
                       {cat.categoryName}
@@ -361,7 +364,7 @@ export default function AssetsTable() {
                 <input
                   type="text"
                   name="brand"
-                  placeholder="Brand"
+                  placeholder={t(K.ADMIN_TABLE_BRAND, "Brand")}
                   value={formData.brand}
                   onChange={handleInputChange}
                   className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -369,7 +372,7 @@ export default function AssetsTable() {
                 <input
                   type="text"
                   name="model"
-                  placeholder="Model"
+                  placeholder={t(K.ADMIN_TABLE_MODEL, "Model")}
                   value={formData.model}
                   onChange={handleInputChange}
                   className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -377,7 +380,7 @@ export default function AssetsTable() {
                 <input
                   type="text"
                   name="specification"
-                  placeholder="Specification"
+                  placeholder={t(K.ADMIN_TABLE_SPECIFICATION, "Specification")}
                   value={formData.specification}
                   onChange={handleInputChange}
                   className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -388,7 +391,7 @@ export default function AssetsTable() {
                   onChange={handleInputChange}
                   className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 >
-                  <option value="">Select Country of Origin (Optional)</option>
+                  <option value="">{t(K.ADMIN_TABLE_SELECT_COUNTRY_OF_ORIGIN_OPTIONAL, "Select Country of Origin (Optional)")}</option>
                   {countryOptions.map((countryName) => (
                     <option key={countryName} value={countryName}>
                       {countryName}
@@ -398,7 +401,7 @@ export default function AssetsTable() {
                 <input
                   type="number"
                   name="quantity"
-                  placeholder="Quantity"
+                  placeholder={t(K.ADMIN_TABLE_QUANTITY, "Quantity")}
                   value={formData.quantity}
                   onChange={handleInputChange}
                   className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -411,7 +414,7 @@ export default function AssetsTable() {
                   className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   required
                 >
-                  <option value="">Select Unit</option>
+                  <option value="">{t(K.ADMIN_TABLE_SELECT_UNIT, "Select Unit")}</option>
                   {units.map((unit) => (
                     <option key={unit.itemCode} value={unit.itemCode}>
                       {unit.label}
@@ -424,7 +427,7 @@ export default function AssetsTable() {
                   onChange={handleInputChange}
                   className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 >
-                  <option value="">Select Status (Optional)</option>
+                  <option value="">{t(K.ADMIN_TABLE_SELECT_STATUS_OPTIONAL, "Select Status (Optional)")}</option>
                   {statuses.map((status) => (
                     <option key={status.itemCode} value={status.itemCode}>
                       {status.label}
@@ -434,7 +437,7 @@ export default function AssetsTable() {
                 <input
                   type="number"
                   name="unitPrice"
-                  placeholder="Unit Price"
+                  placeholder={t(K.ADMIN_TABLE_UNIT_PRICE, "Unit Price")}
                   value={formData.unitPrice}
                   onChange={handleInputChange}
                   className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
@@ -449,7 +452,7 @@ export default function AssetsTable() {
                 />
                 <textarea
                   name="notes"
-                  placeholder="Notes"
+                  placeholder={t(K.ADMIN_TABLE_NOTES, "Notes")}
                   value={formData.notes}
                   onChange={handleInputChange}
                   className="col-span-2 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"

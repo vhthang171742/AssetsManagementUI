@@ -11,8 +11,10 @@ import { RiMoonFill, RiSunFill } from "react-icons/ri";
 import { MdClose, MdKeyboardArrowDown } from "react-icons/md";
 import { IoMdNotificationsOutline } from "react-icons/io";
 import { useAuth } from "context/AuthContext";
+import { useLanguage } from "context/LanguageContext";
 import LanguageSwitcher from "components/languageSwitcher/LanguageSwitcher";
 import GlobalSearch from "components/navbar/GlobalSearch";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 const Navbar = (props) => {
   const {
@@ -23,6 +25,7 @@ const Navbar = (props) => {
     compact = false,
   } = props;
   const { isDarkMode, toggleDarkMode, userProfile, userPhoto, getAvailablePortals, selectedPortalId, setSelectedPortal } = useAuth();
+  const { t } = useLanguage();
   const { instance } = useMsal();
   const location = useLocation();
   const navigate = useNavigate();
@@ -51,7 +54,8 @@ const Navbar = (props) => {
     availablePortals.find((portal) => location.pathname.startsWith(portal.path)) ||
     availablePortals.find((portal) => portal.id === selectedPortalId) ||
     availablePortals[0];
-  const compactPortalLabel = activePortal?.name?.replace(/\s+Portal$/i, "") || "Portal";
+  const activePortalName = activePortal ? t(activePortal.translationKey, activePortal.name) : t(K.NAV_PORTAL, "Portal");
+  const compactPortalLabel = activePortalName;
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [isVerySmallScreen, setIsVerySmallScreen] = React.useState(() =>
     typeof window !== "undefined" ? window.innerWidth < 430 : false
@@ -101,7 +105,7 @@ const Navbar = (props) => {
             type="button"
             className={`cursor-pointer text-xl text-gray-600 dark:text-white ${searchOpen ? "hidden" : "flex"}`}
             onClick={onOpenSidenav}
-            aria-label="Open navigation"
+            aria-label={t(K.NAV_OPEN_NAVIGATION, "Open navigation")}
           >
             <FiAlignJustify className="h-5 w-5" />
           </button>
@@ -117,14 +121,14 @@ const Navbar = (props) => {
                   type="button"
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white"
                   onClick={() => setSearchOpen(false)}
-                  aria-label="Close search"
+                  aria-label={t(K.NAV_CLOSE_SEARCH, "Close search")}
                 >
                   <MdClose className="h-4 w-4" />
                 </button>
                 <GlobalSearch
                   className="min-w-0 flex-1"
                   inputClassName="w-full"
-                  placeholder="Search pages..."
+                  placeholder={t(K.NAV_SEARCH_PLACEHOLDER, "Search pages...")}
                   autoFocus
                   onClose={() => setSearchOpen(false)}
                 />
@@ -132,13 +136,13 @@ const Navbar = (props) => {
             ) : null}
             <GlobalSearch
               className={`min-w-0 ${showSidebarToggle ? "hidden sm:block w-[145px] md:w-[175px] xl:w-[210px]" : isVerySmallScreen ? "hidden" : "flex-1"}`}
-              placeholder="Search pages..."
+              placeholder={t(K.NAV_SEARCH_PLACEHOLDER, "Search pages...")}
             />
             <button
               type="button"
               className={`h-9 w-9 items-center justify-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white ${searchOpen ? "hidden" : showSidebarToggle ? "flex sm:hidden" : isVerySmallScreen ? "flex" : "hidden"}`}
               onClick={() => setSearchOpen(true)}
-              aria-label="Search"
+              aria-label={t(K.NAV_SEARCH, "Search")}
             >
               <FiSearch className="h-4 w-4 text-gray-400 dark:text-white" />
             </button>
@@ -154,10 +158,10 @@ const Navbar = (props) => {
                 <div className="flex w-[360px] flex-col gap-3 rounded-[20px] bg-white p-4 shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none sm:w-[460px]">
                   <div className="flex items-center justify-between">
                     <p className="text-base font-bold text-navy-700 dark:text-white">
-                      Notification
+                      {t(K.NAV_NOTIFICATION, "Notification")}
                     </p>
                     <p className="text-sm font-bold text-navy-700 dark:text-white">
-                      Mark all read
+                      {t(K.NAV_MARK_ALL_READ, "Mark all read")}
                     </p>
                   </div>
 
@@ -188,7 +192,7 @@ const Navbar = (props) => {
               <Dropdown
                 button={
                   <div className="flex cursor-pointer items-center gap-1 rounded-xl bg-lightPrimary px-2 py-2 text-xs font-medium text-navy-700 dark:bg-navy-900 dark:text-white sm:px-3">
-                    <span className="hidden whitespace-nowrap sm:inline">{activePortal?.name || "Portal"}</span>
+                    <span className="hidden whitespace-nowrap sm:inline">{activePortalName}</span>
                     <span className="whitespace-nowrap sm:hidden">{compactPortalLabel}</span>
                     <MdKeyboardArrowDown className="h-4 w-4" />
                   </div>
@@ -210,7 +214,7 @@ const Navbar = (props) => {
                               : "text-gray-700 hover:bg-lightPrimary dark:text-gray-200 dark:hover:bg-navy-600"
                           }`}
                         >
-                          <span className="whitespace-nowrap">{portal.name}</span>
+                          <span className="whitespace-nowrap">{t(portal.translationKey, portal.name)}</span>
                         </button>
                       );
                     })}
@@ -257,13 +261,13 @@ const Navbar = (props) => {
                       to={profilePath}
                       className="text-sm text-gray-800 dark:text-white hover:dark:text-white"
                     >
-                      Profile Settings
+                      {t(K.NAV_PROFILE_SETTINGS, "Profile Settings")}
                     </Link>
                     <button
                       onClick={handleLogout}
                       className="mt-3 text-sm font-medium text-red-500 transition duration-150 ease-out hover:text-red-600 hover:ease-in"
                     >
-                      Log Out
+                      {t(K.NAV_LOG_OUT, "Log Out")}
                     </button>
                   </div>
                 </div>

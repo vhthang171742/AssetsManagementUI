@@ -3,16 +3,19 @@ import Card from "components/card";
 import PortalLayout from "layouts/portal";
 import { practiceErrorLogService, studentEquipmentAssignmentService } from "services/api";
 import assetService from "services/assetService";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 const STATUS_OPTIONS = [
-  { code: "OPERATIONAL", label: "Operational" },
-  { code: "MAINTENANCE", label: "Under Maintenance" },
-  { code: "BROKEN", label: "Broken" },
-  { code: "LOANED", label: "Loaned" },
-  { code: "RETIRED", label: "Retired" },
+  { code: "OPERATIONAL", key: K.MAINTAINER_STATUS_OPERATIONAL, fallback: "Operational" },
+  { code: "MAINTENANCE", key: K.MAINTAINER_STATUS_MAINTENANCE, fallback: "Under Maintenance" },
+  { code: "BROKEN", key: K.MAINTAINER_STATUS_BROKEN, fallback: "Broken" },
+  { code: "LOANED", key: K.MAINTAINER_STATUS_LOANED, fallback: "Loaned" },
+  { code: "RETIRED", key: K.MAINTAINER_STATUS_RETIRED, fallback: "Retired" },
 ];
 
 export default function MaintainerPortal() {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
@@ -49,7 +52,7 @@ export default function MaintainerPortal() {
       );
       setActiveAssignments(active || []);
     } catch (error) {
-      showToast(`Failed to load maintainer workspace: ${error.message}`, true);
+      showToast(`${t(K.MAINTAINER_LOAD_FAILED, "Failed to load maintainer workspace")}: ${error.message}`, true);
     } finally {
       setLoading(false);
     }
@@ -63,45 +66,48 @@ export default function MaintainerPortal() {
     event.preventDefault();
     try {
       await assetService.updateStatus(Number(statusForm.assetId), statusForm.statusCode);
-      showToast("Asset status updated.");
+      showToast(t(K.MAINTAINER_STATUS_UPDATED, "Asset status updated."));
       setStatusForm({ assetId: "", statusCode: "MAINTENANCE" });
       await loadData();
     } catch (error) {
-      showToast(`Status update failed: ${error.message}`, true);
+      showToast(`${t(K.MAINTAINER_STATUS_UPDATE_FAILED, "Status update failed")}: ${error.message}`, true);
     }
   };
 
   const handleResolveIssue = async (issue) => {
     try {
       await practiceErrorLogService.update(issue.errorLogID, {
-        actualCause: issue.actualCause || "Machine",
+        actualCause: issue.actualCause || t(K.MAINTAINER_DEFAULT_CAUSE, "Machine"),
         resolutionTime: new Date().toISOString(),
-        resolutionNotes: issue.resolutionNotes || "Resolved by maintainer workflow.",
+        resolutionNotes: issue.resolutionNotes || t(K.MAINTAINER_DEFAULT_RESOLUTION, "Resolved by maintainer workflow."),
       });
-      showToast(`Issue #${issue.errorLogID} marked resolved.`);
+      showToast(
+        t(K.MAINTAINER_RESOLVE_SUCCESS, "Issue #{id} marked resolved.")
+          .replace("{id}", issue.errorLogID)
+      );
       await loadData();
     } catch (error) {
-      showToast(`Issue resolution failed: ${error.message}`, true);
+      showToast(`${t(K.MAINTAINER_RESOLVE_FAILED, "Issue resolution failed")}: ${error.message}`, true);
     }
   };
 
   return (
-    <PortalLayout title="Maintainer Portal">
+    <PortalLayout title="Maintainer Portal" titleKey={K.MAINTAINER_PORTAL_TITLE}>
       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
         <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">Open Reports</p>
+          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.MAINTAINER_OPEN_REPORTS, "Open Reports")}</p>
           <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{openIssues.length}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">Awaiting maintainer decision</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.MAINTAINER_AWAITING_DECISION, "Awaiting maintainer decision")}</p>
         </Card>
         <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">Tracked Assets</p>
+          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.MAINTAINER_TRACKED_ASSETS, "Tracked Assets")}</p>
           <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{assets.length}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">All statuses visible</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.MAINTAINER_ALL_STATUSES_VISIBLE, "All statuses visible")}</p>
         </Card>
         <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">Assets In Use</p>
+          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.MAINTAINER_ASSETS_IN_USE, "Assets In Use")}</p>
           <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{activeAssignments.length}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">Protected from risky transitions</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.MAINTAINER_PROTECTED_TRANSITIONS, "Protected from risky transitions")}</p>
         </Card>
       </div>
 
@@ -119,9 +125,9 @@ export default function MaintainerPortal() {
 
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">Asset Status Control</h2>
+          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.MAINTAINER_STATUS_CONTROL_TITLE, "Asset Status Control")}</h2>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-            Move assets between operational states safely.
+            {t(K.MAINTAINER_STATUS_CONTROL_HINT, "Move assets between operational states safely.")}
           </p>
 
           <form className="mt-4 space-y-3" onSubmit={handleStatusUpdate}>
@@ -131,10 +137,10 @@ export default function MaintainerPortal() {
               onChange={(e) => setStatusForm((prev) => ({ ...prev, assetId: e.target.value }))}
               className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
             >
-              <option value="">Select asset</option>
+              <option value="">{t(K.MAINTAINER_SELECT_ASSET, "Select asset")}</option>
               {assets.map((asset) => (
                 <option key={asset.assetID} value={asset.assetID}>
-                  {asset.assetCode} • {asset.assetName} • {asset.status || "N/A"}
+                  {asset.assetCode} • {asset.assetName} • {asset.status || t(K.MAINTAINER_NA, "N/A")}
                 </option>
               ))}
             </select>
@@ -147,7 +153,7 @@ export default function MaintainerPortal() {
             >
               {STATUS_OPTIONS.map((option) => (
                 <option key={option.code} value={option.code}>
-                  {option.label}
+                  {t(option.key, option.fallback)}
                 </option>
               ))}
             </select>
@@ -157,16 +163,16 @@ export default function MaintainerPortal() {
               disabled={loading}
               className="w-full rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
             >
-              Apply Status Change
+              {t(K.MAINTAINER_APPLY_STATUS, "Apply Status Change")}
             </button>
           </form>
         </Card>
 
         <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">Open Issue Queue</h2>
+          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.MAINTAINER_OPEN_ISSUE_QUEUE, "Open Issue Queue")}</h2>
           <div className="mt-4 space-y-3">
             {openIssues.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-300">No open issues right now.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.MAINTAINER_NO_OPEN_ISSUES, "No open issues right now.")}</p>
             )}
             {openIssues.map((issue) => (
               <div
@@ -176,10 +182,10 @@ export default function MaintainerPortal() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-navy-700 dark:text-white">
-                      Issue #{issue.errorLogID} • Session #{issue.sessionID}
+                      {t(K.MAINTAINER_ISSUE_SESSION_LABEL, "Issue")} #{issue.errorLogID} • Session #{issue.sessionID}
                     </p>
                     <p className="mt-1 line-clamp-2 text-xs text-gray-600 dark:text-gray-300">
-                      {issue.studentDescription || "No description"}
+                      {issue.studentDescription || t(K.MAINTAINER_NO_DESCRIPTION, "No description")}
                     </p>
                   </div>
                   <button
@@ -187,7 +193,7 @@ export default function MaintainerPortal() {
                     onClick={() => handleResolveIssue(issue)}
                     className="rounded-lg border border-emerald-300 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
                   >
-                    Resolve
+                    {t(K.MAINTAINER_RESOLVE, "Resolve")}
                   </button>
                 </div>
               </div>
@@ -197,7 +203,7 @@ export default function MaintainerPortal() {
       </div>
 
       <Card extra="mt-6 p-6">
-        <h2 className="text-lg font-bold text-navy-700 dark:text-white">Status Distribution</h2>
+        <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.MAINTAINER_STATUS_DISTRIBUTION, "Status Distribution")}</h2>
         <div className="mt-4 flex flex-wrap gap-2">
           {STATUS_OPTIONS.map((option) => {
             const count = assets.filter((asset) => asset.status === option.code).length;
@@ -206,7 +212,7 @@ export default function MaintainerPortal() {
                 key={option.code}
                 className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-navy-900 dark:text-gray-300"
               >
-                {option.label}: {count}
+                {t(option.key, option.fallback)}: {count}
               </div>
             );
           })}

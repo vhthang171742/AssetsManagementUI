@@ -4,8 +4,11 @@ import Card from "components/card";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete, MdLogout } from "react-icons/md";
 import Modal from "components/modal/Modal";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function StudentEquipmentAssignmentsTable() {
+  const { t } = useLanguage();
   const [assignments, setAssignments] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -34,7 +37,7 @@ export default function StudentEquipmentAssignmentsTable() {
       setAssignments(data || []);
     } catch (error) {
       console.error("Failed to fetch assignments:", error);
-      alert(`Failed to fetch assignments: ${error.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_ASSIGNMENTS, "assignments")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -69,10 +72,10 @@ export default function StudentEquipmentAssignmentsTable() {
 
       if (editingId) {
         await studentEquipmentAssignmentService.update(editingId, dataToSend);
-        alert("Assignment updated successfully");
+        alert(`${t(K.ADMIN_TABLE_ASSIGNMENT, "Assignment")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await studentEquipmentAssignmentService.create(dataToSend);
-        alert("Assignment created successfully");
+        alert(`${t(K.ADMIN_TABLE_ASSIGNMENT, "Assignment")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -87,7 +90,7 @@ export default function StudentEquipmentAssignmentsTable() {
     } catch (error) {
       console.error("Failed to save assignment:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert("Failed to save assignment: " + error.message + details);
+      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_ASSIGNMENT, "assignment")}: ${error.message}${details}`);
     }
   };
 
@@ -104,27 +107,27 @@ export default function StudentEquipmentAssignmentsTable() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this assignment?")) {
+    if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_ASSIGNMENT, "Are you sure you want to delete this assignment?"))) {
       try {
         await studentEquipmentAssignmentService.delete(id);
-        alert("Assignment deleted successfully");
+        alert(`${t(K.ADMIN_TABLE_ASSIGNMENT, "Assignment")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchAssignments();
       } catch (error) {
         console.error("Failed to delete assignment:", error);
-        alert(`Failed to delete assignment: ${error.message || "Unknown error"}`);
+        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_ASSIGNMENT, "assignment")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
 
   const handleUnassign = async (id) => {
-    if (window.confirm("Are you sure you want to unassign this equipment?")) {
+    if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_UNASSIGN_EQUIPMENT, "Are you sure you want to unassign this equipment?"))) {
       try {
         await studentEquipmentAssignmentService.unassign(id);
-        alert("Equipment unassigned successfully");
+        alert(t(K.ADMIN_TABLE_EQUIPMENT_UNASSIGNED_SUCCESSFULLY, "Equipment unassigned successfully"));
         fetchAssignments();
       } catch (error) {
         console.error("Failed to unassign equipment:", error);
-        alert(`Failed to unassign equipment: ${error.message || "Unknown error"}`);
+        alert(`${t(K.ADMIN_TABLE_FAILED_UNASSIGN_EQUIPMENT, "Failed to unassign equipment")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -132,36 +135,36 @@ export default function StudentEquipmentAssignmentsTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await studentEquipmentAssignmentService.bulkDelete(ids);
-      alert("Deleted selected assignments");
+      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_ASSIGNMENTS, "assignments")}`);
       fetchAssignments();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`Failed to delete selected assignments: ${err.message || "Unknown error"}`);
+      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_ASSIGNMENTS, "assignments")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };
 
   const columns = [
     {
-      header: "Student ID",
+      header: t(K.ADMIN_TABLE_STUDENT_ID, "Student ID"),
       accessor: "studentID",
     },
     {
-      header: "Asset ID",
+      header: t(K.ADMIN_TABLE_ASSET_ID, "Asset ID"),
       accessor: "roomAssetID",
     },
     {
-      header: "Class",
+      header: t(K.ADMIN_TABLE_CLASS, "Class"),
       accessor: (row) =>
-        classes.find((c) => c.classID === row.classID)?.className || "N/A",
+        classes.find((c) => c.classID === row.classID)?.className || t(K.ADMIN_TABLE_NA, "N/A"),
     },
     {
-      header: "Assigned Date",
+      header: t(K.ADMIN_TABLE_ASSIGNED_DATE, "Assigned Date"),
       accessor: (row) => new Date(row.assignedDate).toLocaleDateString(),
     },
     {
-      header: "Status",
-      accessor: (row) => (row.isActive ? "Active" : "Unassigned"),
+      header: t(K.ADMIN_TABLE_STATUS, "Status"),
+      accessor: (row) => (row.isActive ? t(K.ADMIN_TABLE_ACTIVE, "Active") : t(K.ADMIN_TABLE_UNASSIGNED, "Unassigned")),
     },
   ];
 
@@ -169,18 +172,18 @@ export default function StudentEquipmentAssignmentsTable() {
     {
       icon: <MdModeEditOutline className="h-4 w-4" />,
       onClick: handleEdit,
-      label: "Edit",
+      label: t(K.ADMIN_TABLE_EDIT, "Edit"),
     },
     {
       icon: <MdLogout className="h-4 w-4" />,
       onClick: handleUnassign,
-      label: "Unassign",
+      label: t(K.ADMIN_TABLE_UNASSIGN, "Unassign"),
       variant: "warning",
     },
     {
       icon: <MdDelete className="h-4 w-4" />,
       onClick: handleDelete,
-      label: "Delete",
+      label: t(K.ADMIN_TABLE_DELETE, "Delete"),
       variant: "danger",
     },
   ];
@@ -212,14 +215,14 @@ export default function StudentEquipmentAssignmentsTable() {
           }}
           className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
-          Add Assignment
+          {`${t(K.ADMIN_TABLE_ADD, "Add")} ${t(K.ADMIN_TABLE_ASSIGNMENT, "Assignment")}`}
         </button>
         <div className="flex flex-col gap-2 sm:flex-row md:max-w-2xl">
           <input
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder="Search student ID, asset ID"
+            placeholder={t(K.ADMIN_TABLE_SEARCH_STUDENT_ID_ASSET_ID, "Search student ID, asset ID")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
@@ -227,7 +230,7 @@ export default function StudentEquipmentAssignmentsTable() {
             onChange={(e) => setClassFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">All Classes</option>
+            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_CLASSES, "Classes")}`}</option>
             {classes.map((c) => (
               <option key={c.classID} value={c.classID}>{c.className}</option>
             ))}
@@ -237,9 +240,9 @@ export default function StudentEquipmentAssignmentsTable() {
             onChange={(e) => setActiveFilter(e.target.value)}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
-            <option value="">All Statuses</option>
-            <option value="true">Active</option>
-            <option value="false">Unassigned</option>
+            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
+            <option value="true">{t(K.ADMIN_TABLE_ACTIVE, "Active")}</option>
+            <option value="false">{t(K.ADMIN_TABLE_UNASSIGNED, "Unassigned")}</option>
           </select>
         </div>
       </div>
@@ -253,7 +256,7 @@ export default function StudentEquipmentAssignmentsTable() {
       />
 
       <Modal
-        title={editingId ? "Edit Assignment" : "Create New Assignment"}
+        title={editingId ? `${t(K.ADMIN_TABLE_EDIT, "Edit")} ${t(K.ADMIN_TABLE_ASSIGNMENT, "Assignment")}` : `${t(K.ADMIN_TABLE_CREATE_NEW, "Create New")} ${t(K.ADMIN_TABLE_ASSIGNMENT, "Assignment")}`}
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         footer={
@@ -263,14 +266,14 @@ export default function StudentEquipmentAssignmentsTable() {
               onClick={() => setShowModal(false)}
               className="inline-flex items-center justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-navy-700 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-900"
             >
-              Cancel
+              {t(K.ADMIN_TABLE_CANCEL, "Cancel")}
             </button>
             <button
               type="submit"
               form="student-assignment-form"
               className="inline-flex items-center justify-center rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
             >
-              {editingId ? "Update" : "Create"}
+              {editingId ? t(K.ADMIN_TABLE_UPDATE, "Update") : t(K.ADMIN_TABLE_CREATE, "Create")}
             </button>
           </>
         }
@@ -278,7 +281,7 @@ export default function StudentEquipmentAssignmentsTable() {
         <form id="student-assignment-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              Student ID *
+              {t(K.ADMIN_TABLE_STUDENT_ID_REQUIRED, "Student ID *")}
             </label>
             <input
               type="number"
@@ -288,13 +291,13 @@ export default function StudentEquipmentAssignmentsTable() {
               required
               min="1"
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder="Enter student ID"
+              placeholder={t(K.ADMIN_TABLE_ENTER_STUDENT_ID, "Enter student ID")}
             />
           </div>
 
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              Room Asset ID *
+              {t(K.ADMIN_TABLE_ROOM_ASSET_ID_REQUIRED, "Room Asset ID *")}
             </label>
             <input
               type="number"
@@ -304,13 +307,13 @@ export default function StudentEquipmentAssignmentsTable() {
               required
               min="1"
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder="Enter room asset ID"
+              placeholder={t(K.ADMIN_TABLE_ENTER_ROOM_ASSET_ID, "Enter room asset ID")}
             />
           </div>
 
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              Class *
+              {t(K.ADMIN_TABLE_CLASS_REQUIRED, "Class *")}
             </label>
             <select
               name="classID"
@@ -319,7 +322,7 @@ export default function StudentEquipmentAssignmentsTable() {
               required
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
-              <option value="">Select a class</option>
+              <option value="">{t(K.ADMIN_TABLE_SELECT_A_CLASS, "Select a class")}</option>
               {classes.map((classItem) => (
                 <option key={classItem.classID} value={classItem.classID}>
                   {classItem.className}
@@ -330,7 +333,7 @@ export default function StudentEquipmentAssignmentsTable() {
 
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              Assigned Date *
+              {t(K.ADMIN_TABLE_ASSIGNED_DATE_REQUIRED, "Assigned Date *")}
             </label>
             <input
               type="date"
@@ -351,7 +354,7 @@ export default function StudentEquipmentAssignmentsTable() {
               className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
             />
             <label className="ml-2 block text-sm text-navy-700 dark:text-white">
-              Active
+              {t(K.ADMIN_TABLE_ACTIVE, "Active")}
             </label>
           </div>
 
