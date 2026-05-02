@@ -3,6 +3,7 @@ import authImg from "assets/img/auth/auth.png";
 import { Link, Routes, Route, Navigate } from "react-router-dom";
 import routes from "routes.js";
 import FixedPlugin from "components/fixedPlugin/FixedPlugin";
+import LanguageSwitcher from "components/languageSwitcher/LanguageSwitcher";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
 
@@ -24,6 +25,9 @@ export default function Auth() {
     <div>
       <div className="relative float-right h-full min-h-screen w-full !bg-white dark:!bg-navy-900">
         <FixedPlugin />
+        <div className="fixed bottom-[42px] right-[105px] z-[99]">
+          <LanguageSwitcher />
+        </div>
         <main className={`mx-auto min-h-screen`}>
           <div className="relative flex">
             <div className="mx-auto flex min-h-full w-full flex-col justify-start pt-12 md:max-w-[75%]  lg:max-w-[1013px] lg:px-8 lg:pt-0 xl:min-h-[100vh] xl:max-w-[1383px] xl:px-0 xl:pl-[70px]">
