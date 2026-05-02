@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { classService, courseService } from "services/api";
+import { classService, courseService, roomService } from "services/api";
+import { getAllUsers } from "services/userService";
 import Card from "components/card";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
@@ -12,6 +13,7 @@ export default function ClassesTable() {
   const [classes, setClasses] = useState([]);
   const [courses, setCourses] = useState([]);
   const [instructors, setInstructors] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -27,6 +29,10 @@ export default function ClassesTable() {
     startDate: "",
     endDate: "",
     maxStudents: "",
+    roomID: "",
+    scheduleDaysMask: 0,
+    scheduleStartTime: "",
+    scheduleEndTime: "",
     isActive: true,
   });
 
@@ -34,7 +40,18 @@ export default function ClassesTable() {
     fetchClasses();
     fetchCourses();
     fetchInstructors();
+    fetchRooms();
   }, []);
+
+  const scheduleDays = [
+    { bit: 1 << 1, label: t(K.ADMIN_TABLE_MON, "Mon") },
+    { bit: 1 << 2, label: t(K.ADMIN_TABLE_TUE, "Tue") },
+    { bit: 1 << 3, label: t(K.ADMIN_TABLE_WED, "Wed") },
+    { bit: 1 << 4, label: t(K.ADMIN_TABLE_THU, "Thu") },
+    { bit: 1 << 5, label: t(K.ADMIN_TABLE_FRI, "Fri") },
+    { bit: 1 << 6, label: t(K.ADMIN_TABLE_SAT, "Sat") },
+    { bit: 1 << 0, label: t(K.ADMIN_TABLE_SUN, "Sun") },
+  ];
 
   const fetchClasses = async () => {
     try {
@@ -59,11 +76,31 @@ export default function ClassesTable() {
   };
 
   const fetchInstructors = async () => {
-    // Placeholder: In a real app, fetch from instructors endpoint
-    setInstructors([
-      { id: 1, name: "John Doe" },
-      { id: 2, name: "Jane Smith" },
-    ]);
+    try {
+      const users = await getAllUsers();
+      const instructorUsers = (users || [])
+        .filter((user) => user.instructorRole?.isActive)
+        .map((user) => ({
+          id: user.instructorRole.instructorID,
+          name: user.fullName,
+          email: user.email,
+        }));
+
+      setInstructors(instructorUsers);
+    } catch (error) {
+      console.error("Failed to fetch instructors:", error);
+      setInstructors([]);
+    }
+  };
+
+  const fetchRooms = async () => {
+    try {
+      const data = await roomService.getAll();
+      setRooms(data || []);
+    } catch (error) {
+      console.error("Failed to fetch rooms:", error);
+      setRooms([]);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -76,14 +113,23 @@ export default function ClassesTable() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!(Number(formData.scheduleDaysMask) > 0)) {
+      alert(t(K.ADMIN_TABLE_SELECT_AT_LEAST_ONE_DAY, "Select at least one class day."));
+      return;
+    }
+
     try {
       const dataToSend = {
         ...formData,
         courseID: parseInt(formData.courseID),
         instructorID: formData.instructorID ? parseInt(formData.instructorID) : null,
+        roomID: formData.roomID ? parseInt(formData.roomID) : null,
         maxStudents: parseInt(formData.maxStudents) || 2147483647,
         startDate: formData.startDate || null,
         endDate: formData.endDate || null,
+        scheduleDaysMask: Number(formData.scheduleDaysMask) || 0,
+        scheduleStartTime: formData.scheduleStartTime ? `${formData.scheduleStartTime}:00` : null,
+        scheduleEndTime: formData.scheduleEndTime ? `${formData.scheduleEndTime}:00` : null,
       };
 
       if (editingId) {
@@ -101,8 +147,12 @@ export default function ClassesTable() {
         description: "",
         courseID: "",
         instructorID: "",
+        roomID: "",
         startDate: "",
         endDate: "",
+        scheduleDaysMask: 0,
+        scheduleStartTime: "",
+        scheduleEndTime: "",
         maxStudents: "",
         isActive: true,
       });
@@ -114,6 +164,25 @@ export default function ClassesTable() {
     }
   };
 
+  const normalizeTime = (value) => {
+    if (!value) {
+      return "";
+    }
+
+    return String(value).slice(0, 5);
+  };
+
+  const toggleScheduleDay = (bit) => {
+    setFormData((prev) => {
+      const currentMask = Number(prev.scheduleDaysMask) || 0;
+      const nextMask = currentMask & bit ? currentMask & ~bit : currentMask | bit;
+      return {
+        ...prev,
+        scheduleDaysMask: nextMask,
+      };
+    });
+  };
+
   const handleEdit = (classItem) => {
     setFormData({
       className: classItem.className,
@@ -121,8 +190,12 @@ export default function ClassesTable() {
       description: classItem.description || "",
       courseID: classItem.courseID,
       instructorID: classItem.instructorID || "",
+      roomID: classItem.roomID || "",
       startDate: classItem.startDate ? classItem.startDate.split("T")[0] : "",
       endDate: classItem.endDate ? classItem.endDate.split("T")[0] : "",
+      scheduleDaysMask: classItem.scheduleDaysMask || 0,
+      scheduleStartTime: normalizeTime(classItem.scheduleStartTime),
+      scheduleEndTime: normalizeTime(classItem.scheduleEndTime),
       maxStudents: classItem.maxStudents,
       isActive: classItem.isActive,
     });
@@ -168,6 +241,14 @@ export default function ClassesTable() {
       header: t(K.ADMIN_TABLE_COURSE, "Course"),
       accessor: (row) =>
         courses.find((c) => c.courseID === row.courseID)?.courseName || t(K.ADMIN_TABLE_NA, "N/A"),
+    },
+    {
+      header: t(K.ADMIN_TABLE_INSTRUCTOR, "Instructor"),
+      accessor: (row) => row.instructorName || t(K.ADMIN_TABLE_NA, "N/A"),
+    },
+    {
+      header: t(K.ADMIN_TABLE_ROOM, "Room"),
+      accessor: (row) => row.roomName || t(K.ADMIN_TABLE_NA, "N/A"),
     },
     {
       header: t(K.ADMIN_TABLE_START_DATE, "Start Date"),
@@ -216,8 +297,12 @@ export default function ClassesTable() {
               description: "",
               courseID: "",
               instructorID: "",
+              roomID: "",
               startDate: "",
               endDate: "",
+              scheduleDaysMask: 0,
+              scheduleStartTime: "",
+              scheduleEndTime: "",
               maxStudents: "",
               isActive: true,
             });
@@ -341,6 +426,45 @@ export default function ClassesTable() {
 
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
+              {t(K.ADMIN_TABLE_INSTRUCTOR, "Instructor")}
+            </label>
+            <select
+              name="instructorID"
+              value={formData.instructorID}
+              onChange={handleInputChange}
+              className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            >
+              <option value="">{t(K.ADMIN_TABLE_SELECT_INSTRUCTOR_OPTIONAL, "Select an instructor (optional)")}</option>
+              {instructors.map((instructor) => (
+                <option key={instructor.id} value={instructor.id}>
+                  {instructor.name} {instructor.email ? `(${instructor.email})` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
+              {`${t(K.ADMIN_TABLE_ROOM, "Room")} *`}
+            </label>
+            <select
+              name="roomID"
+              value={formData.roomID}
+              onChange={handleInputChange}
+              required
+              className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            >
+              <option value="">{t(K.ADMIN_TABLE_SELECT_ROOM, "Select a room")}</option>
+              {rooms.map((room) => (
+                <option key={room.roomID} value={room.roomID}>
+                  {room.roomName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
               {t(K.ADMIN_TABLE_DESCRIPTION, "Description")}
             </label>
             <textarea
@@ -375,6 +499,59 @@ export default function ClassesTable() {
               name="endDate"
               value={formData.endDate}
               onChange={handleInputChange}
+              className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
+              {`${t(K.ADMIN_TABLE_CLASS_DAYS, "Class Days")} *`}
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {scheduleDays.map((day) => {
+                const checked = (Number(formData.scheduleDaysMask) || 0) & day.bit;
+                return (
+                  <button
+                    type="button"
+                    key={day.bit}
+                    onClick={() => toggleScheduleDay(day.bit)}
+                    className={`rounded border px-3 py-1 text-xs font-semibold ${
+                      checked
+                        ? "border-brand-500 bg-brand-500 text-white"
+                        : "border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-200"
+                    }`}
+                  >
+                    {day.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
+              {`${t(K.ADMIN_TABLE_TIMEFRAME_START, "Start Time")} *`}
+            </label>
+            <input
+              type="time"
+              name="scheduleStartTime"
+              value={formData.scheduleStartTime}
+              onChange={handleInputChange}
+              required
+              className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
+              {`${t(K.ADMIN_TABLE_TIMEFRAME_END, "End Time")} *`}
+            </label>
+            <input
+              type="time"
+              name="scheduleEndTime"
+              value={formData.scheduleEndTime}
+              onChange={handleInputChange}
+              required
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>

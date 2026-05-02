@@ -1,15 +1,39 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Card from "components/card";
+import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import PortalLayout from "layouts/portal";
 import {
   classService,
   studentEquipmentAssignmentService,
   practiceErrorLogService,
+  practiceSessionService,
 } from "services/api";
 import assetService from "services/assetService";
 import { getCurrentUser } from "services/userService";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
+
+const toDateKey = (value) => {
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
+};
+
+const formatSessionTime = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+};
 
 export default function TeacherPortal() {
   const { t } = useLanguage();
@@ -18,9 +42,11 @@ export default function TeacherPortal() {
   const [isError, setIsError] = useState(false);
 
   const [classes, setClasses] = useState([]);
+  const [sessions, setSessions] = useState([]);
   const [availableAssets, setAvailableAssets] = useState([]);
   const [activeAssignments, setActiveAssignments] = useState([]);
   const [recentIssues, setRecentIssues] = useState([]);
+  const [calendarDate, setCalendarDate] = useState(new Date());
 
   const [assignForm, setAssignForm] = useState({
     studentID: "",
@@ -38,7 +64,170 @@ export default function TeacherPortal() {
     [activeAssignments]
   );
 
-  const visibleIssues = useMemo(() => recentIssues.slice(0, 6), [recentIssues]);
+  const sessionById = useMemo(
+    () =>
+      sessions.reduce((acc, session) => {
+        acc[session.sessionID] = session;
+        return acc;
+      }, {}),
+    [sessions]
+  );
+
+  const allowedAssignmentKeys = useMemo(
+    () =>
+      new Set(
+        activeAssignments
+          .filter((item) => item.classID && item.roomAssetID)
+          .map((item) => `${item.classID}-${item.roomAssetID}`)
+      ),
+    [activeAssignments]
+  );
+
+  const filteredIssues = useMemo(
+    () =>
+      recentIssues.filter((issue) => {
+        const session = sessionById[issue.sessionID];
+        if (!session?.classID || !session?.roomAssetID) {
+          return false;
+        }
+        return allowedAssignmentKeys.has(`${session.classID}-${session.roomAssetID}`);
+      }),
+    [recentIssues, sessionById, allowedAssignmentKeys]
+  );
+
+  // Schedule items: one entry per class, drives the day-by-day calendar view
+  const scheduleItems = useMemo(() => {
+    const classAssignments = activeAssignments.reduce((acc, item) => {
+      if (!acc[item.classID]) {
+        acc[item.classID] = [];
+      }
+      acc[item.classID].push(item);
+      return acc;
+    }, {});
+
+    const sessionsByClassDate = sessions.reduce((acc, session) => {
+      const key = toDateKey(session.startTime);
+      if (!key || !session.classID) {
+        return acc;
+      }
+
+      const classKey = String(session.classID);
+      if (!acc[classKey]) {
+        acc[classKey] = {};
+      }
+
+      if (!acc[classKey][key]) {
+        acc[classKey][key] = {};
+      }
+
+      const startTime = formatSessionTime(session.startTime);
+      const endTime = formatSessionTime(session.endTime);
+      const lessonKey = `${startTime}-${endTime}`;
+
+      if (!acc[classKey][key][lessonKey]) {
+        acc[classKey][key][lessonKey] = {
+          startTime,
+          endTime,
+          sessionRecords: [],
+        };
+      }
+
+      acc[classKey][key][lessonKey].sessionRecords.push({
+        studentID: session.studentID,
+        roomAssetID: session.roomAssetID,
+        attendanceStatus: session.attendanceStatus || "Pending",
+      });
+
+      return acc;
+    }, {});
+
+    return classes.map((item) => {
+      const assignments = classAssignments[item.classID] || [];
+      const defaultStudents = assignments.map((assignment) => ({
+        studentID: assignment.studentID,
+        name: assignment.student?.user
+          ? `${assignment.student.user.firstName || ""} ${assignment.student.user.lastName || ""}`.trim() || `Student #${assignment.studentID}`
+          : `Student #${assignment.studentID}`,
+        assetLabel: assignment.roomAssetID ? `Asset #${assignment.roomAssetID}` : null,
+        attendanceStatus: "Not-recorded",
+      }));
+
+      const classLessonMapByDate = sessionsByClassDate[String(item.classID)] || {};
+
+      return {
+        id: item.classID,
+        name: item.className,
+        courseName: item.courseName || item.course?.courseName || item.className,
+        room: item.roomName || "",
+        startDate: item.startDate,
+        endDate: item.endDate,
+        daysMask: item.scheduleDaysMask || 0,
+        lessons: [
+          {
+            startTime: item.scheduleStartTime || "",
+            endTime: item.scheduleEndTime || "",
+            summaryLabel: `${defaultStudents.filter((s) => s.attendanceStatus === "Valid").length}/${defaultStudents.length} attended`,
+            students: defaultStudents,
+          },
+        ],
+        lessonsByDate: Object.keys(classLessonMapByDate).reduce((dateAcc, dateKey) => {
+          const lessonGroups = classLessonMapByDate[dateKey] || {};
+          dateAcc[dateKey] = Object.values(lessonGroups).map((group) => {
+            const statusByStudent = group.sessionRecords.reduce((statusAcc, sessionRecord) => {
+              statusAcc[sessionRecord.studentID] = {
+                attendanceStatus: sessionRecord.attendanceStatus || "Pending",
+                roomAssetID: sessionRecord.roomAssetID,
+              };
+              return statusAcc;
+            }, {});
+
+            const students = assignments.map((assignment) => {
+              const sessionDetail = statusByStudent[assignment.studentID];
+              return {
+                studentID: assignment.studentID,
+                assignmentId: assignment.assignmentID,
+                name: assignment.student?.user
+                  ? `${assignment.student.user.firstName || ""} ${assignment.student.user.lastName || ""}`.trim() || `Student #${assignment.studentID}`
+                  : `Student #${assignment.studentID}`,
+                assetLabel: sessionDetail?.roomAssetID
+                  ? `Asset #${sessionDetail.roomAssetID}`
+                  : assignment.roomAssetID
+                  ? `Asset #${assignment.roomAssetID}`
+                  : null,
+                attendanceStatus: sessionDetail?.attendanceStatus || "Not-recorded",
+              };
+            });
+
+            const attendedCount = students.filter((s) => s.attendanceStatus === "Valid").length;
+
+            return {
+              startTime: group.startTime,
+              endTime: group.endTime,
+              summaryLabel: `${attendedCount}/${students.length} attended`,
+              students,
+            };
+          });
+          return dateAcc;
+        }, {}),
+      };
+    });
+  }, [classes, activeAssignments, sessions]);
+
+  const calendarEvents = useMemo(
+    () =>
+      filteredIssues.map((issue) => {
+        const session = sessionById[issue.sessionID];
+        return {
+          date: issue.errorTime,
+          type: "issue",
+          label: `${t(K.TEACHER_SESSION_LABEL, "Session")} #${issue.sessionID}`,
+          subtitle: session?.roomAssetID
+            ? `Asset #${session.roomAssetID} • ${issue.studentDescription || "Issue reported"}`
+            : issue.studentDescription || "Issue reported",
+        };
+      }),
+    [filteredIssues, sessionById, t]
+  );
 
   const showToast = (text, error = false) => {
     setMessage(text);
@@ -51,12 +240,32 @@ export default function TeacherPortal() {
       const currentUser = await getCurrentUser();
       const instructorId = currentUser?.instructorRole?.instructorID;
 
-      const [available, active, issues, classList] = await Promise.all([
+      const [availableRes, activeRes, issuesRes, classListRes, sessionListRes] =
+        await Promise.allSettled([
         assetService.getAvailableForTraining(),
         studentEquipmentAssignmentService.getActive(),
         practiceErrorLogService.getAll(),
         instructorId ? classService.getByInstructor(instructorId) : classService.getActive(),
+        practiceSessionService.getAll(),
       ]);
+
+      const available = availableRes.status === "fulfilled" ? availableRes.value : [];
+      const active = activeRes.status === "fulfilled" ? activeRes.value : [];
+      const issues = issuesRes.status === "fulfilled" ? issuesRes.value : [];
+      const sessionList = sessionListRes.status === "fulfilled" ? sessionListRes.value : [];
+      let classList = classListRes.status === "fulfilled" ? classListRes.value || [] : [];
+
+      if (classList.length === 0 && active.length > 0) {
+        const classIds = [...new Set(active.map((item) => item.classID).filter(Boolean))];
+        if (classIds.length > 0) {
+          const classDetailResults = await Promise.allSettled(
+            classIds.map((classId) => classService.getById(classId))
+          );
+          classList = classDetailResults
+            .filter((result) => result.status === "fulfilled" && result.value)
+            .map((result) => result.value);
+        }
+      }
 
       setAvailableAssets(available || []);
       setActiveAssignments(active || []);
@@ -66,6 +275,14 @@ export default function TeacherPortal() {
         )
       );
       setClasses(classList || []);
+      setSessions(sessionList || []);
+
+      if (classListRes.status === "rejected") {
+        showToast(
+          `${t(K.TEACHER_LOAD_FAILED, "Failed to load teacher workspace")}: ${classListRes.reason?.message || "Failed to load classes"}`,
+          true
+        );
+      }
     } catch (error) {
       showToast(`${t(K.TEACHER_LOAD_FAILED, "Failed to load teacher workspace")}: ${error.message}`, true);
     } finally {
@@ -132,7 +349,22 @@ export default function TeacherPortal() {
 
   return (
     <PortalLayout title="Teacher Portal" titleKey={K.TEACHER_PORTAL_TITLE}>
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5">
+        <Card extra="p-6">
+          <TrainingCalendarBoard
+            value={calendarDate}
+            onChange={setCalendarDate}
+            scheduleItems={scheduleItems}
+            events={calendarEvents}
+            onForceReturn={handleForceReturn}
+            title={t(K.TEACHER_TRAINING_CALENDAR, "Training Calendar")}
+            detailsTitle={t("COMMON_DAILY_DETAILS", "Daily Details")}
+            noEventsText={t(K.TEACHER_NO_EVENTS_ON_DATE, "No training events on selected date.")}
+          />
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-3 mt-5">
         <Card extra="p-6">
           <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.TEACHER_AVAILABLE_ASSETS, "Available Assets")}</p>
           <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{availableAssets.length}</p>
@@ -146,7 +378,7 @@ export default function TeacherPortal() {
         <Card extra="p-6">
           <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.TEACHER_OPEN_REPORTS, "Open Reports")}</p>
           <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">
-            {recentIssues.filter((issue) => !issue.resolutionTime).length}
+            {filteredIssues.filter((issue) => !issue.resolutionTime).length}
           </p>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.TEACHER_REPORTED_ISSUES, "Teacher/student reported issues")}</p>
         </Card>
@@ -249,75 +481,7 @@ export default function TeacherPortal() {
         </Card>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.TEACHER_LIVE_ASSIGNMENTS, "Live Assignments")}</h2>
-          <div className="mt-4 space-y-3">
-            {visibleAssignments.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.TEACHER_NO_ACTIVE_ASSIGNMENTS, "No active assignments.")}</p>
-            )}
-            {visibleAssignments.map((item) => (
-              <div
-                key={item.assignmentID}
-                className="rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-700 dark:bg-navy-900"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-navy-700 dark:text-white">
-                      Student #{item.studentID} • Class #{item.classID}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-300">
-                      RoomAsset #{item.roomAssetID} • {t(K.TEACHER_ASSIGNMENT_INFO, "Assigned")} {new Date(item.assignedDate).toLocaleString()}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleForceReturn(item.assignmentID)}
-                    className="rounded-lg border border-amber-300 px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-50"
-                  >
-                    {t(K.TEACHER_FORCE_RETURN, "Force Return")}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.TEACHER_RECENT_ISSUES, "Recent Issue Feed")}</h2>
-          <div className="mt-4 space-y-3">
-            {visibleIssues.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.TEACHER_NO_ISSUES, "No issues reported yet.")}</p>
-            )}
-            {visibleIssues.map((issue) => (
-              <div
-                key={issue.errorLogID}
-                className="rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-700 dark:bg-navy-900"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-navy-700 dark:text-white">
-                    {t(K.TEACHER_SESSION_LABEL, "Session")} #{issue.sessionID}
-                  </p>
-                  <span
-                    className={`rounded-full px-2 py-1 text-[10px] font-bold ${
-                      issue.resolutionTime
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-orange-100 text-orange-700"
-                    }`}
-                  >
-                    {issue.resolutionTime
-                      ? t(K.TEACHER_RESOLVED, "Resolved")
-                      : t(K.TEACHER_OPEN, "Open")}
-                  </span>
-                </div>
-                <p className="mt-1 line-clamp-2 text-xs text-gray-600 dark:text-gray-300">
-                  {issue.studentDescription || t(K.TEACHER_NO_DETAILS, "No details provided.")}
-                </p>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
+      
     </PortalLayout>
   );
 }

@@ -101,6 +101,22 @@ abbr[title] {
 	color: white;
 }
 
+.mini-calendar__event-day {
+	position: relative;
+	font-weight: 700;
+}
+
+.mini-calendar__event-dot {
+	position: absolute;
+	bottom: 3px;
+	left: 50%;
+	transform: translateX(-50%);
+	height: 5px;
+	width: 5px;
+	border-radius: 9999px;
+	background-color: #0ea5e9;
+}
+
 /* DARK MODE */
 
 body.dark .react-calendar {
@@ -154,4 +170,8 @@ body.dark .react-calendar__tile--rangeEnd:enabled:hover,
 body.dark .react-calendar__tile--rangeEnd:enabled:focus {
 	background: #7551ff;
 	color: white;
+}
+
+body.dark .mini-calendar__event-dot {
+	background-color: #67e8f9;
 }

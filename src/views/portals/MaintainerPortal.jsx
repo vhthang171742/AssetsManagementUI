@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Card from "components/card";
+import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import PortalLayout from "layouts/portal";
-import { practiceErrorLogService, studentEquipmentAssignmentService } from "services/api";
+import { classService, practiceErrorLogService, studentEquipmentAssignmentService } from "services/api";
 import assetService from "services/assetService";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
@@ -23,12 +24,24 @@ export default function MaintainerPortal() {
   const [assets, setAssets] = useState([]);
   const [issues, setIssues] = useState([]);
   const [activeAssignments, setActiveAssignments] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [calendarDate, setCalendarDate] = useState(new Date());
   const [statusForm, setStatusForm] = useState({ assetId: "", statusCode: "MAINTENANCE" });
 
   const openIssues = useMemo(
     () => issues.filter((issue) => !issue.resolutionTime).slice(0, 8),
     [issues]
   );
+
+  // Maintainer calendar: reported incidents only, no class events
+  const calendarEvents = useMemo(() =>
+    openIssues.map((issue) => ({
+      date: issue.errorTime,
+      type: "issue",
+      label: `${t("MAINTAINER_ISSUE", "Incident")} #${issue.errorLogID}`,
+      subtitle: `${t("MAINTAINER_SESSION", "Session")} #${issue.sessionID}`,
+    }))
+  , [openIssues, t]);
 
   const showToast = (text, error = false) => {
     setMessage(text);
@@ -38,10 +51,11 @@ export default function MaintainerPortal() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allAssets, allIssues, active] = await Promise.all([
+      const [allAssets, allIssues, active, classList] = await Promise.all([
         assetService.getAllStatuses(),
         practiceErrorLogService.getAll(),
         studentEquipmentAssignmentService.getActive(),
+        classService.getActive(),
       ]);
 
       setAssets(allAssets || []);
@@ -51,6 +65,7 @@ export default function MaintainerPortal() {
         )
       );
       setActiveAssignments(active || []);
+      setClasses(classList || []);
     } catch (error) {
       showToast(`${t(K.MAINTAINER_LOAD_FAILED, "Failed to load maintainer workspace")}: ${error.message}`, true);
     } finally {
@@ -93,6 +108,19 @@ export default function MaintainerPortal() {
 
   return (
     <PortalLayout title="Maintainer Portal" titleKey={K.MAINTAINER_PORTAL_TITLE}>
+      <div className="grid grid-cols-1 gap-5">
+        <Card extra="p-6">
+          <TrainingCalendarBoard
+            value={calendarDate}
+            onChange={setCalendarDate}
+            events={calendarEvents}
+            title={t("MAINTAINER_TRAINING_CALENDAR", "Training Calendar")}
+            detailsTitle={t("COMMON_DAILY_DETAILS", "Daily Details")}
+            noEventsText={t("MAINTAINER_NO_EVENTS_ON_DATE", "No training events on selected date.")}
+          />
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
         <Card extra="p-6">
           <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.MAINTAINER_OPEN_REPORTS, "Open Reports")}</p>

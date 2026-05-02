@@ -69,6 +69,16 @@ export const classService = {
     }),
 
   /**
+   * Enroll current logged-in student to a class
+   * @param {number} id - Class ID
+   * @returns {Promise<object>} Enrolled class
+   */
+  enrollMe: (id) =>
+    httpClient(`/classes/${id}/enroll-me`, {
+      method: "POST",
+    }),
+
+  /**
    * Delete a class
    * @param {number} id - Class ID
    * @returns {Promise<void>}

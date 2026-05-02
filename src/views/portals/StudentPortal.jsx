@@ -1,14 +1,39 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Card from "components/card";
+import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import PortalLayout from "layouts/portal";
 import {
   studentEquipmentAssignmentService,
   practiceSessionService,
   practiceErrorLogService,
+  classService,
+  courseService,
 } from "services/api";
 import { getCurrentUser } from "services/userService";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
+
+const toDateKey = (value) => {
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
+};
+
+const formatSessionTime = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+};
 
 export default function StudentPortal() {
   const { t } = useLanguage();
@@ -18,13 +43,19 @@ export default function StudentPortal() {
 
   const [assignments, setAssignments] = useState([]);
   const [sessions, setSessions] = useState([]);
-  const [selectedAssignmentId, setSelectedAssignmentId] = useState("");
   const [issueForm, setIssueForm] = useState({ sessionID: "", studentDescription: "" });
   const [qrCodeValue, setQrCodeValue] = useState("");
   const [qrBusy, setQrBusy] = useState(false);
   const [myActiveCheckouts, setMyActiveCheckouts] = useState([]);
   const [isScanning, setIsScanning] = useState(false);
   const [scannerSupported, setScannerSupported] = useState(true);
+  const [courses, setCourses] = useState([]);
+  const [courseClasses, setCourseClasses] = useState([]);
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [selectedClassId, setSelectedClassId] = useState("");
+  const [myClassId, setMyClassId] = useState(null);
+  const [myClassDetails, setMyClassDetails] = useState(null);
+  const [calendarDate, setCalendarDate] = useState(new Date());
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -40,6 +71,93 @@ export default function StudentPortal() {
     [assignments]
   );
 
+  // Schedule items: enrolled class(es) → day-by-day view with asset info
+  const scheduleItems = useMemo(() => {
+    const assetByClass = activeAssignments.reduce((acc, a) => {
+      if (!acc[a.classID]) acc[a.classID] = a.roomAssetID;
+      return acc;
+    }, {});
+
+    const sessionsByClassDate = sessions.reduce((acc, session) => {
+      const key = toDateKey(session.startTime);
+      if (!key || !session.classID) {
+        return acc;
+      }
+
+      const classKey = String(session.classID);
+      if (!acc[classKey]) {
+        acc[classKey] = {};
+      }
+      if (!acc[classKey][key]) {
+        acc[classKey][key] = [];
+      }
+
+      acc[classKey][key].push({
+        startTime: formatSessionTime(session.startTime),
+        endTime: formatSessionTime(session.endTime),
+        assetLabel: session.roomAssetID ? `Asset #${session.roomAssetID}` : null,
+        attendanceStatus: session.attendanceStatus || "Pending",
+      });
+      return acc;
+    }, {});
+
+    const latestStatusByClass = sessions.reduce((acc, session) => {
+      if (!session.classID || !session.startTime) {
+        return acc;
+      }
+
+      const classKey = String(session.classID);
+      const sessionTime = new Date(session.startTime).getTime();
+      if (!acc[classKey] || sessionTime > acc[classKey].time) {
+        acc[classKey] = {
+          time: sessionTime,
+          status: session.attendanceStatus || "Pending",
+        };
+      }
+
+      return acc;
+    }, {});
+
+    const courseNameById = courses.reduce((acc, course) => {
+      acc[course.courseID] = course.courseName;
+      return acc;
+    }, {});
+
+    const sourceClasses =
+      courseClasses.length > 0
+        ? courseClasses
+        : myClassDetails
+        ? [myClassDetails]
+        : [];
+
+    // Only show classes the student is enrolled in
+    return sourceClasses
+      .filter((item) => !myClassId || item.classID === myClassId)
+      .map((item) => ({
+        id: item.classID,
+        name: item.className,
+        courseName: item.courseName || courseNameById[item.courseID] || item.className,
+        room: item.roomName || "",
+        startDate: item.startDate,
+        endDate: item.endDate,
+        daysMask: item.scheduleDaysMask || 0,
+        lessons: [
+          {
+            startTime: item.scheduleStartTime || "",
+            endTime: item.scheduleEndTime || "",
+            assetLabel: assetByClass[item.classID]
+              ? `Asset #${assetByClass[item.classID]}`
+              : "No assigned asset",
+            attendanceStatus:
+              latestStatusByClass[String(item.classID)]?.status || "Not-checked",
+          },
+        ],
+        lessonsByDate: sessionsByClassDate[String(item.classID)] || {},
+      }));
+  }, [courseClasses, myClassDetails, activeAssignments, myClassId, sessions, courses]);
+
+  const calendarEvents = useMemo(() => [], []);
+
   const showToast = (text, error = false) => {
     setMessage(text);
     setIsError(error);
@@ -48,20 +166,41 @@ export default function StudentPortal() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const myAssignments = await studentEquipmentAssignmentService.getMine();
+      const [myAssignments, activeCheckouts, me, activeCourses] = await Promise.all([
+        studentEquipmentAssignmentService.getMine(),
+        studentEquipmentAssignmentService.getMyActiveCheckouts(),
+        getCurrentUser(),
+        courseService.getActive(),
+      ]);
+
       setAssignments(myAssignments || []);
-
-      const activeCheckouts = await studentEquipmentAssignmentService.getMyActiveCheckouts();
       setMyActiveCheckouts(activeCheckouts || []);
+      setCourses(activeCourses || []);
 
-      const me = await getCurrentUser();
       const studentId = me?.studentRole?.studentID;
+      const classId = me?.studentRole?.classID;
+
+      setMyClassId(classId || null);
 
       if (studentId) {
         const mySessions = await practiceSessionService.getByStudent(studentId);
         setSessions(mySessions || []);
       } else {
         setSessions([]);
+      }
+
+      if (classId) {
+        try {
+          const myClass = await classService.getById(classId);
+          setMyClassDetails(myClass || null);
+          if (myClass?.courseID) {
+            setSelectedCourseId(String(myClass.courseID));
+          }
+        } catch {
+          setMyClassDetails(null);
+        }
+      } else {
+        setMyClassDetails(null);
       }
     } catch (error) {
       showToast(`${t(K.STUDENT_LOAD_FAILED, "Failed to load student portal")}: ${error.message}`, true);
@@ -84,6 +223,26 @@ export default function StudentPortal() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!selectedCourseId) {
+      setCourseClasses([]);
+      setSelectedClassId("");
+      return;
+    }
+
+    const fetchCourseClasses = async () => {
+      try {
+        const data = await classService.getByCourse(Number(selectedCourseId));
+        setCourseClasses((data || []).filter((item) => item.isActive));
+      } catch (error) {
+        showToast(`${t(K.STUDENT_LOAD_COURSE_CLASSES_FAILED, "Failed to load classes for selected course")}: ${error.message}`, true);
+        setCourseClasses([]);
+      }
+    };
+
+    fetchCourseClasses();
+  }, [selectedCourseId, t]);
 
   const stopScanner = () => {
     setIsScanning(false);
@@ -177,33 +336,6 @@ export default function StudentPortal() {
     }
   };
 
-  const handleCheckIn = async (event) => {
-    event.preventDefault();
-    if (!selectedAssignmentId) {
-      showToast(t(K.STUDENT_SELECT_ASSIGNMENT_FIRST, "Select an assignment to check in."), true);
-      return;
-    }
-
-    try {
-      await practiceSessionService.studentCheckIn({ assignmentID: Number(selectedAssignmentId) });
-      showToast(t(K.STUDENT_CHECKIN_SUCCESS, "Check-in successful."));
-      setSelectedAssignmentId("");
-      await loadData();
-    } catch (error) {
-      showToast(`${t(K.STUDENT_CHECKIN_FAILED, "Check-in failed")}: ${error.message}`, true);
-    }
-  };
-
-  const handleCheckOut = async (sessionId) => {
-    try {
-      await practiceSessionService.studentCheckOut({ sessionID: Number(sessionId) });
-      showToast(t(K.STUDENT_CHECKOUT_SUCCESS, "Check-out successful."));
-      await loadData();
-    } catch (error) {
-      showToast(`${t(K.STUDENT_CHECKOUT_FAILED, "Check-out failed")}: ${error.message}`, true);
-    }
-  };
-
   const handleReportIssue = async (event) => {
     event.preventDefault();
     try {
@@ -218,6 +350,23 @@ export default function StudentPortal() {
       await loadData();
     } catch (error) {
       showToast(`${t(K.STUDENT_ISSUE_REPORT_FAILED, "Issue report failed")}: ${error.message}`, true);
+    }
+  };
+
+  const handleEnroll = async (event) => {
+    event.preventDefault();
+
+    if (!selectedClassId) {
+      showToast(t(K.STUDENT_SELECT_CLASS_TO_ENROLL, "Select a class to enroll."), true);
+      return;
+    }
+
+    try {
+      await classService.enrollMe(Number(selectedClassId));
+      showToast(t(K.STUDENT_ENROLL_SUCCESS, "Enrollment completed."));
+      await loadData();
+    } catch (error) {
+      showToast(`${t(K.STUDENT_ENROLL_FAILED, "Enrollment failed")}: ${error.message}`, true);
     }
   };
 
@@ -252,6 +401,69 @@ export default function StudentPortal() {
           {message}
         </div>
       )}
+
+      <div className="mt-6 grid grid-cols-1 gap-5">
+        <Card extra="p-6">
+          <TrainingCalendarBoard
+            value={calendarDate}
+            onChange={setCalendarDate}
+            scheduleItems={scheduleItems}
+            events={calendarEvents}
+            title={t(K.STUDENT_TRAINING_CALENDAR, "Training Calendar")}
+            detailsTitle={t("COMMON_DAILY_DETAILS", "Daily Details")}
+            noEventsText={t(K.STUDENT_NO_EVENTS_ON_DATE, "No training events on selected date.")}
+          />
+        </Card>
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 gap-5">
+        <Card extra="p-6">
+          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_ENROLL_CLASS_TITLE, "Find Class And Enroll")}</h2>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
+            {t(K.STUDENT_ENROLL_CLASS_HINT, "Pick a course, browse classes, and enroll into a class.")}
+          </p>
+          <p className="mt-2 text-xs font-semibold text-brand-600">
+            {myClassId
+              ? `${t(K.STUDENT_CURRENT_CLASS, "Current class")} #${myClassId}`
+              : t(K.STUDENT_NOT_ENROLLED, "You are not enrolled in any class yet.")}
+          </p>
+          <form className="mt-4 space-y-3" onSubmit={handleEnroll}>
+            <select
+              required
+              value={selectedCourseId}
+              onChange={(e) => setSelectedCourseId(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
+            >
+              <option value="">{t(K.STUDENT_SELECT_COURSE, "Select course")}</option>
+              {courses.map((course) => (
+                <option key={course.courseID} value={course.courseID}>
+                  {course.courseName} ({course.courseCode})
+                </option>
+              ))}
+            </select>
+            <select
+              required
+              value={selectedClassId}
+              onChange={(e) => setSelectedClassId(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
+            >
+              <option value="">{t(K.STUDENT_SELECT_CLASS, "Select class")}</option>
+              {courseClasses.map((item) => (
+                <option key={item.classID} value={item.classID}>
+                  {item.className} ({item.classCode})
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              disabled={loading || !selectedClassId}
+              className="w-full rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
+            >
+              {t(K.STUDENT_ENROLL_BUTTON, "Enroll To Class")}
+            </button>
+          </form>
+        </Card>
+      </div>
 
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card extra="p-6">
@@ -300,35 +512,6 @@ export default function StudentPortal() {
               muted
               playsInline
             />
-          </form>
-        </Card>
-
-        <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_ATTENDANCE_CHECKIN_TITLE, "Attendance Check-In")}</h2>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-            {t(K.STUDENT_ATTENDANCE_CHECKIN_HINT, "Pick your assigned asset and start a session.")}
-          </p>
-          <form className="mt-4 space-y-3" onSubmit={handleCheckIn}>
-            <select
-              required
-              value={selectedAssignmentId}
-              onChange={(e) => setSelectedAssignmentId(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
-            >
-              <option value="">{t(K.STUDENT_SELECT_ASSIGNMENT, "Select assignment")}</option>
-              {activeAssignments.map((item) => (
-                <option key={item.assignmentID} value={item.assignmentID}>
-                  {t(K.STUDENT_ASSIGNMENT_ROW, "Assignment")} #{item.assignmentID} • Asset #{item.roomAssetID} • Class #{item.classID}
-                </option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              disabled={loading || activeAssignments.length === 0}
-              className="w-full rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
-            >
-              {t(K.STUDENT_CHECKIN_BUTTON, "Check In")}
-            </button>
           </form>
         </Card>
 
@@ -449,14 +632,12 @@ export default function StudentPortal() {
                     <p className="text-xs text-gray-500 dark:text-gray-300">
                       Asset #{session.roomAssetID} • {t(K.STUDENT_SESSION_INFO, "Start")} {new Date(session.startTime).toLocaleString()}
                     </p>
+                    {session.attendanceStatus && (
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
+                        {t(K.STUDENT_ATTENDANCE_STATUS, "Attendance")}: {session.attendanceStatus}
+                      </p>
+                    )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleCheckOut(session.sessionID)}
-                    className="rounded-lg border border-brand-300 px-3 py-1 text-xs font-semibold text-brand-700 hover:bg-brand-50"
-                  >
-                    {t(K.STUDENT_CHECKOUT_BUTTON, "Check Out")}
-                  </button>
                 </div>
               </div>
             ))}
