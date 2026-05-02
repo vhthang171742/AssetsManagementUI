@@ -372,7 +372,33 @@ export default function StudentPortal() {
 
   return (
     <PortalLayout title="Student Portal" titleKey={K.STUDENT_PORTAL_TITLE}>
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+      {message && (
+        <div
+          className={`mt-5 rounded-xl border px-4 py-3 text-sm ${
+            isError
+              ? "border-red-200 bg-red-50 text-red-700"
+              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+          }`}
+        >
+          {message}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-5">
+        <Card extra="p-6">
+          <TrainingCalendarBoard
+            value={calendarDate}
+            onChange={setCalendarDate}
+            scheduleItems={scheduleItems}
+            events={calendarEvents}
+            title={t(K.STUDENT_TRAINING_CALENDAR, "Training Calendar")}
+            detailsTitle={t("COMMON_DAILY_DETAILS", "Daily Details")}
+            noEventsText={t(K.STUDENT_NO_EVENTS_ON_DATE, "No training events on selected date.")}
+          />
+        </Card>
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-3">
         <Card extra="p-6">
           <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_MY_ACTIVE_ASSETS, "My Active Assets")}</p>
           <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{activeAssignments.length}</p>
@@ -387,32 +413,6 @@ export default function StudentPortal() {
           <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_TOTAL_SESSIONS, "Total Sessions")}</p>
           <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{sessions.length}</p>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.STUDENT_PRACTICE_HISTORY, "Practice activity history")}</p>
-        </Card>
-      </div>
-
-      {message && (
-        <div
-          className={`mt-5 rounded-xl border px-4 py-3 text-sm ${
-            isError
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700"
-          }`}
-        >
-          {message}
-        </div>
-      )}
-
-      <div className="mt-6 grid grid-cols-1 gap-5">
-        <Card extra="p-6">
-          <TrainingCalendarBoard
-            value={calendarDate}
-            onChange={setCalendarDate}
-            scheduleItems={scheduleItems}
-            events={calendarEvents}
-            title={t(K.STUDENT_TRAINING_CALENDAR, "Training Calendar")}
-            detailsTitle={t("COMMON_DAILY_DETAILS", "Daily Details")}
-            noEventsText={t(K.STUDENT_NO_EVENTS_ON_DATE, "No training events on selected date.")}
-          />
         </Card>
       </div>
 

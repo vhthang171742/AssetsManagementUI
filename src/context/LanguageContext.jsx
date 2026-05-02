@@ -18,6 +18,17 @@ const LanguageContext = createContext(null);
 const STORAGE_KEY = "app_language";
 const DEFAULT_LANGUAGE = "en-US";
 
+const UI_TEXT_OVERRIDES = {
+  "en-US": {
+    PORTAL_MAINTAINER_NAME: "Technician Portal",
+    MAINTAINER_PORTAL_TITLE: "Technician Portal",
+  },
+  "vi-VN": {
+    PORTAL_MAINTAINER_NAME: "Cổng kỹ thuật viên",
+    MAINTAINER_PORTAL_TITLE: "Cổng kỹ thuật viên",
+  },
+};
+
 export const LanguageProvider = ({ children }) => {
   const { currentUser, isAuthenticated } = useAuth();
   const [language, setLanguageState] = useState(
@@ -94,9 +105,11 @@ export const LanguageProvider = ({ children }) => {
           return acc;
         }, {});
 
+        const overrideBundle = UI_TEXT_OVERRIDES[language] || {};
         setTranslations({
           ...fallbackBundle,
           ...remoteBundle,
+          ...overrideBundle,
         });
       } catch (err) {
         console.warn("Failed to load UiText translations from configuration items:", err.message);

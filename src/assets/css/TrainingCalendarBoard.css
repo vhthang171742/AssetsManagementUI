@@ -79,6 +79,13 @@
   cursor: default;
 }
 
+.tcb .react-calendar__month-view__days {
+  border-top: 1px solid #e5e7eb;
+  border-left: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
 /* Calendar tiles ----------------------------------------------------------- */
 .tcb .react-calendar__tile {
   position: relative;
@@ -87,7 +94,9 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  border-radius: 10px;
+  border-right: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 0;
   color: #374151;
   font-size: 13px;
   font-weight: 500;
@@ -107,6 +116,25 @@
 .tcb .react-calendar__tile:enabled:hover,
 .tcb .react-calendar__tile:enabled:focus {
   background: #eef2ff;
+}
+
+/* Scheduled class day background ------------------------------------------- */
+.tcb .react-calendar__tile.tcb__schedule-tile {
+  background: #e0f2fe;
+}
+
+.tcb .react-calendar__tile.tcb__schedule-tile.tcb__schedule-tile--past {
+  background: #e8edf6;
+}
+
+.tcb .react-calendar__tile.tcb__schedule-tile:enabled:hover,
+.tcb .react-calendar__tile.tcb__schedule-tile:enabled:focus {
+  background: #bae6fd;
+}
+
+.tcb .react-calendar__tile.tcb__schedule-tile.tcb__schedule-tile--past:enabled:hover,
+.tcb .react-calendar__tile.tcb__schedule-tile.tcb__schedule-tile--past:enabled:focus {
+  background: #d9e2f0;
 }
 
 /* Today -------------------------------------------------------------------- */
@@ -590,6 +618,16 @@
   color: #6b7280;
 }
 
+.dark .tcb .react-calendar__month-view__days {
+  border-top-color: #374151;
+  border-left-color: #374151;
+}
+
+.dark .tcb .react-calendar__tile {
+  border-right-color: #374151;
+  border-bottom-color: #374151;
+}
+
 .dark .tcb .react-calendar__tile:enabled:hover,
 .dark .tcb .react-calendar__tile:enabled:focus {
   background: #1f2937;
@@ -615,9 +653,12 @@
   color: #374151;
 }
 
-.dark .tcb__tile-dot {
-  background: #3b82f6;
-  color: #ffffff;
+.dark .tcb__tile-dot--lesson {
+  background: #0e7490;
+}
+
+.dark .tcb__tile-dot--incident {
+  background: #b91c1c;
 }
 
 .dark .tcb__right {

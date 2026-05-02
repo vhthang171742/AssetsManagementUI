@@ -44,7 +44,7 @@ export const fallbackTranslations = {
     [K.PORTAL_ADMIN_NAME]: "Admin Portal",
     [K.PORTAL_STUDENT_NAME]: "Student Portal",
     [K.PORTAL_TEACHER_NAME]: "Teacher Portal",
-    [K.PORTAL_MAINTAINER_NAME]: "Maintainer Portal",
+    [K.PORTAL_MAINTAINER_NAME]: "Technician Portal",
 
     [K.PAGE_PROFILE]: "Profile",
     [K.PAGE_NO_PORTAL_ACCESS_TITLE]: "Portal Access Required",
@@ -54,7 +54,7 @@ export const fallbackTranslations = {
 
     [K.STUDENT_PORTAL_TITLE]: "Student Portal",
     [K.TEACHER_PORTAL_TITLE]: "Teacher Portal",
-    [K.MAINTAINER_PORTAL_TITLE]: "Maintainer Portal",
+    [K.MAINTAINER_PORTAL_TITLE]: "Technician Portal",
 
     [K.TABLE_NO_DATA]: "No data",
     [K.TABLE_DELETE_SELECTED]: "Delete Selected",
@@ -599,7 +599,7 @@ export const fallbackTranslations = {
     [K.PORTAL_ADMIN_NAME]: "Cổng quản trị",
     [K.PORTAL_STUDENT_NAME]: "Cổng học viên",
     [K.PORTAL_TEACHER_NAME]: "Cổng giảng viên",
-    [K.PORTAL_MAINTAINER_NAME]: "Cổng bảo trì",
+    [K.PORTAL_MAINTAINER_NAME]: "Cổng kỹ thuật viên",
 
     [K.PAGE_PROFILE]: "Hồ sơ",
     [K.PAGE_NO_PORTAL_ACCESS_TITLE]: "Cần cấp quyền truy cập cổng",
@@ -609,7 +609,7 @@ export const fallbackTranslations = {
 
     [K.STUDENT_PORTAL_TITLE]: "Cổng học viên",
     [K.TEACHER_PORTAL_TITLE]: "Cổng giảng viên",
-    [K.MAINTAINER_PORTAL_TITLE]: "Cổng bảo trì",
+    [K.MAINTAINER_PORTAL_TITLE]: "Cổng kỹ thuật viên",
 
     [K.TABLE_NO_DATA]: "Không có dữ liệu",
     [K.TABLE_DELETE_SELECTED]: "Xóa đã chọn",

@@ -209,6 +209,13 @@ export default function TrainingCalendarBoard({
             if (view !== "month") return null;
             const key = toDateKey(date);
             const parts = [];
+            const hasSchedule = scheduleItems.some((item) => lessonCountForDate(item, date) > 0);
+            if (hasSchedule) {
+              parts.push("tcb__schedule-tile");
+              if (key && key < today) {
+                parts.push("tcb__schedule-tile--past");
+              }
+            }
             if (key === today) parts.push("tcb__today-tile");
             return parts.join(" ") || null;
           }}

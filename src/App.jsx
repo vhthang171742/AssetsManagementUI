@@ -13,7 +13,7 @@ import { LanguageProvider } from "context/LanguageContext";
 import { PortalIds } from "constants/portals";
 import StudentPortal from "views/portals/StudentPortal";
 import TeacherPortal from "views/portals/TeacherPortal";
-import MaintainerPortal from "views/portals/MaintainerPortal";
+import TechnicianPortal from "views/portals/MaintainerPortal";
 import ProfilePage from "views/profile";
 import NoPortalAccessPage from "views/noPortalAccess";
 
@@ -98,7 +98,7 @@ const AppContent = () => {
         path="maintainer"
         element={
           <PortalRoute portalId={PortalIds.Maintainer}>
-            <MaintainerPortal />
+            <TechnicianPortal />
           </PortalRoute>
         }
       />

@@ -15,6 +15,7 @@ import { TranslationKeys as K } from "i18n/translationKeys";
 export default function Table({
   columns = [],
   data = [],
+  actions = [],
   pageSize = 10,
   pageSizeOptions = [10, 20, 50],
   height = "100%",
@@ -44,7 +45,26 @@ export default function Table({
     return data.slice(start, start + currentPageSize);
   }, [data, page, currentPageSize]);
 
-  const allSelectedOnPage = pageData.length > 0 && pageData.every((r) => selected.has(r[idField]));
+  const getRowId = (row) =>
+    row?.[idField] ??
+    row?.id ??
+    row?.assetID ??
+    row?.courseID ??
+    row?.classID ??
+    row?.assignmentID ??
+    row?.mappingID;
+
+  const getCellValue = (row, col) => {
+    if (typeof col.accessor === "function") {
+      return col.accessor(row);
+    }
+    if (typeof col.accessor === "string") {
+      return row?.[col.accessor];
+    }
+    return "";
+  };
+
+  const allSelectedOnPage = pageData.length > 0 && pageData.every((r) => selected.has(getRowId(r)));
 
   const toggleSelect = (id) => {
     setSelected((prev) => {
@@ -59,9 +79,9 @@ export default function Table({
     setSelected((prev) => {
       const next = new Set(prev);
       if (allSelectedOnPage) {
-        pageData.forEach((r) => next.delete(r[idField]));
+        pageData.forEach((r) => next.delete(getRowId(r)));
       } else {
-        pageData.forEach((r) => next.add(r[idField]));
+        pageData.forEach((r) => next.add(getRowId(r)));
       }
       return next;
     });
@@ -101,30 +121,60 @@ export default function Table({
                   {col.header}
                 </th>
               ))}
+              {actions.length > 0 && (
+                <th className="text-left p-3 sticky top-0 bg-white dark:bg-gray-800 dark:text-white z-10" style={{ width: "140px" }}>
+                  {t(K.TABLE_ACTIONS, "Actions")}
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
-            {pageData.map((row) => (
-              <tr key={row[idField] || row.id || Math.random()} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+            {pageData.map((row, rowIndex) => {
+              const rowId = getRowId(row) ?? `${page}-${rowIndex}`;
+              return (
+              <tr key={rowId} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                 {selectable && (
                   <td className="p-2 text-center" style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}>
                     <input
                       type="checkbox"
-                      checked={selected.has(row[idField])}
-                      onChange={() => toggleSelect(row[idField])}
+                      checked={selected.has(rowId)}
+                      onChange={() => toggleSelect(rowId)}
                     />
                   </td>
                 )}
                 {columns.map((col, cidx) => (
                   <td key={cidx} className="p-3 align-top dark:text-white">
-                    {col.render ? col.render(row) : row[col.accessor]}
+                    {col.render ? col.render(row) : getCellValue(row, col)}
                   </td>
                 ))}
+                {actions.length > 0 && (
+                  <td className="p-3 align-top dark:text-white">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {actions.map((action, aidx) => (
+                        <button
+                          key={aidx}
+                          type="button"
+                          onClick={() => action.onClick && action.onClick(row, rowId)}
+                          title={action.label}
+                          className={`inline-flex h-8 w-8 items-center justify-center rounded border transition-colors ${
+                            action.variant === "danger"
+                              ? "border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30"
+                              : action.variant === "warning"
+                                ? "border-amber-200 text-amber-600 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/30"
+                                : "border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                          }`}
+                        >
+                          {action.icon}
+                        </button>
+                      ))}
+                    </div>
+                  </td>
+                )}
               </tr>
-            ))}
+            )})}
             {pageData.length === 0 && (
               <tr>
-                <td colSpan={columns.length + (selectable ? 1 : 0)} className="p-6 text-center text-gray-500 dark:text-gray-400">
+                <td colSpan={columns.length + (selectable ? 1 : 0) + (actions.length > 0 ? 1 : 0)} className="p-6 text-center text-gray-500 dark:text-gray-400">
                   {t(K.TABLE_NO_DATA, "No data")}
                 </td>
               </tr>

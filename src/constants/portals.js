@@ -38,7 +38,7 @@ export const PortalConfigs = [
   },
   {
     id: PortalIds.Maintainer,
-    name: "Maintainer Portal",
+    name: "Technician Portal",
     translationKey: K.PORTAL_MAINTAINER_NAME,
     path: "/maintainer",
     description: "Handle maintenance schedules, repair records and spare part activities.",

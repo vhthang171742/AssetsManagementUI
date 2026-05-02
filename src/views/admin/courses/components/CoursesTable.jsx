@@ -139,12 +139,12 @@ export default function CoursesTable() {
   const actions = [
     {
       icon: <MdModeEditOutline className="h-4 w-4" />,
-      onClick: handleEdit,
+      onClick: (row) => handleEdit(row),
       label: t(K.ADMIN_TABLE_EDIT, "Edit"),
     },
     {
       icon: <MdDelete className="h-4 w-4" />,
-      onClick: handleDelete,
+      onClick: (_, rowId) => handleDelete(rowId),
       label: t(K.ADMIN_TABLE_DELETE, "Delete"),
       variant: "danger",
     },
@@ -202,6 +202,7 @@ export default function CoursesTable() {
         columns={columns}
         data={filteredCourses}
         actions={actions}
+        idField="courseID"
         loading={loading}
         onBulkDelete={handleBulkDelete}
       />

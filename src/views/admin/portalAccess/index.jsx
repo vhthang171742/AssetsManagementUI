@@ -11,7 +11,7 @@ import { TranslationKeys as K } from "i18n/translationKeys";
 const PORTAL_ROLE_MAPPINGS = [
   { id: "student", translationKey: K.PORTAL_STUDENT_NAME, label: "Student Portal", role: "Student" },
   { id: "teacher", translationKey: K.PORTAL_TEACHER_NAME, label: "Teacher Portal", role: "Instructor" },
-  { id: "maintainer", translationKey: K.PORTAL_MAINTAINER_NAME, label: "Maintainer Portal", role: "Technician" },
+  { id: "maintainer", translationKey: K.PORTAL_MAINTAINER_NAME, label: "Technician Portal", role: "Technician" },
 ];
 
 const getRoleInfo = (user, role) => {
@@ -240,7 +240,7 @@ export default function PortalAccessManagement() {
                   <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.ADMIN_TABLE_DEPARTMENT, "Department")}</th>
                   <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.PORTAL_STUDENT_NAME, "Student Portal")}</th>
                   <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.PORTAL_TEACHER_NAME, "Teacher Portal")}</th>
-                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.PORTAL_MAINTAINER_NAME, "Maintainer Portal")}</th>
+                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.PORTAL_MAINTAINER_NAME, "Technician Portal")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -312,7 +312,7 @@ export default function PortalAccessManagement() {
                         {maintainerActive ? (
                           <button
                             className="rounded bg-red-100 px-2 py-1 text-xs text-red-700 hover:bg-red-200"
-                            onClick={() => handleSingleRevoke(user, "Technician", K.PORTAL_MAINTAINER_NAME, "Maintainer Portal")}
+                            onClick={() => handleSingleRevoke(user, "Technician", K.PORTAL_MAINTAINER_NAME, "Technician Portal")}
                             disabled={submitting}
                           >
                             {t(K.PORTAL_ACCESS_REVOKE, "Revoke")}
@@ -320,7 +320,7 @@ export default function PortalAccessManagement() {
                         ) : (
                           <button
                             className="rounded bg-green-100 px-2 py-1 text-xs text-green-700 hover:bg-green-200"
-                            onClick={() => handleSingleGrant(user, "Technician", K.PORTAL_MAINTAINER_NAME, "Maintainer Portal")}
+                            onClick={() => handleSingleGrant(user, "Technician", K.PORTAL_MAINTAINER_NAME, "Technician Portal")}
                             disabled={submitting}
                           >
                             {t(K.PORTAL_ACCESS_GRANT, "Grant")}

@@ -171,18 +171,18 @@ export default function StudentEquipmentAssignmentsTable() {
   const actions = [
     {
       icon: <MdModeEditOutline className="h-4 w-4" />,
-      onClick: handleEdit,
+      onClick: (row) => handleEdit(row),
       label: t(K.ADMIN_TABLE_EDIT, "Edit"),
     },
     {
       icon: <MdLogout className="h-4 w-4" />,
-      onClick: handleUnassign,
+      onClick: (_, rowId) => handleUnassign(rowId),
       label: t(K.ADMIN_TABLE_UNASSIGN, "Unassign"),
       variant: "warning",
     },
     {
       icon: <MdDelete className="h-4 w-4" />,
-      onClick: handleDelete,
+      onClick: (_, rowId) => handleDelete(rowId),
       label: t(K.ADMIN_TABLE_DELETE, "Delete"),
       variant: "danger",
     },
@@ -251,6 +251,7 @@ export default function StudentEquipmentAssignmentsTable() {
         columns={columns}
         data={filteredAssignments}
         actions={actions}
+        idField="assignmentID"
         loading={loading}
         onBulkDelete={handleBulkDelete}
       />

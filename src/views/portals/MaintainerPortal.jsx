@@ -15,7 +15,7 @@ const STATUS_OPTIONS = [
   { code: "RETIRED", key: K.MAINTAINER_STATUS_RETIRED, fallback: "Retired" },
 ];
 
-export default function MaintainerPortal() {
+export default function TechnicianPortal() {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -33,7 +33,22 @@ export default function MaintainerPortal() {
     [issues]
   );
 
-  // Maintainer calendar: reported incidents only, no class events
+  // Technician calendar: class schedule items (full period, past & future) + reported incidents
+  const scheduleItems = useMemo(() =>
+    classes.map((cls) => ({
+      id: cls.classID,
+      name: cls.className,
+      courseName: cls.courseName || cls.className,
+      room: cls.roomName || "",
+      startDate: cls.startDate,
+      endDate: cls.endDate,
+      daysMask: cls.scheduleDaysMask || 0,
+      lessons: cls.scheduleStartTime || cls.scheduleEndTime
+        ? [{ startTime: cls.scheduleStartTime || "", endTime: cls.scheduleEndTime || "" }]
+        : [],
+    }))
+  , [classes]);
+
   const calendarEvents = useMemo(() =>
     openIssues.map((issue) => ({
       date: issue.errorTime,
@@ -107,12 +122,13 @@ export default function MaintainerPortal() {
   };
 
   return (
-    <PortalLayout title="Maintainer Portal" titleKey={K.MAINTAINER_PORTAL_TITLE}>
+    <PortalLayout title="Technician Portal" titleKey={K.MAINTAINER_PORTAL_TITLE}>
       <div className="grid grid-cols-1 gap-5">
         <Card extra="p-6">
           <TrainingCalendarBoard
             value={calendarDate}
             onChange={setCalendarDate}
+            scheduleItems={scheduleItems}
             events={calendarEvents}
             title={t("MAINTAINER_TRAINING_CALENDAR", "Training Calendar")}
             detailsTitle={t("COMMON_DAILY_DETAILS", "Daily Details")}
@@ -121,7 +137,7 @@ export default function MaintainerPortal() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-3">
         <Card extra="p-6">
           <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.MAINTAINER_OPEN_REPORTS, "Open Reports")}</p>
           <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{openIssues.length}</p>
