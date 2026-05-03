@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { maintenanceRecordService, assetService, userService } from "services/api";
 import { dropdownService } from "services/dropdownService";
@@ -12,6 +12,7 @@ import { TranslationKeys as K } from "i18n/translationKeys";
 export default function MaintenanceRecordsTable() {
   const { t } = useLanguage();
   const [records, setRecords] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [assets, setAssets] = useState([]);
   const [maintenanceTypes, setMaintenanceTypes] = useState([]);
   const [technicians, setTechnicians] = useState([]);
@@ -21,9 +22,14 @@ export default function MaintenanceRecordsTable() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [assetFilter, setAssetFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState("maintenanceDate");
+  const [sortDirection, setSortDirection] = useState("desc");
   const [formData, setFormData] = useState({
     assetID: "",
     scheduleID: null,
@@ -38,7 +44,6 @@ export default function MaintenanceRecordsTable() {
   });
 
   useEffect(() => {
-    fetchRecords();
     fetchAssets();
     fetchMaintenanceTypes();
     fetchTechnicians();
@@ -46,11 +51,36 @@ export default function MaintenanceRecordsTable() {
     fetchCompletionStatuses();
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  useEffect(() => {
+    fetchRecords();
+  }, [page, pageSize, debouncedSearch, assetFilter, typeFilter, statusFilter, sortBy, sortDirection]);
+
   const fetchRecords = async () => {
     try {
       setLoading(true);
-      const data = await maintenanceRecordService.getAll();
-      setRecords(data || []);
+      const data = await maintenanceRecordService.getPaged({
+        page,
+        pageSize,
+        search: debouncedSearch,
+        sortBy,
+        sortDirection,
+        assetID: assetFilter ? Number(assetFilter) : undefined,
+        maintenanceTypeItemID: typeFilter ? Number(typeFilter) : undefined,
+        completionStatusItemID: statusFilter ? Number(statusFilter) : undefined,
+      });
+      setRecords(data?.items || []);
+      setTotalCount(data?.totalCount || 0);
+
+      if (data?.totalPages && page > data.totalPages) {
+        setPage(data.totalPages);
+      }
     } catch (error) {
       console.error("Failed to fetch records:", error);
       toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_MAINTENANCE_RECORDS, "maintenance records")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
@@ -220,19 +250,6 @@ export default function MaintenanceRecordsTable() {
     return tech ? tech.fullName : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
   };
 
-  const filteredRecords = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    return records.filter((r) => {
-      const assetName = assets.find((a) => a.assetID === r.assetID)?.assetName || "";
-      const techName = technicians.find((t) => t.technicianID === r.technicianID)?.fullName || "";
-      const matchesSearch = !query || assetName.toLowerCase().includes(query) || r.rootCause?.toLowerCase().includes(query) || techName.toLowerCase().includes(query);
-      const matchesAsset = !assetFilter || String(r.assetID) === assetFilter;
-      const matchesType = !typeFilter || String(r.maintenanceTypeItemID) === typeFilter;
-      const matchesStatus = !statusFilter || String(r.completionStatusItemID) === statusFilter;
-      return matchesSearch && matchesAsset && matchesType && matchesStatus;
-    });
-  }, [records, assets, technicians, searchText, assetFilter, typeFilter, statusFilter]);
-
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -250,13 +267,19 @@ export default function MaintenanceRecordsTable() {
           <input
             type="text"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              setPage(1);
+            }}
             placeholder={t(K.ADMIN_TABLE_SEARCH_ASSET_TECHNICIAN_ROOT_CAUSE, "Search asset, technician, root cause")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
             value={assetFilter}
-            onChange={(e) => setAssetFilter(e.target.value)}
+            onChange={(e) => {
+              setAssetFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ROUTE_ASSETS, "Assets")}`}</option>
@@ -266,7 +289,10 @@ export default function MaintenanceRecordsTable() {
           </select>
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+            onChange={(e) => {
+              setTypeFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_TYPES, "Types")}`}</option>
@@ -276,7 +302,10 @@ export default function MaintenanceRecordsTable() {
           </select>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_COMPLETION_STATUSES, "Completion Statuses")}`}</option>
@@ -291,16 +320,29 @@ export default function MaintenanceRecordsTable() {
         <div className="text-center py-8">{t(K.ADMIN_TABLE_LOADING, "Loading...")}</div>
       ) : (
         <Table
-          data={filteredRecords}
-          pageSize={10}
+          data={records}
           onBulkDelete={handleBulkDelete}
           selectable={true}
+          idField="recordID"
+          serverPagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalCount}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          sortBy={sortBy}
+          sortDirection={sortDirection}
+          onSortChange={(key, direction) => {
+            setSortBy(key);
+            setSortDirection(direction);
+            setPage(1);
+          }}
           columns={[
-            { header: t(K.ADMIN_TABLE_ASSET, 'Asset'), accessor: 'assetID', render: (row) => getAssetName(row.assetID) },
-            { header: t(K.ADMIN_TABLE_TYPE, 'Type'), accessor: 'maintenanceTypeItemID', render: (row) => getMaintenanceTypeName(row.maintenanceTypeItemID) },
-            { header: t(K.ADMIN_TABLE_DATE, 'Date'), accessor: 'maintenanceDate', render: (row) => new Date(row.maintenanceDate).toLocaleDateString() },
-            { header: t(K.ADMIN_TABLE_TECHNICIAN, 'Technician'), accessor: 'technicianID', render: (row) => getTechnicianName(row.technicianID) },
-            { header: t(K.ADMIN_TABLE_DURATION_MIN, 'Duration (min)'), accessor: 'repairDurationMinutes' },
+            { header: t(K.ADMIN_TABLE_ASSET, 'Asset'), accessor: 'assetID', sortKey: "assetName", render: (row) => getAssetName(row.assetID) },
+            { header: t(K.ADMIN_TABLE_TYPE, 'Type'), accessor: 'maintenanceTypeItemID', sortKey: "maintenanceType", render: (row) => getMaintenanceTypeName(row.maintenanceTypeItemID) },
+            { header: t(K.ADMIN_TABLE_DATE, 'Date'), accessor: 'maintenanceDate', sortKey: "maintenanceDate", render: (row) => new Date(row.maintenanceDate).toLocaleDateString() },
+            { header: t(K.ADMIN_TABLE_TECHNICIAN, 'Technician'), accessor: 'technicianID', sortKey: "technicianName", render: (row) => getTechnicianName(row.technicianID) },
+            { header: t(K.ADMIN_TABLE_DURATION_MIN, 'Duration (min)'), accessor: 'repairDurationMinutes', sortKey: "repairDurationMinutes" },
             {
               header: t(K.ADMIN_TABLE_ACTIONS, 'Actions'),
               render: (row) => (

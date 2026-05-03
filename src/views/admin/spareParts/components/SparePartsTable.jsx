@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { sparePartService } from "services/api";
 import Table from "components/table/Table";
@@ -11,11 +11,17 @@ import { TranslationKeys as K } from "i18n/translationKeys";
 export default function SparePartsTable() {
   const { t } = useLanguage();
   const [parts, setParts] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState("partCode");
+  const [sortDirection, setSortDirection] = useState("asc");
   const [formData, setFormData] = useState({
     partName: "",
     partCode: "",
@@ -29,13 +35,32 @@ export default function SparePartsTable() {
 
   useEffect(() => {
     fetchParts();
-  }, []);
+  }, [page, pageSize, debouncedSearch, activeFilter, sortBy, sortDirection]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchText]);
 
   const fetchParts = async () => {
     try {
       setLoading(true);
-      const data = await sparePartService.getAll();
-      setParts(data || []);
+      const data = await sparePartService.getPaged({
+        page,
+        pageSize,
+        search: debouncedSearch,
+        sortBy,
+        sortDirection,
+        isActive: activeFilter === "" ? undefined : activeFilter === "true",
+      });
+      setParts(data?.items || []);
+      setTotalCount(data?.totalCount || 0);
+
+      if (data?.totalPages && page > data.totalPages) {
+        setPage(data.totalPages);
+      }
     } catch (error) {
       console.error("Failed to fetch parts:", error);
       toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_SPARE_PARTS, "spare parts")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
@@ -128,15 +153,6 @@ export default function SparePartsTable() {
     });
   };
 
-  const filteredParts = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    return parts.filter((p) => {
-      const matchesSearch = !query || p.partName?.toLowerCase().includes(query) || p.partCode?.toLowerCase().includes(query) || p.manufacturer?.toLowerCase().includes(query);
-      const matchesActive = !activeFilter || String(p.isActive) === activeFilter;
-      return matchesSearch && matchesActive;
-    });
-  }, [parts, searchText, activeFilter]);
-
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -154,13 +170,19 @@ export default function SparePartsTable() {
           <input
             type="text"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              setPage(1);
+            }}
             placeholder={t(K.ADMIN_TABLE_SEARCH_CODE_NAME_MANUFACTURER, "Search code, name, manufacturer")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
             value={activeFilter}
-            onChange={(e) => setActiveFilter(e.target.value)}
+            onChange={(e) => {
+              setActiveFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
@@ -174,17 +196,31 @@ export default function SparePartsTable() {
         <div className="text-center py-8">{t(K.ADMIN_TABLE_LOADING, "Loading...")}</div>
       ) : (
         <Table
-          data={filteredParts}
-          pageSize={10}
+          data={parts}
           onBulkDelete={handleBulkDelete}
           selectable={true}
+          idField="partID"
+          serverPagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalCount}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          sortBy={sortBy}
+          sortDirection={sortDirection}
+          onSortChange={(key, direction) => {
+            setSortBy(key);
+            setSortDirection(direction);
+            setPage(1);
+          }}
           columns={[
-            { header: t(K.ADMIN_TABLE_PART_CODE, 'Part Code'), accessor: 'partCode' },
-            { header: t(K.ADMIN_TABLE_PART_NAME, 'Part Name'), accessor: 'partName' },
-            { header: t(K.ADMIN_TABLE_MANUFACTURER, 'Manufacturer'), accessor: 'manufacturer', render: (row) => row.manufacturer || t(K.ADMIN_TABLE_NA, 'N/A') },
+            { header: t(K.ADMIN_TABLE_PART_CODE, 'Part Code'), accessor: 'partCode', sortKey: "partCode" },
+            { header: t(K.ADMIN_TABLE_PART_NAME, 'Part Name'), accessor: 'partName', sortKey: "partName" },
+            { header: t(K.ADMIN_TABLE_MANUFACTURER, 'Manufacturer'), accessor: 'manufacturer', sortKey: "manufacturer", render: (row) => row.manufacturer || t(K.ADMIN_TABLE_NA, 'N/A') },
             { 
               header: t(K.ADMIN_TABLE_STOCK, 'Stock'), 
               accessor: 'stockQuantity',
+              sortKey: "stockQuantity",
               render: (row) => (
                 <span className={row.needsReorder ? 'text-red-600 font-bold flex items-center gap-1' : ''}>
                   {row.needsReorder && <MdWarning className="h-4 w-4" />}
@@ -192,9 +228,9 @@ export default function SparePartsTable() {
                 </span>
               )
             },
-            { header: t(K.ADMIN_TABLE_REORDER_LEVEL, 'Reorder Level'), accessor: 'reorderLevel' },
-            { header: t(K.ADMIN_TABLE_UNIT_PRICE, 'Unit Price'), accessor: 'unitPrice', render: (row) => row.unitPrice != null ? `$${parseFloat(row.unitPrice).toFixed(2)}` : t(K.ADMIN_TABLE_NA, 'N/A') },
-            { header: t(K.ADMIN_TABLE_ACTIVE, 'Active'), accessor: 'isActive', render: (row) => row.isActive ? '✓' : '✗' },
+            { header: t(K.ADMIN_TABLE_REORDER_LEVEL, 'Reorder Level'), accessor: 'reorderLevel', sortKey: "reorderLevel" },
+            { header: t(K.ADMIN_TABLE_UNIT_PRICE, 'Unit Price'), accessor: 'unitPrice', sortKey: "unitPrice", render: (row) => row.unitPrice != null ? `$${parseFloat(row.unitPrice).toFixed(2)}` : t(K.ADMIN_TABLE_NA, 'N/A') },
+            { header: t(K.ADMIN_TABLE_ACTIVE, 'Active'), accessor: 'isActive', sortKey: "isActive", render: (row) => row.isActive ? '✓' : '✗' },
             {
               header: t(K.ADMIN_TABLE_ACTIONS, 'Actions'),
               render: (row) => (

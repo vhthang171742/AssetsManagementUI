@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { maintenanceScheduleService, assetService } from "services/api";
 import { dropdownService } from "services/dropdownService";
@@ -12,15 +12,21 @@ import { TranslationKeys as K } from "i18n/translationKeys";
 export default function MaintenanceSchedulesTable() {
   const { t } = useLanguage();
   const [schedules, setSchedules] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [assets, setAssets] = useState([]);
   const [maintenanceTypes, setMaintenanceTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [assetFilter, setAssetFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [activeFilter, setActiveFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState("scheduleID");
+  const [sortDirection, setSortDirection] = useState("desc");
   const [formData, setFormData] = useState({
     assetID: "",
     maintenanceTypeItemID: "",
@@ -32,16 +38,40 @@ export default function MaintenanceSchedulesTable() {
   });
 
   useEffect(() => {
-    fetchSchedules();
     fetchAssets();
     fetchMaintenanceTypes();
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  useEffect(() => {
+    fetchSchedules();
+  }, [page, pageSize, debouncedSearch, assetFilter, typeFilter, activeFilter, sortBy, sortDirection]);
+
   const fetchSchedules = async () => {
     try {
       setLoading(true);
-      const data = await maintenanceScheduleService.getAll();
-      setSchedules(data || []);
+      const data = await maintenanceScheduleService.getPaged({
+        page,
+        pageSize,
+        search: debouncedSearch,
+        sortBy,
+        sortDirection,
+        assetID: assetFilter ? Number(assetFilter) : undefined,
+        maintenanceTypeItemID: typeFilter ? Number(typeFilter) : undefined,
+        isActive: activeFilter === "" ? undefined : activeFilter === "true",
+      });
+      setSchedules(data?.items || []);
+      setTotalCount(data?.totalCount || 0);
+
+      if (data?.totalPages && page > data.totalPages) {
+        setPage(data.totalPages);
+      }
     } catch (error) {
       console.error("Failed to fetch schedules:", error);
       toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_MAINTENANCE_SCHEDULES, "maintenance schedules")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
@@ -158,18 +188,6 @@ export default function MaintenanceSchedulesTable() {
     return type ? type.label : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
   };
 
-  const filteredSchedules = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    return schedules.filter((s) => {
-      const assetName = assets.find((a) => a.assetID === s.assetID)?.assetName || "";
-      const matchesSearch = !query || assetName.toLowerCase().includes(query) || s.description?.toLowerCase().includes(query);
-      const matchesAsset = !assetFilter || String(s.assetID) === assetFilter;
-      const matchesType = !typeFilter || String(s.maintenanceTypeItemID) === typeFilter;
-      const matchesActive = !activeFilter || String(s.isActive) === activeFilter;
-      return matchesSearch && matchesAsset && matchesType && matchesActive;
-    });
-  }, [schedules, assets, searchText, assetFilter, typeFilter, activeFilter]);
-
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -187,13 +205,19 @@ export default function MaintenanceSchedulesTable() {
           <input
             type="text"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              setPage(1);
+            }}
             placeholder={t(K.ADMIN_TABLE_SEARCH_ASSET_DESCRIPTION, "Search asset, description")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
             value={assetFilter}
-            onChange={(e) => setAssetFilter(e.target.value)}
+            onChange={(e) => {
+              setAssetFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ROUTE_ASSETS, "Assets")}`}</option>
@@ -203,7 +227,10 @@ export default function MaintenanceSchedulesTable() {
           </select>
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+            onChange={(e) => {
+              setTypeFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_TYPES, "Types")}`}</option>
@@ -213,7 +240,10 @@ export default function MaintenanceSchedulesTable() {
           </select>
           <select
             value={activeFilter}
-            onChange={(e) => setActiveFilter(e.target.value)}
+            onChange={(e) => {
+              setActiveFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
@@ -227,17 +257,30 @@ export default function MaintenanceSchedulesTable() {
         <div className="text-center py-8">{t(K.ADMIN_TABLE_LOADING, "Loading...")}</div>
       ) : (
         <Table
-          data={filteredSchedules}
-          pageSize={10}
+          data={schedules}
           onBulkDelete={handleBulkDelete}
           selectable={true}
+          idField="scheduleID"
+          serverPagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalCount}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          sortBy={sortBy}
+          sortDirection={sortDirection}
+          onSortChange={(key, direction) => {
+            setSortBy(key);
+            setSortDirection(direction);
+            setPage(1);
+          }}
           columns={[
-            { header: t(K.ADMIN_TABLE_ASSET, 'Asset'), accessor: 'assetID', render: (row) => getAssetName(row.assetID) },
-            { header: t(K.ADMIN_TABLE_TYPE, 'Type'), accessor: 'maintenanceTypeItemID', render: (row) => getMaintenanceTypeName(row.maintenanceTypeItemID) },
-            { header: t(K.ADMIN_TABLE_FREQUENCY, 'Frequency'), accessor: 'frequency', render: (row) => t(K.ADMIN_TABLE_FREQUENCY_DAYS_HOURS, `${row.frequency} days/hours`).replace("{value}", row.frequency) },
-            { header: t(K.ADMIN_TABLE_LAST_MAINTENANCE, 'Last Maintenance'), accessor: 'lastMaintenanceDate', render: (row) => row.lastMaintenanceDate ? new Date(row.lastMaintenanceDate).toLocaleDateString() : t(K.ADMIN_TABLE_NA, 'N/A') },
-            { header: t(K.ADMIN_TABLE_NEXT_DUE, 'Next Due'), accessor: 'nextDueDate', render: (row) => row.nextDueDate ? new Date(row.nextDueDate).toLocaleDateString() : t(K.ADMIN_TABLE_NA, 'N/A') },
-            { header: t(K.ADMIN_TABLE_ACTIVE, 'Active'), accessor: 'isActive', render: (row) => row.isActive ? '✓' : '✗' },
+            { header: t(K.ADMIN_TABLE_ASSET, 'Asset'), accessor: 'assetID', sortKey: "assetName", render: (row) => getAssetName(row.assetID) },
+            { header: t(K.ADMIN_TABLE_TYPE, 'Type'), accessor: 'maintenanceTypeItemID', sortKey: "maintenanceType", render: (row) => getMaintenanceTypeName(row.maintenanceTypeItemID) },
+            { header: t(K.ADMIN_TABLE_FREQUENCY, 'Frequency'), accessor: 'frequency', sortKey: "frequency", render: (row) => t(K.ADMIN_TABLE_FREQUENCY_DAYS_HOURS, `${row.frequency} days/hours`).replace("{value}", row.frequency) },
+            { header: t(K.ADMIN_TABLE_LAST_MAINTENANCE, 'Last Maintenance'), accessor: 'lastMaintenanceDate', sortKey: "lastMaintenanceDate", render: (row) => row.lastMaintenanceDate ? new Date(row.lastMaintenanceDate).toLocaleDateString() : t(K.ADMIN_TABLE_NA, 'N/A') },
+            { header: t(K.ADMIN_TABLE_NEXT_DUE, 'Next Due'), accessor: 'nextDueDate', sortKey: "nextDueDate", render: (row) => row.nextDueDate ? new Date(row.nextDueDate).toLocaleDateString() : t(K.ADMIN_TABLE_NA, 'N/A') },
+            { header: t(K.ADMIN_TABLE_ACTIVE, 'Active'), accessor: 'isActive', sortKey: "isActive", render: (row) => row.isActive ? '✓' : '✗' },
             {
               header: t(K.ADMIN_TABLE_ACTIONS, 'Actions'),
               render: (row) => (

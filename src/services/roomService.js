@@ -11,6 +11,19 @@ export const roomService = {
    */
   getAll: () => httpClient("/rooms"),
 
+  getPaged: (query = {}) => {
+    const params = new URLSearchParams();
+    if (query.page != null) params.set("page", String(query.page));
+    if (query.pageSize != null) params.set("pageSize", String(query.pageSize));
+    if (query.search) params.set("search", query.search);
+    if (query.sortBy) params.set("sortBy", query.sortBy);
+    if (query.sortDirection) params.set("sortDirection", query.sortDirection);
+    if (query.departmentID != null && query.departmentID !== "") params.set("departmentID", String(query.departmentID));
+
+    const queryString = params.toString();
+    return httpClient(`/rooms/paged${queryString ? `?${queryString}` : ""}`);
+  },
+
   /**
    * Get a specific room by ID
    * @param {number} id - Room ID

@@ -13,6 +13,7 @@ import { TranslationKeys as K } from "i18n/translationKeys";
 export default function AssetsTable() {
   const { t } = useLanguage();
   const [assets, setAssets] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [categories, setCategories] = useState([]);
   const [units, setUnits] = useState([]);
   const [statuses, setStatuses] = useState([]);
@@ -20,8 +21,13 @@ export default function AssetsTable() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState("assetCode");
+  const [sortDirection, setSortDirection] = useState("asc");
   const [formData, setFormData] = useState({
     assetCode: "",
     assetName: "",
@@ -39,17 +45,40 @@ export default function AssetsTable() {
   });
 
   useEffect(() => {
-    fetchAssets();
     fetchCategories();
     fetchUnits();
     fetchStatuses();
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  useEffect(() => {
+    fetchAssets();
+  }, [page, pageSize, debouncedSearch, categoryFilter, statusFilter, sortBy, sortDirection]);
+
   const fetchAssets = async () => {
     try {
       setLoading(true);
-      const data = await assetService.getAll();
-      setAssets(data || []);
+      const data = await assetService.getPaged({
+        page,
+        pageSize,
+        search: debouncedSearch,
+        sortBy,
+        sortDirection,
+        categoryID: categoryFilter ? Number(categoryFilter) : undefined,
+        status: statusFilter || undefined,
+      });
+      setAssets(data?.items || []);
+      setTotalCount(data?.totalCount || 0);
+
+      if (data?.totalPages && page > data.totalPages) {
+        setPage(data.totalPages);
+      }
     } catch (error) {
       console.error("Failed to fetch assets:", error);
       toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_ASSETS, "assets")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
@@ -176,24 +205,6 @@ export default function AssetsTable() {
     return countries;
   }, [formData.countryOfOrigin]);
 
-  const filteredAssets = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-
-    return assets.filter((asset) => {
-      const matchesSearch =
-        !query ||
-        asset.assetCode?.toLowerCase().includes(query) ||
-        asset.assetName?.toLowerCase().includes(query) ||
-        asset.brand?.toLowerCase().includes(query) ||
-        asset.model?.toLowerCase().includes(query);
-
-      const matchesStatus = !statusFilter || asset.status === statusFilter;
-      const matchesCategory = !categoryFilter || String(asset.categoryID) === categoryFilter;
-
-      return matchesSearch && matchesStatus && matchesCategory;
-    });
-  }, [assets, categoryFilter, searchText, statusFilter]);
-
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -226,13 +237,19 @@ export default function AssetsTable() {
           <input
             type="text"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              setPage(1);
+            }}
             placeholder={t(K.ADMIN_TABLE_SEARCH_CODE_NAME_BRAND_MODEL, "Search code, name, brand, model")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
+            onChange={(e) => {
+              setCategoryFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ROUTE_CATEGORIES, "Categories")}`}</option>
@@ -244,7 +261,10 @@ export default function AssetsTable() {
           </select>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
@@ -261,18 +281,31 @@ export default function AssetsTable() {
         <div className="text-center py-8">{t(K.ADMIN_TABLE_LOADING, "Loading...")}</div>
       ) : (
         <Table
-          data={filteredAssets}
-          pageSize={10}
+          data={assets}
           onBulkDelete={handleBulkDelete}
           selectable={true}
+          idField="assetID"
+          serverPagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalCount}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          sortBy={sortBy}
+          sortDirection={sortDirection}
+          onSortChange={(key, direction) => {
+            setSortBy(key);
+            setSortDirection(direction);
+            setPage(1);
+          }}
           columns={[
-            { header: t(K.ADMIN_TABLE_CODE, 'Code'), accessor: 'assetCode' },
-            { header: t(K.ADMIN_TABLE_NAME, 'Name'), accessor: 'assetName' },
-            { header: t(K.ADMIN_TABLE_CATEGORY, 'Category'), accessor: 'categoryID', render: (row) => getCategoryName(row.categoryID) },
-            { header: t(K.ADMIN_TABLE_STATUS, 'Status'), accessor: 'status', render: (row) => row.status || t(K.ADMIN_TABLE_NA, 'N/A') },
-            { header: t(K.ADMIN_TABLE_BRAND, 'Brand'), accessor: 'brand' },
-            { header: t(K.ADMIN_TABLE_QUANTITY, 'Quantity'), accessor: 'quantity' },
-            { header: t(K.ADMIN_TABLE_UNIT_PRICE, 'Unit Price'), accessor: 'unitPrice', render: (row) => (row.unitPrice != null ? `$${parseFloat(row.unitPrice).toFixed(2)}` : '') },
+            { header: t(K.ADMIN_TABLE_CODE, 'Code'), accessor: 'assetCode', sortKey: "assetCode" },
+            { header: t(K.ADMIN_TABLE_NAME, 'Name'), accessor: 'assetName', sortKey: "assetName" },
+            { header: t(K.ADMIN_TABLE_CATEGORY, 'Category'), accessor: 'categoryID', sortKey: "categoryName", render: (row) => getCategoryName(row.categoryID) },
+            { header: t(K.ADMIN_TABLE_STATUS, 'Status'), accessor: 'status', sortKey: "status", render: (row) => row.status || t(K.ADMIN_TABLE_NA, 'N/A') },
+            { header: t(K.ADMIN_TABLE_BRAND, 'Brand'), accessor: 'brand', sortKey: "brand" },
+            { header: t(K.ADMIN_TABLE_QUANTITY, 'Quantity'), accessor: 'quantity', sortKey: "quantity" },
+            { header: t(K.ADMIN_TABLE_UNIT_PRICE, 'Unit Price'), accessor: 'unitPrice', sortKey: "unitPrice", render: (row) => (row.unitPrice != null ? `$${parseFloat(row.unitPrice).toFixed(2)}` : '') },
             {
               header: t(K.ADMIN_TABLE_ACTIONS, 'Actions'),
               render: (row) => (

@@ -27,6 +27,7 @@ export default function ClassesTable() {
   });
 
   const [classes, setClasses] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [courses, setCourses] = useState([]);
   const [instructors, setInstructors] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -34,16 +35,31 @@ export default function ClassesTable() {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [courseFilter, setCourseFilter] = useState("");
   const [activeFilter, setActiveFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState("className");
+  const [sortDirection, setSortDirection] = useState("asc");
   const [formData, setFormData] = useState(createDefaultFormData());
 
   useEffect(() => {
-    fetchClasses();
     fetchCourses();
     fetchInstructors();
     fetchRooms();
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  useEffect(() => {
+    fetchClasses();
+  }, [page, pageSize, debouncedSearch, courseFilter, activeFilter, sortBy, sortDirection]);
 
   const scheduleDays = [
     { bit: 1 << 1, label: t(K.ADMIN_TABLE_MON, "Mon") },
@@ -195,8 +211,21 @@ export default function ClassesTable() {
   const fetchClasses = async () => {
     try {
       setLoading(true);
-      const data = await classService.getAll();
-      setClasses(data || []);
+      const data = await classService.getPaged({
+        page,
+        pageSize,
+        search: debouncedSearch,
+        sortBy,
+        sortDirection,
+        courseID: courseFilter ? Number(courseFilter) : undefined,
+        isActive: activeFilter === "" ? undefined : activeFilter === "true",
+      });
+      setClasses(data?.items || []);
+      setTotalCount(data?.totalCount || 0);
+
+      if (data?.totalPages && page > data.totalPages) {
+        setPage(data.totalPages);
+      }
     } catch (error) {
       console.error("Failed to fetch classes:", error);
       toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_CLASSES, "classes")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
@@ -447,15 +476,18 @@ export default function ClassesTable() {
     {
       header: t(K.ADMIN_TABLE_CLASS_NAME, "Class Name"),
       accessor: "className",
+      sortKey: "className",
     },
     {
       header: t(K.ADMIN_TABLE_CLASS_CODE, "Class Code"),
       accessor: "classCode",
+      sortKey: "classCode",
     },
     {
       header: t(K.ADMIN_TABLE_COURSE, "Course"),
       accessor: (row) =>
         courses.find((c) => c.courseID === row.courseID)?.courseName || t(K.ADMIN_TABLE_NA, "N/A"),
+      sortKey: "courseName",
     },
     {
       header: t(K.ADMIN_TABLE_INSTRUCTOR, "Instructor"),
@@ -467,19 +499,23 @@ export default function ClassesTable() {
         const instructor = instructors.find((item) => item.id === row.instructorID);
         return instructor?.name || t(K.ADMIN_TABLE_NA, "N/A");
       },
+      sortKey: "instructorName",
     },
     {
       header: t(K.ADMIN_TABLE_ROOM, "Room"),
       accessor: (row) => row.roomName || t(K.ADMIN_TABLE_NA, "N/A"),
+      sortKey: "roomName",
     },
     {
       header: t(K.ADMIN_TABLE_START_DATE, "Start Date"),
       accessor: (row) =>
         row.startDate ? new Date(row.startDate).toLocaleDateString() : t(K.ADMIN_TABLE_NA, "N/A"),
+      sortKey: "startDate",
     },
     {
       header: t(K.ADMIN_TABLE_STATUS, "Status"),
       accessor: (row) => (row.isActive ? t(K.ADMIN_TABLE_ACTIVE, "Active") : t(K.ADMIN_TABLE_INACTIVE, "Inactive")),
+      sortKey: "isActive",
     },
   ];
 
@@ -496,16 +532,6 @@ export default function ClassesTable() {
       variant: "danger",
     },
   ];
-
-  const filteredClasses = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    return classes.filter((c) => {
-      const matchesSearch = !query || c.className?.toLowerCase().includes(query) || c.classCode?.toLowerCase().includes(query);
-      const matchesCourse = !courseFilter || String(c.courseID) === courseFilter;
-      const matchesActive = !activeFilter || String(c.isActive) === activeFilter;
-      return matchesSearch && matchesCourse && matchesActive;
-    });
-  }, [classes, searchText, courseFilter, activeFilter]);
 
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
@@ -524,13 +550,19 @@ export default function ClassesTable() {
           <input
             type="text"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              setPage(1);
+            }}
             placeholder={t(K.ADMIN_TABLE_SEARCH_NAME_CODE, "Search name, code")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
             value={courseFilter}
-            onChange={(e) => setCourseFilter(e.target.value)}
+            onChange={(e) => {
+              setCourseFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_COURSES, "Courses")}`}</option>
@@ -540,7 +572,10 @@ export default function ClassesTable() {
           </select>
           <select
             value={activeFilter}
-            onChange={(e) => setActiveFilter(e.target.value)}
+            onChange={(e) => {
+              setActiveFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
@@ -552,11 +587,23 @@ export default function ClassesTable() {
 
       <Table
         columns={columns}
-        data={filteredClasses}
+        data={classes}
         actions={actions}
         idField="classID"
-        loading={loading}
         onBulkDelete={handleBulkDelete}
+        serverPagination
+        page={page}
+        pageSize={pageSize}
+        totalItems={totalCount}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        sortBy={sortBy}
+        sortDirection={sortDirection}
+        onSortChange={(key, direction) => {
+          setSortBy(key);
+          setSortDirection(direction);
+          setPage(1);
+        }}
       />
 
       <Modal

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { handoverService, roomService, assetService } from "services/api";
 import Card from "components/card";
@@ -11,6 +11,7 @@ import { TranslationKeys as K } from "i18n/translationKeys";
 export default function HandoversTable() {
   const { t } = useLanguage();
   const [handovers, setHandovers] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [rooms, setRooms] = useState([]);
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -20,7 +21,12 @@ export default function HandoversTable() {
   const [selectedHandoverId, setSelectedHandoverId] = useState(null);
   const [handoverDetails, setHandoverDetails] = useState([]);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [roomFilter, setRoomFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState("handoverDate");
+  const [sortDirection, setSortDirection] = useState("desc");
   const [formData, setFormData] = useState({
     roomID: "",
     handoverDate: "",
@@ -36,16 +42,38 @@ export default function HandoversTable() {
   });
 
   useEffect(() => {
-    fetchHandovers();
     fetchRooms();
     fetchAssets();
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  useEffect(() => {
+    fetchHandovers();
+  }, [page, pageSize, debouncedSearch, roomFilter, sortBy, sortDirection]);
+
   const fetchHandovers = async () => {
     try {
       setLoading(true);
-      const data = await handoverService.getAll();
-      setHandovers(data || []);
+      const data = await handoverService.getPaged({
+        page,
+        pageSize,
+        search: debouncedSearch,
+        sortBy,
+        sortDirection,
+        roomID: roomFilter ? Number(roomFilter) : undefined,
+      });
+      setHandovers(data?.items || []);
+      setTotalCount(data?.totalCount || 0);
+
+      if (data?.totalPages && page > data.totalPages) {
+        setPage(data.totalPages);
+      }
     } catch (error) {
       console.error("Failed to fetch handovers:", error);
       toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_HANDOVERS, "handovers")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
@@ -217,15 +245,6 @@ export default function HandoversTable() {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const filteredHandovers = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    return handovers.filter((h) => {
-      const matchesSearch = !query || h.deliveredBy?.toLowerCase().includes(query) || h.receivedBy?.toLowerCase().includes(query) || h.notes?.toLowerCase().includes(query);
-      const matchesRoom = !roomFilter || String(h.roomID) === roomFilter;
-      return matchesSearch && matchesRoom;
-    });
-  }, [handovers, searchText, roomFilter]);
-
   return (
     <>
       <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
@@ -250,13 +269,19 @@ export default function HandoversTable() {
             <input
               type="text"
               value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+              onChange={(e) => {
+                setSearchText(e.target.value);
+                setPage(1);
+              }}
               placeholder={t(K.ADMIN_TABLE_SEARCH_DELIVERED_RECEIVED_BY, "Search delivered by, received by")}
               className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             />
             <select
               value={roomFilter}
-              onChange={(e) => setRoomFilter(e.target.value)}
+              onChange={(e) => {
+                setRoomFilter(e.target.value);
+                setPage(1);
+              }}
               className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             >
               <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ROUTE_ROOMS, "Rooms")}`}</option>
@@ -271,16 +296,28 @@ export default function HandoversTable() {
           <div className="text-center py-8">{t(K.ADMIN_TABLE_LOADING, "Loading...")}</div>
         ) : (
           <Table
-            data={filteredHandovers}
-            pageSize={10}
+            data={handovers}
             onBulkDelete={handleBulkDelete}
             selectable={true}
             idField="handoverID"
+            serverPagination
+            page={page}
+            pageSize={pageSize}
+            totalItems={totalCount}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            sortBy={sortBy}
+            sortDirection={sortDirection}
+            onSortChange={(key, direction) => {
+              setSortBy(key);
+              setSortDirection(direction);
+              setPage(1);
+            }}
             columns={[
-              { header: t(K.ADMIN_TABLE_ROOM, 'Room'), accessor: 'roomID', render: (row) => getRoomName(row.roomID) },
-              { header: t(K.ADMIN_TABLE_HANDOVER_DATE, 'Handover Date'), accessor: 'handoverDate', render: (row) => formatDate(row.handoverDate) },
-              { header: t(K.ADMIN_TABLE_DELIVERED_BY, 'Delivered By'), accessor: 'deliveredBy' },
-              { header: t(K.ADMIN_TABLE_RECEIVED_BY, 'Received By'), accessor: 'receivedBy' },
+              { header: t(K.ADMIN_TABLE_ROOM, 'Room'), accessor: 'roomID', sortKey: "roomName", render: (row) => getRoomName(row.roomID) },
+              { header: t(K.ADMIN_TABLE_HANDOVER_DATE, 'Handover Date'), accessor: 'handoverDate', sortKey: "handoverDate", render: (row) => formatDate(row.handoverDate) },
+              { header: t(K.ADMIN_TABLE_DELIVERED_BY, 'Delivered By'), accessor: 'deliveredBy', sortKey: "deliveredBy" },
+              { header: t(K.ADMIN_TABLE_RECEIVED_BY, 'Received By'), accessor: 'receivedBy', sortKey: "receivedBy" },
               {
                 header: t(K.ADMIN_TABLE_ACTIONS, 'Actions'),
                 render: (row) => (

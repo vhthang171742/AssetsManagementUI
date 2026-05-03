@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { roomService, departmentService, assetService } from "services/api";
 import { dropdownService } from "services/dropdownService";
@@ -13,6 +13,7 @@ import { TranslationKeys as K } from "i18n/translationKeys";
 export default function RoomsTable() {
   const { t } = useLanguage();
   const [rooms, setRooms] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -25,7 +26,12 @@ export default function RoomsTable() {
   const [allAssets, setAllAssets] = useState([]);
   const [conditions, setConditions] = useState([]);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState("roomName");
+  const [sortDirection, setSortDirection] = useState("asc");
   const [formData, setFormData] = useState({
     departmentID: "",
     roomName: "",
@@ -39,17 +45,39 @@ export default function RoomsTable() {
   });
 
   useEffect(() => {
-    fetchRooms();
     fetchDepartments();
     fetchAssets();
     fetchConditions();
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  useEffect(() => {
+    fetchRooms();
+  }, [page, pageSize, debouncedSearch, departmentFilter, sortBy, sortDirection]);
+
   const fetchRooms = async () => {
     try {
       setLoading(true);
-      const data = await roomService.getAll();
-      setRooms(data || []);
+      const data = await roomService.getPaged({
+        page,
+        pageSize,
+        search: debouncedSearch,
+        sortBy,
+        sortDirection,
+        departmentID: departmentFilter ? Number(departmentFilter) : undefined,
+      });
+      setRooms(data?.items || []);
+      setTotalCount(data?.totalCount || 0);
+
+      if (data?.totalPages && page > data.totalPages) {
+        setPage(data.totalPages);
+      }
     } catch (error) {
       console.error("Failed to fetch rooms:", error);
       toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_ROOMS, "rooms")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
@@ -228,15 +256,6 @@ export default function RoomsTable() {
     return asset ? asset.assetName : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
   };
 
-  const filteredRooms = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    return rooms.filter((r) => {
-      const matchesSearch = !query || r.roomName?.toLowerCase().includes(query) || r.description?.toLowerCase().includes(query);
-      const matchesDept = !departmentFilter || String(r.departmentID) === departmentFilter;
-      return matchesSearch && matchesDept;
-    });
-  }, [rooms, searchText, departmentFilter]);
-
   return (
     <>
       <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
@@ -260,13 +279,19 @@ export default function RoomsTable() {
               <input
                 type="text"
                 value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
+                onChange={(e) => {
+                  setSearchText(e.target.value);
+                  setPage(1);
+                }}
                 placeholder={t(K.ADMIN_TABLE_SEARCH_NAME_DESCRIPTION, "Search name, description")}
                 className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
               <select
                 value={departmentFilter}
-                onChange={(e) => setDepartmentFilter(e.target.value)}
+                onChange={(e) => {
+                  setDepartmentFilter(e.target.value);
+                  setPage(1);
+                }}
                 className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               >
                 <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ROUTE_DEPARTMENTS, "Departments")}`}</option>
@@ -282,16 +307,28 @@ export default function RoomsTable() {
           ) : (
             <div className="flex-1 min-h-0">
               <Table
-                data={filteredRooms}
-                pageSize={10}
+                data={rooms}
                 height={"100%"}
                 onBulkDelete={handleBulkDelete}
                 selectable={true}
                 idField="roomID"
+                serverPagination
+                page={page}
+                pageSize={pageSize}
+                totalItems={totalCount}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+                sortBy={sortBy}
+                sortDirection={sortDirection}
+                onSortChange={(key, direction) => {
+                  setSortBy(key);
+                  setSortDirection(direction);
+                  setPage(1);
+                }}
                 columns={[
-                  { header: t(K.ADMIN_TABLE_ROOM_NAME, "Room Name"), accessor: "roomName" },
-                  { header: t(K.ADMIN_TABLE_DEPARTMENT, "Department"), accessor: "departmentID", render: (row) => getDepartmentName(row.departmentID) },
-                  { header: t(K.ADMIN_TABLE_DESCRIPTION, "Description"), accessor: "description" },
+                  { header: t(K.ADMIN_TABLE_ROOM_NAME, "Room Name"), accessor: "roomName", sortKey: "roomName" },
+                  { header: t(K.ADMIN_TABLE_DEPARTMENT, "Department"), accessor: "departmentID", sortKey: "departmentName", render: (row) => getDepartmentName(row.departmentID) },
+                  { header: t(K.ADMIN_TABLE_DESCRIPTION, "Description"), accessor: "description", sortKey: "description" },
                   {
                     header: t(K.ADMIN_TABLE_ACTIONS, "Actions"),
                     render: (row) => (

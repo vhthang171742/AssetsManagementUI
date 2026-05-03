@@ -12,6 +12,24 @@ export const assetCourseMappingService = {
   getAll: () => httpClient("/asset-course-mappings"),
 
   /**
+   * Get paged mappings with server-side search/sort/filter
+   * @param {object} query - { page, pageSize, search, sortBy, sortDirection, courseID, isRequired }
+   */
+  getPaged: (query = {}) => {
+    const params = new URLSearchParams();
+    if (query.page != null) params.set("page", String(query.page));
+    if (query.pageSize != null) params.set("pageSize", String(query.pageSize));
+    if (query.search) params.set("search", query.search);
+    if (query.sortBy) params.set("sortBy", query.sortBy);
+    if (query.sortDirection) params.set("sortDirection", query.sortDirection);
+    if (query.courseID != null && query.courseID !== "") params.set("courseID", String(query.courseID));
+    if (query.isRequired != null && query.isRequired !== "") params.set("isRequired", String(query.isRequired));
+
+    const queryString = params.toString();
+    return httpClient(`/asset-course-mappings/paged${queryString ? `?${queryString}` : ""}`);
+  },
+
+  /**
    * Get a specific mapping by ID
    * @param {number} id - Mapping ID
    * @returns {Promise<object>} Mapping details

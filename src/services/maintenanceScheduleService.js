@@ -11,6 +11,21 @@ export const maintenanceScheduleService = {
    */
   getAll: () => httpClient("/maintenance-schedules"),
 
+  getPaged: (query = {}) => {
+    const params = new URLSearchParams();
+    if (query.page != null) params.set("page", String(query.page));
+    if (query.pageSize != null) params.set("pageSize", String(query.pageSize));
+    if (query.search) params.set("search", query.search);
+    if (query.sortBy) params.set("sortBy", query.sortBy);
+    if (query.sortDirection) params.set("sortDirection", query.sortDirection);
+    if (query.assetID != null && query.assetID !== "") params.set("assetID", String(query.assetID));
+    if (query.maintenanceTypeItemID != null && query.maintenanceTypeItemID !== "") params.set("maintenanceTypeItemID", String(query.maintenanceTypeItemID));
+    if (query.isActive != null && query.isActive !== "") params.set("isActive", String(query.isActive));
+
+    const queryString = params.toString();
+    return httpClient(`/maintenance-schedules/paged${queryString ? `?${queryString}` : ""}`);
+  },
+
   /**
    * Get a specific maintenance schedule by ID
    * @param {number} id - Schedule ID

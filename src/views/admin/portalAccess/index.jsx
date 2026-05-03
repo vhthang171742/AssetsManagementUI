@@ -43,6 +43,18 @@ export default function PortalAccessManagement() {
 
   const selectedCount = selectedUsers.size;
   const allSelected = users.length > 0 && users.every((user) => selectedUsers.has(user.userID));
+  const selectedUserList = useMemo(
+    () => users.filter((user) => selectedUsers.has(user.userID)),
+    [users, selectedUsers]
+  );
+  const eligibleGrantCount = useMemo(
+    () => selectedUserList.filter((user) => !hasActiveRole(user, selectedPortal.role)).length,
+    [selectedUserList, selectedPortal.role]
+  );
+  const eligibleRevokeCount = useMemo(
+    () => selectedUserList.filter((user) => hasActiveRole(user, selectedPortal.role)).length,
+    [selectedUserList, selectedPortal.role]
+  );
 
   useEffect(() => {
     fetchUsers();
@@ -204,17 +216,17 @@ export default function PortalAccessManagement() {
 
             <button
               onClick={() => processBulk("grant")}
-              disabled={loading || submitting || selectedCount === 0}
+              disabled={loading || submitting || selectedCount === 0 || eligibleGrantCount === 0}
               className="rounded bg-brand-500 px-4 py-2 text-sm text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {t(K.PORTAL_ACCESS_GRANT_SELECTED, "Grant Selected ({count})").replace("{count}", selectedCount)}
+              {t(K.PORTAL_ACCESS_GRANT_SELECTED, "Grant Selected ({count})").replace("{count}", eligibleGrantCount)}
             </button>
             <button
               onClick={() => processBulk("revoke")}
-              disabled={loading || submitting || selectedCount === 0}
+              disabled={loading || submitting || selectedCount === 0 || eligibleRevokeCount === 0}
               className="rounded bg-red-500 px-4 py-2 text-sm text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {t(K.PORTAL_ACCESS_REVOKE_SELECTED, "Revoke Selected ({count})").replace("{count}", selectedCount)}
+              {t(K.PORTAL_ACCESS_REVOKE_SELECTED, "Revoke Selected ({count})").replace("{count}", eligibleRevokeCount)}
             </button>
           </div>
         </div>

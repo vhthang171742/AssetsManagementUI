@@ -23,6 +23,14 @@ export default function Table({
   onBulkDelete,
   selectable = true,
   idField = "assetID",
+  serverPagination = false,
+  page: controlledPage,
+  totalItems,
+  onPageChange,
+  onPageSizeChange,
+  sortBy,
+  sortDirection = "asc",
+  onSortChange,
 }) {
   const { t } = useLanguage();
   const [selected, setSelected] = useState(new Set());
@@ -36,15 +44,22 @@ export default function Table({
   useEffect(() => {
     // reset selection when data changes
     setSelected(new Set());
-    setPage(1);
+    if (!serverPagination) {
+      setPage(1);
+    }
   }, [data]);
 
-  const totalPages = Math.max(1, Math.ceil(data.length / currentPageSize));
+  const effectivePage = serverPagination ? (controlledPage ?? 1) : page;
+  const effectiveTotalItems = serverPagination ? (totalItems ?? data.length) : data.length;
+  const totalPages = Math.max(1, Math.ceil(effectiveTotalItems / currentPageSize));
 
   const pageData = useMemo(() => {
+    if (serverPagination) {
+      return data;
+    }
     const start = (page - 1) * currentPageSize;
     return data.slice(start, start + currentPageSize);
-  }, [data, page, currentPageSize]);
+  }, [data, page, currentPageSize, serverPagination]);
 
   const getRowId = (row) =>
     row?.[idField] ??
@@ -102,6 +117,22 @@ export default function Table({
     }
   };
 
+  const getSortKey = (col) => {
+    if (col.sortKey) return col.sortKey;
+    if (typeof col.accessor === "string") return col.accessor;
+    return null;
+  };
+
+  const handleSort = (col) => {
+    if (!onSortChange) return;
+    const key = getSortKey(col);
+    if (!key) return;
+
+    const isCurrent = sortBy === key;
+    const nextDirection = isCurrent && String(sortDirection).toLowerCase() === "asc" ? "desc" : "asc";
+    onSortChange(key, nextDirection);
+  };
+
   return (
     <div className="flex h-full min-h-0 w-full flex-col rounded border bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
       <div style={{ height }} className="min-h-0 flex-1 overflow-auto">
@@ -116,10 +147,20 @@ export default function Table({
               {columns.map((col, idx) => (
                 <th
                   key={idx}
-                  className="text-left p-3 sticky top-0 bg-white dark:bg-gray-800 dark:text-white z-10"
+                  className={`text-left p-3 sticky top-0 bg-white dark:bg-gray-800 dark:text-white z-10 ${onSortChange && getSortKey(col) ? "cursor-pointer select-none" : ""}`}
                   style={{ width: col.width }}
+                  onClick={() => handleSort(col)}
                 >
-                  {col.header}
+                  <span className="inline-flex items-center gap-1">
+                    {col.header}
+                    {onSortChange && getSortKey(col) && (
+                      <span className="text-xs opacity-70">
+                        {sortBy === getSortKey(col)
+                          ? (String(sortDirection).toLowerCase() === "desc" ? "▼" : "▲")
+                          : "↕"}
+                      </span>
+                    )}
+                  </span>
                 </th>
               ))}
               {actions.length > 0 && (
@@ -131,7 +172,7 @@ export default function Table({
           </thead>
           <tbody>
             {pageData.map((row, rowIndex) => {
-              const rowId = getRowId(row) ?? `${page}-${rowIndex}`;
+              const rowId = getRowId(row) ?? `${effectivePage}-${rowIndex}`;
               return (
               <tr key={rowId} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                 {selectable && (
@@ -152,21 +193,35 @@ export default function Table({
                   <td className="p-3 align-top dark:text-white">
                     <div className="flex flex-wrap items-center gap-2">
                       {actions.map((action, aidx) => (
-                        <button
-                          key={aidx}
-                          type="button"
-                          onClick={() => action.onClick && action.onClick(row, rowId)}
-                          title={action.label}
-                          className={`inline-flex h-8 w-8 items-center justify-center rounded border transition-colors ${
-                            action.variant === "danger"
-                              ? "border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30"
-                              : action.variant === "warning"
-                                ? "border-amber-200 text-amber-600 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/30"
-                                : "border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                          }`}
-                        >
-                          {action.icon}
-                        </button>
+                        (() => {
+                          const isDisabled =
+                            typeof action.isDisabled === "function"
+                              ? Boolean(action.isDisabled(row))
+                              : Boolean(action.isDisabled);
+
+                          return (
+                            <button
+                              key={aidx}
+                              type="button"
+                              disabled={isDisabled}
+                              onClick={() => {
+                                if (!isDisabled && action.onClick) {
+                                  action.onClick(row, rowId);
+                                }
+                              }}
+                              title={action.label}
+                              className={`inline-flex h-8 w-8 items-center justify-center rounded border transition-colors ${
+                                action.variant === "danger"
+                                  ? "border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30"
+                                  : action.variant === "warning"
+                                    ? "border-amber-200 text-amber-600 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/30"
+                                    : "border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                              } ${isDisabled ? "cursor-not-allowed opacity-40 hover:bg-transparent dark:hover:bg-transparent" : ""}`}
+                            >
+                              {action.icon}
+                            </button>
+                          );
+                        })()
                       ))}
                     </div>
                   </td>
@@ -203,8 +258,14 @@ export default function Table({
             <select
               value={currentPageSize}
               onChange={(e) => {
-                setCurrentPageSize(Number(e.target.value));
-                setPage(1);
+                const nextSize = Number(e.target.value);
+                setCurrentPageSize(nextSize);
+                if (serverPagination) {
+                  if (onPageSizeChange) onPageSizeChange(nextSize);
+                  if (onPageChange) onPageChange(1);
+                } else {
+                  setPage(1);
+                }
               }}
               className="rounded border px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             >
@@ -215,17 +276,29 @@ export default function Table({
               ))}
             </select>
           </label>
-          <div className="text-sm text-gray-600 dark:text-gray-400">{t(K.TABLE_PAGE, "Page")} {page} / {totalPages}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t(K.TABLE_PAGE, "Page")} {effectivePage} / {totalPages}</div>
           <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
+            onClick={() => {
+              if (serverPagination) {
+                if (onPageChange) onPageChange(Math.max(1, effectivePage - 1));
+              } else {
+                setPage((p) => Math.max(1, p - 1));
+              }
+            }}
+            disabled={effectivePage <= 1}
             className="px-2 py-1 border rounded disabled:opacity-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
           >
             {t(K.TABLE_PREV, "Prev")}
           </button>
           <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
+            onClick={() => {
+              if (serverPagination) {
+                if (onPageChange) onPageChange(Math.min(totalPages, effectivePage + 1));
+              } else {
+                setPage((p) => Math.min(totalPages, p + 1));
+              }
+            }}
+            disabled={effectivePage >= totalPages}
             className="px-2 py-1 border rounded disabled:opacity-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
           >
             {t(K.TABLE_NEXT, "Next")}

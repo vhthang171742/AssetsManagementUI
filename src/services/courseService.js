@@ -12,6 +12,23 @@ export const courseService = {
   getAll: () => httpClient("/courses"),
 
   /**
+   * Get paged courses with server-side search/sort/filter
+   * @param {object} query - { page, pageSize, search, sortBy, sortDirection, isActive }
+   */
+  getPaged: (query = {}) => {
+    const params = new URLSearchParams();
+    if (query.page != null) params.set("page", String(query.page));
+    if (query.pageSize != null) params.set("pageSize", String(query.pageSize));
+    if (query.search) params.set("search", query.search);
+    if (query.sortBy) params.set("sortBy", query.sortBy);
+    if (query.sortDirection) params.set("sortDirection", query.sortDirection);
+    if (query.isActive != null && query.isActive !== "") params.set("isActive", String(query.isActive));
+
+    const queryString = params.toString();
+    return httpClient(`/courses/paged${queryString ? `?${queryString}` : ""}`);
+  },
+
+  /**
    * Get a specific course by ID
    * @param {number} id - Course ID
    * @returns {Promise<object>} Course details

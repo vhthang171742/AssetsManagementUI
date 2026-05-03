@@ -11,6 +11,21 @@ export const maintenanceRecordService = {
    */
   getAll: () => httpClient("/maintenance-records"),
 
+  getPaged: (query = {}) => {
+    const params = new URLSearchParams();
+    if (query.page != null) params.set("page", String(query.page));
+    if (query.pageSize != null) params.set("pageSize", String(query.pageSize));
+    if (query.search) params.set("search", query.search);
+    if (query.sortBy) params.set("sortBy", query.sortBy);
+    if (query.sortDirection) params.set("sortDirection", query.sortDirection);
+    if (query.assetID != null && query.assetID !== "") params.set("assetID", String(query.assetID));
+    if (query.maintenanceTypeItemID != null && query.maintenanceTypeItemID !== "") params.set("maintenanceTypeItemID", String(query.maintenanceTypeItemID));
+    if (query.completionStatusItemID != null && query.completionStatusItemID !== "") params.set("completionStatusItemID", String(query.completionStatusItemID));
+
+    const queryString = params.toString();
+    return httpClient(`/maintenance-records/paged${queryString ? `?${queryString}` : ""}`);
+  },
+
   /**
    * Get a specific maintenance record by ID
    * @param {number} id - Record ID

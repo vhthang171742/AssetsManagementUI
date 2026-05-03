@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { productionLineService, departmentService } from "services/api";
 import Card from "components/card";
@@ -11,13 +11,19 @@ import { TranslationKeys as K } from "i18n/translationKeys";
 export default function ProductionLinesTable() {
   const { t } = useLanguage();
   const [lines, setLines] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [activeFilter, setActiveFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState("lineName");
+  const [sortDirection, setSortDirection] = useState("asc");
   const [formData, setFormData] = useState({
     departmentID: "",
     lineName: "",
@@ -28,15 +34,38 @@ export default function ProductionLinesTable() {
   });
 
   useEffect(() => {
-    fetchProductionLines();
     fetchDepartments();
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  useEffect(() => {
+    fetchProductionLines();
+  }, [page, pageSize, debouncedSearch, departmentFilter, activeFilter, sortBy, sortDirection]);
 
   const fetchProductionLines = async () => {
     try {
       setLoading(true);
-      const data = await productionLineService.getAll();
-      setLines(data || []);
+      const data = await productionLineService.getPaged({
+        page,
+        pageSize,
+        search: debouncedSearch,
+        sortBy,
+        sortDirection,
+        departmentID: departmentFilter ? Number(departmentFilter) : undefined,
+        isActive: activeFilter === "" ? undefined : activeFilter === "true",
+      });
+      setLines(data?.items || []);
+      setTotalCount(data?.totalCount || 0);
+
+      if (data?.totalPages && page > data.totalPages) {
+        setPage(data.totalPages);
+      }
     } catch (error) {
       console.error("Failed to fetch production lines:", error);
       toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_PRODUCTION_LINES, "production lines")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
@@ -132,28 +161,34 @@ export default function ProductionLinesTable() {
     {
       header: t(K.ADMIN_TABLE_LINE_NAME, "Line Name"),
       accessor: "lineName",
+      sortKey: "lineName",
     },
     {
       header: t(K.ADMIN_TABLE_LINE_CODE, "Line Code"),
       accessor: "lineCode",
+      sortKey: "lineCode",
     },
     {
       header: t(K.ADMIN_TABLE_DEPARTMENT, "Department"),
       accessor: (row) =>
         departments.find((d) => d.departmentID === row.departmentID)
           ?.departmentName || t(K.ADMIN_TABLE_NA, "N/A"),
+      sortKey: "departmentName",
     },
     {
       header: t(K.ADMIN_TABLE_ORDER_CODE, "Order Code"),
       accessor: "orderCode",
+      sortKey: "orderCode",
     },
     {
       header: t(K.ADMIN_TABLE_CAPACITY, "Capacity"),
       accessor: "capacity",
+      sortKey: "capacity",
     },
     {
       header: t(K.ADMIN_TABLE_STATUS, "Status"),
       accessor: (row) => (row.isActive ? t(K.ADMIN_TABLE_ACTIVE, "Active") : t(K.ADMIN_TABLE_INACTIVE, "Inactive")),
+      sortKey: "isActive",
     },
     {
       header: t(K.ADMIN_TABLE_ACTIONS, "Actions"),
@@ -177,16 +212,6 @@ export default function ProductionLinesTable() {
       ),
     },
   ];
-
-  const filteredLines = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    return lines.filter((l) => {
-      const matchesSearch = !query || l.lineName?.toLowerCase().includes(query) || l.lineCode?.toLowerCase().includes(query) || l.orderCode?.toLowerCase().includes(query);
-      const matchesDept = !departmentFilter || String(l.departmentID) === departmentFilter;
-      const matchesActive = !activeFilter || String(l.isActive) === activeFilter;
-      return matchesSearch && matchesDept && matchesActive;
-    });
-  }, [lines, searchText, departmentFilter, activeFilter]);
 
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
@@ -212,13 +237,19 @@ export default function ProductionLinesTable() {
           <input
             type="text"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              setPage(1);
+            }}
             placeholder={t(K.ADMIN_TABLE_SEARCH_NAME_CODE, "Search name, code")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
             value={departmentFilter}
-            onChange={(e) => setDepartmentFilter(e.target.value)}
+            onChange={(e) => {
+              setDepartmentFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_DEPARTMENTS, "Departments")}`}</option>
@@ -228,7 +259,10 @@ export default function ProductionLinesTable() {
           </select>
           <select
             value={activeFilter}
-            onChange={(e) => setActiveFilter(e.target.value)}
+            onChange={(e) => {
+              setActiveFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
@@ -243,8 +277,21 @@ export default function ProductionLinesTable() {
       ) : (
         <Table
           columns={columns}
-          data={filteredLines}
+          data={lines}
           onBulkDelete={handleBulkDelete}
+          serverPagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalCount}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          sortBy={sortBy}
+          sortDirection={sortDirection}
+          onSortChange={(key, direction) => {
+            setSortBy(key);
+            setSortDirection(direction);
+            setPage(1);
+          }}
         />
       )}
 

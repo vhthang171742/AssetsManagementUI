@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { studentEquipmentAssignmentService, classService } from "services/api";
 import Card from "components/card";
@@ -11,13 +11,19 @@ import { TranslationKeys as K } from "i18n/translationKeys";
 export default function StudentEquipmentAssignmentsTable() {
   const { t } = useLanguage();
   const [assignments, setAssignments] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [classFilter, setClassFilter] = useState("");
   const [activeFilter, setActiveFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState("assignedDate");
+  const [sortDirection, setSortDirection] = useState("desc");
   const [formData, setFormData] = useState({
     studentID: "",
     roomAssetID: "",
@@ -27,15 +33,39 @@ export default function StudentEquipmentAssignmentsTable() {
   });
 
   useEffect(() => {
-    fetchAssignments();
     fetchClasses();
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  useEffect(() => {
+    fetchAssignments();
+  }, [page, pageSize, debouncedSearch, classFilter, activeFilter, sortBy, sortDirection]);
 
   const fetchAssignments = async () => {
     try {
       setLoading(true);
-      const data = await studentEquipmentAssignmentService.getAll();
-      setAssignments(data || []);
+      const data = await studentEquipmentAssignmentService.getPaged({
+        page,
+        pageSize,
+        search: debouncedSearch,
+        sortBy,
+        sortDirection,
+        classID: classFilter ? Number(classFilter) : undefined,
+        isActive: activeFilter === "" ? undefined : activeFilter === "true",
+      });
+      setAssignments(data?.items || []);
+      setTotalCount(data?.totalCount || 0);
+
+      if (data?.totalPages && page > data.totalPages) {
+        setPage(data.totalPages);
+      }
     } catch (error) {
       console.error("Failed to fetch assignments:", error);
       toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_ASSIGNMENTS, "assignments")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
@@ -149,23 +179,28 @@ export default function StudentEquipmentAssignmentsTable() {
     {
       header: t(K.ADMIN_TABLE_STUDENT_ID, "Student ID"),
       accessor: "studentID",
+      sortKey: "studentID",
     },
     {
       header: t(K.ADMIN_TABLE_ASSET_ID, "Asset ID"),
       accessor: "roomAssetID",
+      sortKey: "roomAssetID",
     },
     {
       header: t(K.ADMIN_TABLE_CLASS, "Class"),
       accessor: (row) =>
         classes.find((c) => c.classID === row.classID)?.className || t(K.ADMIN_TABLE_NA, "N/A"),
+      sortKey: "className",
     },
     {
       header: t(K.ADMIN_TABLE_ASSIGNED_DATE, "Assigned Date"),
       accessor: (row) => new Date(row.assignedDate).toLocaleDateString(),
+      sortKey: "assignedDate",
     },
     {
       header: t(K.ADMIN_TABLE_STATUS, "Status"),
       accessor: (row) => (row.isActive ? t(K.ADMIN_TABLE_IN_USE, "In Use") : t(K.ADMIN_TABLE_UNASSIGNED, "Unassigned")),
+      sortKey: "isActive",
     },
   ];
 
@@ -178,6 +213,7 @@ export default function StudentEquipmentAssignmentsTable() {
     {
       icon: <MdLogout className="h-4 w-4" />,
       onClick: (_, rowId) => handleUnassign(rowId),
+      isDisabled: (row) => !row?.isActive,
       label: t(K.ADMIN_TABLE_UNASSIGN, "Unassign"),
       variant: "warning",
     },
@@ -188,16 +224,6 @@ export default function StudentEquipmentAssignmentsTable() {
       variant: "danger",
     },
   ];
-
-  const filteredAssignments = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    return assignments.filter((a) => {
-      const matchesSearch = !query || String(a.studentID).includes(query) || String(a.roomAssetID).includes(query);
-      const matchesClass = !classFilter || String(a.classID) === classFilter;
-      const matchesActive = !activeFilter || String(a.isActive) === activeFilter;
-      return matchesSearch && matchesClass && matchesActive;
-    });
-  }, [assignments, searchText, classFilter, activeFilter]);
 
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
@@ -222,13 +248,19 @@ export default function StudentEquipmentAssignmentsTable() {
           <input
             type="text"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              setPage(1);
+            }}
             placeholder={t(K.ADMIN_TABLE_SEARCH_STUDENT_ID_ASSET_ID, "Search student ID, asset ID")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
             value={classFilter}
-            onChange={(e) => setClassFilter(e.target.value)}
+            onChange={(e) => {
+              setClassFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_CLASSES, "Classes")}`}</option>
@@ -238,7 +270,10 @@ export default function StudentEquipmentAssignmentsTable() {
           </select>
           <select
             value={activeFilter}
-            onChange={(e) => setActiveFilter(e.target.value)}
+            onChange={(e) => {
+              setActiveFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
@@ -250,11 +285,23 @@ export default function StudentEquipmentAssignmentsTable() {
 
       <Table
         columns={columns}
-        data={filteredAssignments}
+        data={assignments}
         actions={actions}
         idField="assignmentID"
-        loading={loading}
         onBulkDelete={handleBulkDelete}
+        serverPagination
+        page={page}
+        pageSize={pageSize}
+        totalItems={totalCount}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        sortBy={sortBy}
+        sortDirection={sortDirection}
+        onSortChange={(key, direction) => {
+          setSortBy(key);
+          setSortDirection(direction);
+          setPage(1);
+        }}
       />
 
       <Modal

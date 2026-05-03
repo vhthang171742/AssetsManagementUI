@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { workerEquipmentService, userService, roomService } from "services/api";
 import Card from "components/card";
@@ -11,13 +11,19 @@ import { TranslationKeys as K } from "i18n/translationKeys";
 export default function WorkerEquipmentTable() {
   const { t } = useLanguage();
   const [assignments, setAssignments] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [workers, setWorkers] = useState([]);
   const [equipment, setEquipment] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState("workerName");
+  const [sortDirection, setSortDirection] = useState("asc");
   const [formData, setFormData] = useState({
     workerID: "",
     roomAssetID: "",
@@ -26,16 +32,38 @@ export default function WorkerEquipmentTable() {
   });
 
   useEffect(() => {
-    fetchAssignments();
     fetchWorkers();
     fetchEquipment();
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  useEffect(() => {
+    fetchAssignments();
+  }, [page, pageSize, debouncedSearch, statusFilter, sortBy, sortDirection]);
+
   const fetchAssignments = async () => {
     try {
       setLoading(true);
-      const data = await workerEquipmentService.getAll();
-      setAssignments(data || []);
+      const data = await workerEquipmentService.getPaged({
+        page,
+        pageSize,
+        search: debouncedSearch,
+        sortBy,
+        sortDirection,
+        isActive: statusFilter === "" ? undefined : statusFilter === "active",
+      });
+      setAssignments(data?.items || []);
+      setTotalCount(data?.totalCount || 0);
+
+      if (data?.totalPages && page > data.totalPages) {
+        setPage(data.totalPages);
+      }
     } catch (error) {
       console.error("Failed to fetch assignments:", error);
       toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_ASSIGNMENTS, "assignments")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
@@ -170,24 +198,29 @@ export default function WorkerEquipmentTable() {
       header: t(K.ADMIN_TABLE_WORKER, "Worker"),
       accessor: (row) =>
       workers.find((w) => w.workerRole?.workerID === row.workerID)?.fullName || t(K.ADMIN_TABLE_NA, "N/A"),
+      sortKey: "workerName",
     },
     {
       header: t(K.ADMIN_TABLE_EQUIPMENT, "Equipment"),
       accessor: (row) =>
         equipment.find((e) => e.roomAssetID === row.roomAssetID)?.assetName || t(K.ADMIN_TABLE_NA, "N/A"),
+      sortKey: "assetName",
     },
     {
       header: t(K.ADMIN_TABLE_ASSIGNED_DATE, "Assigned Date"),
       accessor: (row) => new Date(row.assignedDate).toLocaleDateString(),
+      sortKey: "assignedDate",
     },
     {
       header: t(K.ADMIN_TABLE_UNASSIGNED_DATE, "Unassigned Date"),
       accessor: (row) =>
         row.unassignedDate ? new Date(row.unassignedDate).toLocaleDateString() : "—",
+      sortKey: "unassignedDate",
     },
     {
       header: t(K.ADMIN_TABLE_STATUS, "Status"),
       accessor: (row) => (row.unassignedDate ? t(K.ADMIN_TABLE_UNASSIGNED, "Unassigned") : t(K.ADMIN_TABLE_ACTIVE, "Active")),
+      sortKey: "isActive",
     },
     {
       header: t(K.ADMIN_TABLE_ACTIONS, "Actions"),
@@ -212,18 +245,6 @@ export default function WorkerEquipmentTable() {
     },
   ];
 
-  const filteredAssignments = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    return assignments.filter((a) => {
-      const workerName = workers.find((w) => w.workerRole?.workerID === a.workerID)?.fullName || "";
-      const assetName = equipment.find((e) => e.roomAssetID === a.roomAssetID)?.assetName || "";
-      const matchesSearch = !query || workerName.toLowerCase().includes(query) || assetName.toLowerCase().includes(query);
-      const isActive = !a.unassignedDate;
-      const matchesStatus = !statusFilter || (statusFilter === "active" ? isActive : !isActive);
-      return matchesSearch && matchesStatus;
-    });
-  }, [assignments, workers, equipment, searchText, statusFilter]);
-
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -246,13 +267,19 @@ export default function WorkerEquipmentTable() {
           <input
             type="text"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              setPage(1);
+            }}
             placeholder={t(K.ADMIN_TABLE_SEARCH_WORKER_EQUIPMENT, "Search worker, equipment")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
@@ -267,8 +294,22 @@ export default function WorkerEquipmentTable() {
       ) : (
         <Table
           columns={columns}
-          data={filteredAssignments}
+          data={assignments}
           onBulkDelete={handleBulkDelete}
+          idField="assignmentID"
+          serverPagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalCount}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          sortBy={sortBy}
+          sortDirection={sortDirection}
+          onSortChange={(key, direction) => {
+            setSortBy(key);
+            setSortDirection(direction);
+            setPage(1);
+          }}
         />
       )}
 

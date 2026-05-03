@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { departmentService } from "services/api";
 import Card from "components/card";
@@ -11,10 +11,16 @@ import { TranslationKeys as K } from "i18n/translationKeys";
 export default function DepartmentsTable() {
   const { t } = useLanguage();
   const [departments, setDepartments] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState("departmentCode");
+  const [sortDirection, setSortDirection] = useState("asc");
   const [formData, setFormData] = useState({
     departmentCode: "",
     departmentName: "",
@@ -22,13 +28,31 @@ export default function DepartmentsTable() {
 
   useEffect(() => {
     fetchDepartments();
-  }, []);
+  }, [page, pageSize, debouncedSearch, sortBy, sortDirection]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchText]);
 
   const fetchDepartments = async () => {
     try {
       setLoading(true);
-      const data = await departmentService.getAll();
-      setDepartments(data || []);
+      const data = await departmentService.getPaged({
+        page,
+        pageSize,
+        search: debouncedSearch,
+        sortBy,
+        sortDirection,
+      });
+      setDepartments(data?.items || []);
+      setTotalCount(data?.totalCount || 0);
+
+      if (data?.totalPages && page > data.totalPages) {
+        setPage(data.totalPages);
+      }
     } catch (error) {
       console.error("Failed to fetch departments:", error);
       toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_DEPARTMENTS, "departments")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
@@ -103,15 +127,6 @@ export default function DepartmentsTable() {
     }
   };
 
-  const filteredDepartments = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    return departments.filter((d) =>
-      !query ||
-      d.departmentCode?.toLowerCase().includes(query) ||
-      d.departmentName?.toLowerCase().includes(query)
-    );
-  }, [departments, searchText]);
-
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -131,7 +146,10 @@ export default function DepartmentsTable() {
         <input
           type="text"
           value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
+          onChange={(e) => {
+            setSearchText(e.target.value);
+            setPage(1);
+          }}
           placeholder={t(K.ADMIN_TABLE_SEARCH_CODE_NAME, "Search code, name")}
           className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white md:w-64"
         />
@@ -141,14 +159,26 @@ export default function DepartmentsTable() {
         <div className="text-center py-8">{t(K.ADMIN_TABLE_LOADING, "Loading...")}</div>
       ) : (
         <Table
-          data={filteredDepartments}
-          pageSize={10}
+          data={departments}
           onBulkDelete={handleBulkDelete}
           selectable={true}
           idField="departmentID"
+          serverPagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalCount}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          sortBy={sortBy}
+          sortDirection={sortDirection}
+          onSortChange={(key, direction) => {
+            setSortBy(key);
+            setSortDirection(direction);
+            setPage(1);
+          }}
           columns={[
-            { header: t(K.ADMIN_TABLE_CODE, "Code"), accessor: 'departmentCode' },
-            { header: t(K.ADMIN_TABLE_NAME, "Name"), accessor: 'departmentName' },
+            { header: t(K.ADMIN_TABLE_CODE, "Code"), accessor: 'departmentCode', sortKey: "departmentCode" },
+            { header: t(K.ADMIN_TABLE_NAME, "Name"), accessor: 'departmentName', sortKey: "departmentName" },
             {
               header: t(K.ADMIN_TABLE_ACTIONS, "Actions"),
               render: (row) => (

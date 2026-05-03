@@ -1,6 +1,6 @@
-﻿import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { getAllUsers, assignRole, removeRole, updateUserCode } from "services/userService";
+import { getPagedUsers, assignRole, removeRole, updateUserCode } from "services/userService";
 import Card from "components/card";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete, MdAdd } from "react-icons/md";
@@ -11,10 +11,16 @@ import { TranslationKeys as K } from "i18n/translationKeys";
 export default function UsersTable() {
   const { t } = useLanguage();
   const [users, setUsers] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [showCodeModal, setShowCodeModal] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState("fullName");
+  const [sortDirection, setSortDirection] = useState("asc");
   const [selectedUser, setSelectedUser] = useState(null);
   const [roleFormData, setRoleFormData] = useState({
     role: "Student",
@@ -23,13 +29,31 @@ export default function UsersTable() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [page, pageSize, debouncedSearch, sortBy, sortDirection]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchText]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const data = await getAllUsers();
-      setUsers(data || []);
+      const data = await getPagedUsers({
+        page,
+        pageSize,
+        search: debouncedSearch,
+        sortBy,
+        sortDirection,
+      });
+      setUsers(data?.items || []);
+      setTotalCount(data?.totalCount || 0);
+
+      if (data?.totalPages && page > data.totalPages) {
+        setPage(data.totalPages);
+      }
     } catch (error) {
       console.error("Failed to fetch users:", error);
       toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_USERS, "users")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
@@ -108,16 +132,6 @@ export default function UsersTable() {
     setShowCodeModal(true);
   };
 
-  const filteredUsers = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    return users.filter((u) =>
-      !query ||
-      u.fullName?.toLowerCase().includes(query) ||
-      u.email?.toLowerCase().includes(query) ||
-      u.departmentName?.toLowerCase().includes(query)
-    );
-  }, [users, searchText]);
-
   return (
     <>
       <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
@@ -126,7 +140,10 @@ export default function UsersTable() {
           <input
             type="text"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              setPage(1);
+            }}
             placeholder={t(K.ADMIN_TABLE_SEARCH_NAME_EMAIL_DEPARTMENT, "Search name, email, department")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white md:w-72"
           />
@@ -135,14 +152,28 @@ export default function UsersTable() {
           <div className="text-center py-8">Loading...</div>
         ) : (
           <Table
-            data={filteredUsers}
-            pageSize={10}
+            data={users}
             selectable={false}
+            idField="userID"
+            serverPagination
+            page={page}
+            pageSize={pageSize}
+            totalItems={totalCount}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            sortBy={sortBy}
+            sortDirection={sortDirection}
+            onSortChange={(key, direction) => {
+              setSortBy(key);
+              setSortDirection(direction);
+              setPage(1);
+            }}
             columns={[
-              { header: t(K.ADMIN_TABLE_FULL_NAME, "Full Name"), accessor: 'fullName' },
-              { header: t(K.ADMIN_TABLE_EMAIL, "Email"), accessor: 'email' },
+              { header: t(K.ADMIN_TABLE_FULL_NAME, "Full Name"), accessor: 'fullName', sortKey: "fullName" },
+              { header: t(K.ADMIN_TABLE_EMAIL, "Email"), accessor: 'email', sortKey: "email" },
               { 
                 header: t(K.ADMIN_TABLE_DEPARTMENT, "Department"), 
+                sortKey: "departmentName",
                 render: (row) => row.departmentName || '-' 
               },
               {
@@ -240,6 +271,7 @@ export default function UsersTable() {
               },
               {
                 header: t(K.ADMIN_TABLE_LAST_LOGIN, "Last Login"),
+                sortKey: "lastLoginAt",
                 render: (row) => 
                   row.lastLoginAt 
                     ? new Date(row.lastLoginAt).toLocaleString() 

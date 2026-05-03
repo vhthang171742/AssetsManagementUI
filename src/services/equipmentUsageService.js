@@ -11,6 +11,19 @@ export const equipmentUsageService = {
    */
   getAll: () => httpClient("/equipment-usage"),
 
+  getPaged: (query = {}) => {
+    const params = new URLSearchParams();
+    if (query.page != null) params.set("page", String(query.page));
+    if (query.pageSize != null) params.set("pageSize", String(query.pageSize));
+    if (query.search) params.set("search", query.search);
+    if (query.sortBy) params.set("sortBy", query.sortBy);
+    if (query.sortDirection) params.set("sortDirection", query.sortDirection);
+    if (query.productionLineID != null && query.productionLineID !== "") params.set("productionLineID", String(query.productionLineID));
+
+    const queryString = params.toString();
+    return httpClient(`/equipment-usage/paged${queryString ? `?${queryString}` : ""}`);
+  },
+
   /**
    * Get a specific usage log by ID
    * @param {number} id - Usage Log ID

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { assetCourseMappingService, courseService, assetService } from "services/api";
 import Card from "components/card";
@@ -11,14 +11,20 @@ import { TranslationKeys as K } from "i18n/translationKeys";
 export default function AssetCourseMappingsTable() {
   const { t } = useLanguage();
   const [mappings, setMappings] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [courses, setCourses] = useState([]);
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [courseFilter, setCourseFilter] = useState("");
   const [requiredFilter, setRequiredFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState("isRequired");
+  const [sortDirection, setSortDirection] = useState("desc");
   const [formData, setFormData] = useState({
     assetID: "",
     courseID: "",
@@ -26,16 +32,39 @@ export default function AssetCourseMappingsTable() {
   });
 
   useEffect(() => {
-    fetchMappings();
     fetchCourses();
     fetchAssets();
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  useEffect(() => {
+    fetchMappings();
+  }, [page, pageSize, debouncedSearch, courseFilter, requiredFilter, sortBy, sortDirection]);
+
   const fetchMappings = async () => {
     try {
       setLoading(true);
-      const data = await assetCourseMappingService.getAll();
-      setMappings(data || []);
+      const data = await assetCourseMappingService.getPaged({
+        page,
+        pageSize,
+        search: debouncedSearch,
+        sortBy,
+        sortDirection,
+        courseID: courseFilter ? Number(courseFilter) : undefined,
+        isRequired: requiredFilter === "" ? undefined : requiredFilter === "true",
+      });
+      setMappings(data?.items || []);
+      setTotalCount(data?.totalCount || 0);
+
+      if (data?.totalPages && page > data.totalPages) {
+        setPage(data.totalPages);
+      }
     } catch (error) {
       console.error("Failed to fetch mappings:", error);
       toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_MAPPINGS, "mappings")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
@@ -141,15 +170,18 @@ export default function AssetCourseMappingsTable() {
       header: t(K.ADMIN_TABLE_ASSET, "Asset"),
       accessor: (row) =>
         assets.find((a) => a.assetID === row.assetID)?.assetName || t(K.ADMIN_TABLE_NA, "N/A"),
+      sortKey: "assetName",
     },
     {
       header: t(K.ADMIN_TABLE_COURSE, "Course"),
       accessor: (row) =>
         courses.find((c) => c.courseID === row.courseID)?.courseName || t(K.ADMIN_TABLE_NA, "N/A"),
+      sortKey: "courseName",
     },
     {
       header: t(K.ADMIN_TABLE_REQUIRED, "Required"),
       accessor: (row) => (row.isRequired ? t(K.ADMIN_TABLE_YES, "Yes") : t(K.ADMIN_TABLE_NO, "No")),
+      sortKey: "isRequired",
     },
   ];
 
@@ -166,18 +198,6 @@ export default function AssetCourseMappingsTable() {
       variant: "danger",
     },
   ];
-
-  const filteredMappings = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    return mappings.filter((m) => {
-      const assetName = assets.find((a) => a.assetID === m.assetID)?.assetName || "";
-      const courseName = courses.find((c) => c.courseID === m.courseID)?.courseName || "";
-      const matchesSearch = !query || assetName.toLowerCase().includes(query) || courseName.toLowerCase().includes(query);
-      const matchesCourse = !courseFilter || String(m.courseID) === courseFilter;
-      const matchesRequired = !requiredFilter || String(m.isRequired) === requiredFilter;
-      return matchesSearch && matchesCourse && matchesRequired;
-    });
-  }, [mappings, assets, courses, searchText, courseFilter, requiredFilter]);
 
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
@@ -200,13 +220,19 @@ export default function AssetCourseMappingsTable() {
           <input
             type="text"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              setPage(1);
+            }}
             placeholder={t(K.ADMIN_TABLE_SEARCH_ASSET_COURSE, "Search asset, course")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
             value={courseFilter}
-            onChange={(e) => setCourseFilter(e.target.value)}
+            onChange={(e) => {
+              setCourseFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_COURSES, "Courses")}`}</option>
@@ -216,7 +242,10 @@ export default function AssetCourseMappingsTable() {
           </select>
           <select
             value={requiredFilter}
-            onChange={(e) => setRequiredFilter(e.target.value)}
+            onChange={(e) => {
+              setRequiredFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{t(K.ADMIN_TABLE_ALL, "All")}</option>
@@ -228,11 +257,23 @@ export default function AssetCourseMappingsTable() {
 
       <Table
         columns={columns}
-        data={filteredMappings}
+        data={mappings}
         actions={actions}
         idField="mappingID"
-        loading={loading}
         onBulkDelete={handleBulkDelete}
+        serverPagination
+        page={page}
+        pageSize={pageSize}
+        totalItems={totalCount}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        sortBy={sortBy}
+        sortDirection={sortDirection}
+        onSortChange={(key, direction) => {
+          setSortBy(key);
+          setSortDirection(direction);
+          setPage(1);
+        }}
       />
 
       <Modal

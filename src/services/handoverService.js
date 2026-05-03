@@ -11,6 +11,19 @@ export const handoverService = {
    */
   getAll: () => httpClient("/handovers"),
 
+  getPaged: (query = {}) => {
+    const params = new URLSearchParams();
+    if (query.page != null) params.set("page", String(query.page));
+    if (query.pageSize != null) params.set("pageSize", String(query.pageSize));
+    if (query.search) params.set("search", query.search);
+    if (query.sortBy) params.set("sortBy", query.sortBy);
+    if (query.sortDirection) params.set("sortDirection", query.sortDirection);
+    if (query.roomID != null && query.roomID !== "") params.set("roomID", String(query.roomID));
+
+    const queryString = params.toString();
+    return httpClient(`/handovers/paged${queryString ? `?${queryString}` : ""}`);
+  },
+
   /**
    * Get a specific handover by ID
    * @param {number} id - Handover ID

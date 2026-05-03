@@ -11,6 +11,20 @@ export const assetService = {
    */
   getAll: () => httpClient("/assets"),
 
+  getPaged: (query = {}) => {
+    const params = new URLSearchParams();
+    if (query.page != null) params.set("page", String(query.page));
+    if (query.pageSize != null) params.set("pageSize", String(query.pageSize));
+    if (query.search) params.set("search", query.search);
+    if (query.sortBy) params.set("sortBy", query.sortBy);
+    if (query.sortDirection) params.set("sortDirection", query.sortDirection);
+    if (query.categoryID != null && query.categoryID !== "") params.set("categoryID", String(query.categoryID));
+    if (query.status) params.set("status", query.status);
+
+    const queryString = params.toString();
+    return httpClient(`/assets/paged${queryString ? `?${queryString}` : ""}`);
+  },
+
   /**
    * Get a specific asset by ID
    * @param {number} id - Asset ID

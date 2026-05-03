@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { courseService } from "services/api";
 import Card from "components/card";
@@ -11,11 +11,17 @@ import { TranslationKeys as K } from "i18n/translationKeys";
 export default function CoursesTable() {
   const { t } = useLanguage();
   const [courses, setCourses] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState("courseName");
+  const [sortDirection, setSortDirection] = useState("asc");
   const [formData, setFormData] = useState({
     courseName: "",
     courseCode: "",
@@ -26,13 +32,33 @@ export default function CoursesTable() {
 
   useEffect(() => {
     fetchCourses();
-  }, []);
+  }, [page, pageSize, debouncedSearch, activeFilter, sortBy, sortDirection]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchText]);
 
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const data = await courseService.getAll();
-      setCourses(data || []);
+      const data = await courseService.getPaged({
+        page,
+        pageSize,
+        search: debouncedSearch,
+        sortBy,
+        sortDirection,
+        isActive: activeFilter === "" ? undefined : activeFilter === "true",
+      });
+
+      setCourses(data?.items || []);
+      setTotalCount(data?.totalCount || 0);
+
+      if (data?.totalPages && page > data.totalPages) {
+        setPage(data.totalPages);
+      }
     } catch (error) {
       console.error("Failed to fetch courses:", error);
       toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_COURSES, "courses")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
@@ -122,18 +148,22 @@ export default function CoursesTable() {
     {
       header: t(K.ADMIN_TABLE_COURSE_NAME, "Course Name"),
       accessor: "courseName",
+      sortKey: "courseName",
     },
     {
       header: t(K.ADMIN_TABLE_COURSE_CODE, "Course Code"),
       accessor: "courseCode",
+      sortKey: "courseCode",
     },
     {
       header: t(K.ADMIN_TABLE_DURATION_HOURS, "Duration (Hours)"),
       accessor: "durationHours",
+      sortKey: "durationHours",
     },
     {
       header: t(K.ADMIN_TABLE_STATUS, "Status"),
       accessor: (row) => (row.isActive ? t(K.ADMIN_TABLE_ACTIVE, "Active") : t(K.ADMIN_TABLE_INACTIVE, "Inactive")),
+      sortKey: "isActive",
     },
   ];
 
@@ -150,15 +180,6 @@ export default function CoursesTable() {
       variant: "danger",
     },
   ];
-
-  const filteredCourses = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    return courses.filter((c) => {
-      const matchesSearch = !query || c.courseName?.toLowerCase().includes(query) || c.courseCode?.toLowerCase().includes(query);
-      const matchesActive = !activeFilter || String(c.isActive) === activeFilter;
-      return matchesSearch && matchesActive;
-    });
-  }, [courses, searchText, activeFilter]);
 
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
@@ -183,13 +204,19 @@ export default function CoursesTable() {
           <input
             type="text"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              setPage(1);
+            }}
             placeholder={t(K.ADMIN_TABLE_SEARCH_NAME_CODE, "Search name, code")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
             value={activeFilter}
-            onChange={(e) => setActiveFilter(e.target.value)}
+            onChange={(e) => {
+              setActiveFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
@@ -201,11 +228,23 @@ export default function CoursesTable() {
 
       <Table
         columns={columns}
-        data={filteredCourses}
+        data={courses}
         actions={actions}
         idField="courseID"
-        loading={loading}
         onBulkDelete={handleBulkDelete}
+        serverPagination
+        page={page}
+        pageSize={pageSize}
+        totalItems={totalCount}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        sortBy={sortBy}
+        sortDirection={sortDirection}
+        onSortChange={(key, direction) => {
+          setSortBy(key);
+          setSortDirection(direction);
+          setPage(1);
+        }}
       />
 
       <Modal

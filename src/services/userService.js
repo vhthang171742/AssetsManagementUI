@@ -175,6 +175,19 @@ export const getAllUsers = async () => {
   return await httpClient("/users");
 };
 
+export const getPagedUsers = async (query = {}) => {
+  const params = new URLSearchParams();
+  if (query.page != null) params.set("page", String(query.page));
+  if (query.pageSize != null) params.set("pageSize", String(query.pageSize));
+  if (query.search) params.set("search", query.search);
+  if (query.sortBy) params.set("sortBy", query.sortBy);
+  if (query.sortDirection) params.set("sortDirection", query.sortDirection);
+  if (query.isActive != null && query.isActive !== "") params.set("isActive", String(query.isActive));
+
+  const queryString = params.toString();
+  return await httpClient(`/users/paged${queryString ? `?${queryString}` : ""}`);
+};
+
 /**
  * Assign a role to a user (Admin only)
  * @param {number} userId - User ID
