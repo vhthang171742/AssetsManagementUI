@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import DashIcon from "components/icons/DashIcon";
 import { useAuth } from "context/AuthContext";
@@ -41,7 +41,7 @@ export function SidebarLinks(props) {
   let location = useLocation();
   const { userRoles } = useAuth();
   const { t } = useLanguage();
-  const [expandedGroups, setExpandedGroups] = useState(new Set(["asset-management"]));
+  const [expandedGroups, setExpandedGroups] = useState(new Set());
 
   const { routes } = props;
 
@@ -70,6 +70,32 @@ export function SidebarLinks(props) {
         )
       );
   };
+
+  const getGroupRoutes = (group) => {
+    return routes.filter(
+      (route) =>
+        (route.layout === "/admin" ||
+          route.layout === "/auth" ||
+          route.layout === "/rtl") &&
+        route.sidebar !== false &&
+        group.items.includes(route.path) &&
+        canAccessRoute(route)
+    ).sort(
+      (a, b) => group.items.indexOf(a.path) - group.items.indexOf(b.path)
+    );
+  };
+
+  useEffect(() => {
+    const activeGroups = MENU_GROUPS
+      .filter((group) => getGroupRoutes(group).some((route) => activeRoute(route.path)))
+      .map((group) => group.id);
+
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      activeGroups.forEach((groupId) => next.add(groupId));
+      return next;
+    });
+  }, [location.pathname]);
 
   const renderMenuItem = (route) => {
     return (
@@ -104,17 +130,7 @@ export function SidebarLinks(props) {
   };
 
   const renderGroup = (group) => {
-    const groupRoutes = routes.filter(
-      (route) =>
-        (route.layout === "/admin" ||
-          route.layout === "/auth" ||
-          route.layout === "/rtl") &&
-        route.sidebar !== false &&
-        group.items.includes(route.path) &&
-        canAccessRoute(route)
-    ).sort(
-      (a, b) => group.items.indexOf(a.path) - group.items.indexOf(b.path)
-    );
+    const groupRoutes = getGroupRoutes(group);
 
     if (groupRoutes.length === 0) return null;
 

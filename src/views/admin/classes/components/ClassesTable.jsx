@@ -458,7 +458,14 @@ export default function ClassesTable() {
     },
     {
       header: t(K.ADMIN_TABLE_INSTRUCTOR, "Instructor"),
-      accessor: (row) => row.instructorName || t(K.ADMIN_TABLE_NA, "N/A"),
+      accessor: (row) => {
+        if (row.instructorName) {
+          return row.instructorName;
+        }
+
+        const instructor = instructors.find((item) => item.id === row.instructorID);
+        return instructor?.name || t(K.ADMIN_TABLE_NA, "N/A");
+      },
     },
     {
       header: t(K.ADMIN_TABLE_ROOM, "Room"),
