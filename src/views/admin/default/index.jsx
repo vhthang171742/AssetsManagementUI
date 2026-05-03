@@ -1,172 +1,137 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import MiniCalendar from "components/calendar/MiniCalendar";
-import WeeklyRevenue from "views/admin/default/components/WeeklyRevenue";
-import TotalSpent from "views/admin/default/components/TotalSpent";
-import PieChartCard from "views/admin/default/components/PieChartCard";
-import { IoMdHome } from "react-icons/io";
-import { IoDocuments } from "react-icons/io5";
-import { MdBarChart, MdDashboard } from "react-icons/md";
-
-import { columnsDataCheck, columnsDataComplex } from "./variables/columnsData";
-
 import Widget from "components/widget/Widget";
-import CheckTable from "views/admin/default/components/CheckTable";
-import ComplexTable from "views/admin/default/components/ComplexTable";
-import DailyTraffic from "views/admin/default/components/DailyTraffic";
-import TaskCard from "views/admin/default/components/TaskCard";
-import tableDataCheck from "./variables/tableDataCheck.json";
-import tableDataComplex from "./variables/tableDataComplex.json";
-import { classService, practiceSessionService } from "services/api";
+import { dashboardService } from "services/api";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
+import {
+  MdBuild,
+  MdDevices,
+  MdPeople,
+  MdSchool,
+  MdSwapHoriz,
+  MdReport,
+} from "react-icons/md";
+
+import AssetStatusPieChart from "./components/AssetStatusPieChart";
+import AssetsByCategoryChart from "./components/AssetsByCategoryChart";
+import MaintenanceTrendChart from "./components/MaintenanceTrendChart";
+import UsageDowntimeChart from "./components/UsageDowntimeChart";
+import UpcomingMaintenanceTable from "./components/UpcomingMaintenanceTable";
+import SparePartsHealthTable from "./components/SparePartsHealthTable";
 
 const Dashboard = () => {
   const { t } = useLanguage();
   const [calendarDate, setCalendarDate] = useState(new Date());
-  const [classes, setClasses] = useState([]);
-  const [sessions, setSessions] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const loadTrainingEvents = async () => {
+    const load = async () => {
       try {
-        const [classList, sessionList] = await Promise.all([
-          classService.getAll(),
-          practiceSessionService.getAll(),
-        ]);
-
-        setClasses(classList || []);
-        setSessions(sessionList || []);
-      } catch (error) {
-        console.warn("Failed to load training calendar events:", error.message);
+        const data = await dashboardService.getSummary();
+        setSummary(data);
+      } catch (err) {
+        console.error("Dashboard load failed:", err);
+        setError(t(K.ADMIN_DASHBOARD_LOAD_FAILED, "Failed to load dashboard data."));
+      } finally {
+        setLoading(false);
       }
     };
-
-    loadTrainingEvents();
+    load();
   }, []);
 
-  const trainingCalendarEvents = useMemo(() => {
-    const classEvents = classes.flatMap((item) => {
-      const events = [];
+  // Build calendar events from upcoming maintenance schedules
+  const maintenanceEvents = summary?.upcomingMaintenanceSchedules?.map((s) => ({
+    date: s.nextDueDate,
+    label: `[${s.assetCode}] ${s.assetName} — ${s.maintenanceType}`,
+  })) ?? [];
 
-      if (item.startDate) {
-        events.push({
-          date: item.startDate,
-          label: `${item.className} ${t(K.STUDENT_CLASS_START, "Class starts")}`,
-        });
-      }
-
-      if (item.endDate) {
-        events.push({
-          date: item.endDate,
-          label: `${item.className} ${t(K.STUDENT_CLASS_END, "Class ends")}`,
-        });
-      }
-
-      return events;
-    });
-
-    const sessionEvents = sessions.map((session) => ({
-      date: session.startTime,
-      label: `Session #${session.sessionID} · Class #${session.classID}`,
-    }));
-
-    return [...classEvents, ...sessionEvents];
-  }, [classes, sessions, t]);
-
-  const selectedDateEvents = useMemo(() => {
-    const key = calendarDate.toISOString().slice(0, 10);
-    return trainingCalendarEvents.filter((event) => {
-      const eventDate = new Date(event.date);
-      return !Number.isNaN(eventDate.getTime()) && eventDate.toISOString().slice(0, 10) === key;
-    });
-  }, [calendarDate, trainingCalendarEvents]);
+  const selectedDateEvents = maintenanceEvents.filter((e) => {
+    if (!e.date) return false;
+    const d = new Date(e.date);
+    return d.toISOString().slice(0, 10) === calendarDate.toISOString().slice(0, 10);
+  });
 
   return (
     <div>
-      {/* Card widget */}
-
-      <div className="mt-3 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-3 3xl:grid-cols-6">
+      {/* KPI Widgets */}
+      <div className="mt-3 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Widget
-          icon={<MdBarChart className="h-7 w-7" />}
-          title={"Earnings"}
-          subtitle={"$340.5"}
+          icon={<MdDevices className="h-7 w-7" />}
+          title={t(K.ADMIN_DASHBOARD_TOTAL_ASSETS, "Total Assets")}
+          subtitle={loading ? "…" : String(summary?.totalAssets ?? 0)}
         />
         <Widget
-          icon={<IoDocuments className="h-6 w-6" />}
-          title={"Spend this month"}
-          subtitle={"$642.39"}
+          icon={<MdPeople className="h-7 w-7" />}
+          title={t(K.ADMIN_DASHBOARD_ACTIVE_ASSIGNMENTS, "Active Worker Assignments")}
+          subtitle={loading ? "…" : String(summary?.activeWorkerAssignments ?? 0)}
         />
         <Widget
-          icon={<MdBarChart className="h-7 w-7" />}
-          title={"Sales"}
-          subtitle={"$574.34"}
+          icon={<MdBuild className="h-7 w-7" />}
+          title={t(K.ADMIN_DASHBOARD_OVERDUE_MAINTENANCE, "Overdue Maintenance")}
+          subtitle={loading ? "…" : String(summary?.overdueMaintenanceSchedules ?? 0)}
         />
         <Widget
-          icon={<MdDashboard className="h-6 w-6" />}
-          title={"Your Balance"}
-          subtitle={"$1,000"}
+          icon={<MdSchool className="h-7 w-7" />}
+          title={t(K.ADMIN_DASHBOARD_ACTIVE_SESSIONS_TODAY, "Active Sessions Today")}
+          subtitle={loading ? "…" : String(summary?.activePracticeSessionsToday ?? 0)}
         />
         <Widget
-          icon={<MdBarChart className="h-7 w-7" />}
-          title={"New Tasks"}
-          subtitle={"145"}
+          icon={<MdSwapHoriz className="h-7 w-7" />}
+          title={t(K.ADMIN_DASHBOARD_HANDOVERS_THIS_MONTH, "Handovers This Month")}
+          subtitle={loading ? "…" : String(summary?.handoversThisMonth ?? 0)}
         />
         <Widget
-          icon={<IoMdHome className="h-6 w-6" />}
-          title={"Total Projects"}
-          subtitle={"$2433"}
+          icon={<MdReport className="h-7 w-7" />}
+          title={t(K.ADMIN_DASHBOARD_OPEN_INCIDENTS, "Open Incidents")}
+          subtitle={loading ? "…" : String(summary?.openIncidents ?? 0)}
         />
       </div>
 
-      {/* Charts */}
+      {error && (
+        <div className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/10">
+          {error}
+        </div>
+      )}
 
+      {/* Asset Charts Row */}
       <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
-        <TotalSpent />
-        <WeeklyRevenue />
+        <AssetStatusPieChart data={summary?.assetsByStatus ?? []} />
+        <AssetsByCategoryChart data={summary?.assetsByCategory ?? []} />
       </div>
 
-      {/* Tables & Charts */}
-
+      {/* Maintenance Trend + Usage */}
       <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
-        {/* Check Table */}
-        <div>
-          <CheckTable
-            columnsData={columnsDataCheck}
-            tableData={tableDataCheck}
+        <MaintenanceTrendChart data={summary?.maintenanceRecordsLast12Months ?? []} />
+        <UsageDowntimeChart data={summary?.equipmentUsageLast30Days ?? []} />
+      </div>
+
+      {/* Tables */}
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <UpcomingMaintenanceTable data={summary?.upcomingMaintenanceSchedules ?? []} />
+        <SparePartsHealthTable data={summary?.lowStockSpareParts ?? []} />
+      </div>
+
+      {/* Maintenance Calendar */}
+      <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="flex flex-col gap-3">
+          <MiniCalendar
+            value={calendarDate}
+            onChange={setCalendarDate}
+            events={maintenanceEvents}
           />
-        </div>
-
-        {/* Traffic chart & Pie Chart */}
-
-        <div className="grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-2">
-          <DailyTraffic />
-          <PieChartCard />
-        </div>
-
-        {/* Complex Table , Task & Calendar */}
-
-        <ComplexTable
-          columnsData={columnsDataComplex}
-          tableData={tableDataComplex}
-        />
-
-        {/* Task chart & Calendar */}
-
-        <div className="grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-2">
-          <TaskCard />
-          <div className="grid grid-cols-1 rounded-[20px]">
-            <MiniCalendar
-              value={calendarDate}
-              onChange={setCalendarDate}
-              events={trainingCalendarEvents}
-            />
-            <div className="mt-3 rounded-xl bg-white p-3 text-xs text-gray-600 dark:bg-navy-800 dark:text-gray-200">
-              <p className="font-semibold text-navy-700 dark:text-white">{t(K.ADMIN_DASHBOARD_TRAINING_CALENDAR_EVENTS, "Training Calendar Events")}</p>
-              {selectedDateEvents.length === 0 && <p className="mt-1">{t(K.ADMIN_DASHBOARD_NO_EVENTS_ON_DATE, "No events on selected date.")}</p>}
-              {selectedDateEvents.slice(0, 4).map((event, index) => (
-                <p key={`${event.label}-${index}`} className="mt-1">• {event.label}</p>
-              ))}
-            </div>
+          <div className="rounded-xl bg-white p-3 text-xs text-gray-600 dark:bg-navy-800 dark:text-gray-200">
+            <p className="font-semibold text-navy-700 dark:text-white">
+              {t(K.ADMIN_DASHBOARD_MAINTENANCE_CALENDAR_EVENTS, "Maintenance Events on Selected Date")}
+            </p>
+            {selectedDateEvents.length === 0 && (
+              <p className="mt-1">{t(K.ADMIN_DASHBOARD_NO_EVENTS_ON_DATE, "No maintenance events on selected date.")}</p>
+            )}
+            {selectedDateEvents.slice(0, 6).map((event, i) => (
+              <p key={i} className="mt-1">• {event.label}</p>
+            ))}
           </div>
         </div>
       </div>

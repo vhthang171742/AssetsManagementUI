@@ -37,6 +37,7 @@ export { maintenanceScheduleService } from "./maintenanceScheduleService";
 export { maintenanceRecordService } from "./maintenanceRecordService";
 export { sparePartService } from "./sparePartService";
 export { maintenanceSparePartUsageService } from "./maintenanceSparePartUsageService";
+export { dashboardService } from "./dashboardService";
 
 // Phase 11: Practice Session Services
 export { practiceSessionService, practiceErrorLogService, sessionEvaluationService } from "./practiceSessionService";
