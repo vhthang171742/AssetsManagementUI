@@ -76,9 +76,8 @@ export default function Admin(props) {
         style={{ height: `${HEADER_HEIGHT}px` }}
       >
         <div className="flex h-full items-center justify-between gap-3">
-          <h1 className={`${isMobileSearchOpen ? "hidden" : "shrink-0"} text-lg font-bold uppercase leading-none tracking-[0.04em] text-navy-700 dark:text-white sm:text-[24px] xl:text-[26px]`}>
-            <span className="sm:hidden">{t(K.APP_NAME_SHORT, "Assets")}</span>
-            <span className="hidden sm:inline">{t(K.APP_NAME_FULL, "Assets Management")}</span>
+          <h1 className={`${isMobileSearchOpen ? "hidden" : "hidden shrink-0 sm:block"} text-lg font-bold uppercase leading-none tracking-[0.04em] text-navy-700 dark:text-white sm:text-[24px] xl:text-[26px]`}>
+            <span>{t(K.APP_NAME_FULL, "Assets Management")}</span>
           </h1>
           <div className="min-w-0 flex-1">
             <Navbar

@@ -10,6 +10,21 @@ import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function ClassesTable() {
   const { t } = useLanguage();
+  const createEmptyScheduleGroup = () => ({ daysMask: 0, startTime: "", endTime: "" });
+  const createDefaultFormData = () => ({
+    className: "",
+    classCode: "",
+    description: "",
+    courseID: "",
+    instructorID: "",
+    startDate: "",
+    endDate: "",
+    maxStudents: "",
+    roomID: "",
+    scheduleGroups: [createEmptyScheduleGroup()],
+    isActive: true,
+  });
+
   const [classes, setClasses] = useState([]);
   const [courses, setCourses] = useState([]);
   const [instructors, setInstructors] = useState([]);
@@ -20,21 +35,7 @@ export default function ClassesTable() {
   const [searchText, setSearchText] = useState("");
   const [courseFilter, setCourseFilter] = useState("");
   const [activeFilter, setActiveFilter] = useState("");
-  const [formData, setFormData] = useState({
-    className: "",
-    classCode: "",
-    description: "",
-    courseID: "",
-    instructorID: "",
-    startDate: "",
-    endDate: "",
-    maxStudents: "",
-    roomID: "",
-    scheduleDaysMask: 0,
-    scheduleStartTime: "",
-    scheduleEndTime: "",
-    isActive: true,
-  });
+  const [formData, setFormData] = useState(createDefaultFormData());
 
   useEffect(() => {
     fetchClasses();
@@ -52,6 +53,143 @@ export default function ClassesTable() {
     { bit: 1 << 6, label: t(K.ADMIN_TABLE_SAT, "Sat") },
     { bit: 1 << 0, label: t(K.ADMIN_TABLE_SUN, "Sun") },
   ];
+
+  const parseDateInput = (value) => {
+    if (!value) {
+      return null;
+    }
+
+    const [year, month, day] = String(value).split("-").map(Number);
+    if (!year || !month || !day) {
+      return null;
+    }
+
+    return new Date(year, month - 1, day);
+  };
+
+  const toMinutes = (timeValue) => {
+    if (!timeValue) {
+      return null;
+    }
+
+    const raw = String(timeValue).trim();
+    const amPmMatch = raw.match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])$/);
+    if (amPmMatch) {
+      let hour = Number(amPmMatch[1]);
+      const minute = Number(amPmMatch[2]);
+      const meridiem = amPmMatch[3].toUpperCase();
+
+      if (Number.isNaN(hour) || Number.isNaN(minute) || hour < 1 || hour > 12 || minute < 0 || minute > 59) {
+        return null;
+      }
+
+      if (hour === 12) {
+        hour = 0;
+      }
+      if (meridiem === "PM") {
+        hour += 12;
+      }
+
+      return hour * 60 + minute;
+    }
+
+    const [hourPart, minutePart] = raw.split(":");
+    const hour = Number(hourPart);
+    const minute = Number(minutePart);
+    if (Number.isNaN(hour) || Number.isNaN(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+      return null;
+    }
+
+    return hour * 60 + minute;
+  };
+
+  const hasOverlappingScheduleGroups = (groups) => {
+    const normalizedGroups = (groups || [])
+      .map((group) => {
+        const startMinutes = toMinutes(group.startTime);
+        const endMinutes = toMinutes(group.endTime);
+        return {
+          daysMask: Number(group.daysMask) || 0,
+          startMinutes,
+          endMinutes,
+        };
+      })
+      .filter((group) => group.daysMask > 0 && group.startMinutes !== null && group.endMinutes !== null && group.startMinutes < group.endMinutes);
+
+    for (let i = 0; i < normalizedGroups.length; i += 1) {
+      for (let j = i + 1; j < normalizedGroups.length; j += 1) {
+        const first = normalizedGroups[i];
+        const second = normalizedGroups[j];
+        const hasSharedDay = (first.daysMask & second.daysMask) !== 0;
+        const hasTimeOverlap = first.startMinutes < second.endMinutes && second.startMinutes < first.endMinutes;
+        if (hasSharedDay && hasTimeOverlap) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  };
+
+  const computeScheduledHours = (startDateValue, endDateValue, groups) => {
+    const start = parseDateInput(startDateValue);
+    const end = parseDateInput(endDateValue);
+    if (!start || !end || end < start) {
+      return 0;
+    }
+
+    const validGroups = (groups || [])
+      .map((group) => {
+        const startMinutes = toMinutes(group.startTime);
+        const endMinutes = toMinutes(group.endTime);
+        return {
+          ...group,
+          daysMask: Number(group.daysMask) || 0,
+          startMinutes,
+          endMinutes,
+        };
+      })
+      .filter((group) => group.daysMask > 0 && group.startMinutes !== null && group.endMinutes !== null && group.startMinutes < group.endMinutes);
+
+    if (validGroups.length === 0) {
+      return 0;
+    }
+
+    let total = 0;
+    const cursor = new Date(start);
+
+    while (cursor <= end) {
+      const dayBit = 1 << cursor.getDay();
+      const matchingGroups = validGroups.filter((item) => (item.daysMask & dayBit) !== 0);
+
+      matchingGroups.forEach((group) => {
+        total += (group.endMinutes - group.startMinutes) / 60;
+      });
+
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return total;
+  };
+
+  const selectedCourseHours = useMemo(() => {
+    const selectedCourseId = Number(formData.courseID);
+    if (!selectedCourseId) {
+      return 0;
+    }
+
+    return Number(courses.find((item) => item.courseID === selectedCourseId)?.durationHours || 0);
+  }, [courses, formData.courseID]);
+
+  const totalScheduledHours = useMemo(() => {
+    return computeScheduledHours(formData.startDate, formData.endDate, formData.scheduleGroups);
+  }, [formData.startDate, formData.endDate, formData.scheduleGroups]);
+
+  const hasScheduleOverlap = useMemo(() => {
+    return hasOverlappingScheduleGroups(formData.scheduleGroups);
+  }, [formData.scheduleGroups]);
+
+  const isScheduleHoursInsufficient = selectedCourseHours > 0 && totalScheduledHours < selectedCourseHours;
 
   const fetchClasses = async () => {
     try {
@@ -113,23 +251,63 @@ export default function ClassesTable() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!(Number(formData.scheduleDaysMask) > 0)) {
+
+    if (!formData.instructorID) {
+      alert(t(K.ADMIN_TABLE_INSTRUCTOR_REQUIRED, "Instructor is required."));
+      return;
+    }
+
+    const validGroups = (formData.scheduleGroups || []).filter((group) => Number(group.daysMask) > 0);
+    if (validGroups.length === 0) {
       alert(t(K.ADMIN_TABLE_SELECT_AT_LEAST_ONE_DAY, "Select at least one class day."));
       return;
     }
+
+    const hasInvalidTimeGroup = validGroups.some((group) => {
+      const startMinutes = toMinutes(group.startTime);
+      const endMinutes = toMinutes(group.endTime);
+      return startMinutes === null || endMinutes === null || startMinutes >= endMinutes;
+    });
+    if (hasInvalidTimeGroup) {
+      alert(t(K.ADMIN_TABLE_INVALID_TIMEFRAME, "Each schedule group must have a valid start and end time."));
+      return;
+    }
+
+    if (hasOverlappingScheduleGroups(validGroups)) {
+      alert(t(K.ADMIN_TABLE_SCHEDULE_GROUPS_OVERLAP, "Schedule groups cannot overlap on the same day."));
+      return;
+    }
+
+    const scheduleHours = computeScheduledHours(formData.startDate, formData.endDate, validGroups);
+    if (selectedCourseHours > 0 && scheduleHours < selectedCourseHours) {
+      alert(
+        `${t(K.ADMIN_TABLE_SCHEDULE_HOURS_INSUFFICIENT, "Total scheduled hours must be at least course hours.")} ` +
+        `${scheduleHours.toFixed(2)} / ${selectedCourseHours}`,
+      );
+      return;
+    }
+
+    const unionDaysMask = validGroups.reduce((mask, group) => mask | Number(group.daysMask || 0), 0);
+    const scheduleStartTime = validGroups.map((group) => group.startTime).sort()[0];
+    const scheduleEndTime = [...validGroups].map((group) => group.endTime).sort().reverse()[0];
 
     try {
       const dataToSend = {
         ...formData,
         courseID: parseInt(formData.courseID),
-        instructorID: formData.instructorID ? parseInt(formData.instructorID) : null,
+        instructorID: parseInt(formData.instructorID),
         roomID: formData.roomID ? parseInt(formData.roomID) : null,
         maxStudents: parseInt(formData.maxStudents) || 2147483647,
         startDate: formData.startDate || null,
         endDate: formData.endDate || null,
-        scheduleDaysMask: Number(formData.scheduleDaysMask) || 0,
-        scheduleStartTime: formData.scheduleStartTime ? `${formData.scheduleStartTime}:00` : null,
-        scheduleEndTime: formData.scheduleEndTime ? `${formData.scheduleEndTime}:00` : null,
+        scheduleGroups: validGroups.map((group) => ({
+          daysMask: Number(group.daysMask),
+          startTime: `${group.startTime}:00`,
+          endTime: `${group.endTime}:00`,
+        })),
+        scheduleDaysMask: unionDaysMask,
+        scheduleStartTime: scheduleStartTime ? `${scheduleStartTime}:00` : null,
+        scheduleEndTime: scheduleEndTime ? `${scheduleEndTime}:00` : null,
       };
 
       if (editingId) {
@@ -141,21 +319,7 @@ export default function ClassesTable() {
       }
       setShowModal(false);
       setEditingId(null);
-      setFormData({
-        className: "",
-        classCode: "",
-        description: "",
-        courseID: "",
-        instructorID: "",
-        roomID: "",
-        startDate: "",
-        endDate: "",
-        scheduleDaysMask: 0,
-        scheduleStartTime: "",
-        scheduleEndTime: "",
-        maxStudents: "",
-        isActive: true,
-      });
+      setFormData(createDefaultFormData());
       fetchClasses();
     } catch (error) {
       console.error("Failed to save class:", error);
@@ -172,18 +336,70 @@ export default function ClassesTable() {
     return String(value).slice(0, 5);
   };
 
-  const toggleScheduleDay = (bit) => {
+  const toggleScheduleDay = (groupIndex, bit) => {
     setFormData((prev) => {
-      const currentMask = Number(prev.scheduleDaysMask) || 0;
+      const currentGroup = prev.scheduleGroups[groupIndex] || createEmptyScheduleGroup();
+      const currentMask = Number(currentGroup.daysMask) || 0;
       const nextMask = currentMask & bit ? currentMask & ~bit : currentMask | bit;
+      const nextGroups = [...prev.scheduleGroups];
+      nextGroups[groupIndex] = {
+        ...currentGroup,
+        daysMask: nextMask,
+      };
+
       return {
         ...prev,
-        scheduleDaysMask: nextMask,
+        scheduleGroups: nextGroups,
+      };
+    });
+  };
+
+  const handleScheduleGroupTimeChange = (groupIndex, field, value) => {
+    setFormData((prev) => {
+      const nextGroups = [...prev.scheduleGroups];
+      const currentGroup = nextGroups[groupIndex] || createEmptyScheduleGroup();
+      nextGroups[groupIndex] = {
+        ...currentGroup,
+        [field]: value,
+      };
+
+      return {
+        ...prev,
+        scheduleGroups: nextGroups,
+      };
+    });
+  };
+
+  const addScheduleGroup = () => {
+    setFormData((prev) => ({
+      ...prev,
+      scheduleGroups: [...(prev.scheduleGroups || []), createEmptyScheduleGroup()],
+    }));
+  };
+
+  const removeScheduleGroup = (groupIndex) => {
+    setFormData((prev) => {
+      const nextGroups = (prev.scheduleGroups || []).filter((_, index) => index !== groupIndex);
+      return {
+        ...prev,
+        scheduleGroups: nextGroups.length > 0 ? nextGroups : [createEmptyScheduleGroup()],
       };
     });
   };
 
   const handleEdit = (classItem) => {
+    const normalizedGroups = (classItem.scheduleGroups && classItem.scheduleGroups.length > 0)
+      ? classItem.scheduleGroups.map((group) => ({
+          daysMask: Number(group.daysMask) || 0,
+          startTime: normalizeTime(group.startTime),
+          endTime: normalizeTime(group.endTime),
+        }))
+      : [{
+          daysMask: classItem.scheduleDaysMask || 0,
+          startTime: normalizeTime(classItem.scheduleStartTime),
+          endTime: normalizeTime(classItem.scheduleEndTime),
+        }];
+
     setFormData({
       className: classItem.className,
       classCode: classItem.classCode,
@@ -193,9 +409,7 @@ export default function ClassesTable() {
       roomID: classItem.roomID || "",
       startDate: classItem.startDate ? classItem.startDate.split("T")[0] : "",
       endDate: classItem.endDate ? classItem.endDate.split("T")[0] : "",
-      scheduleDaysMask: classItem.scheduleDaysMask || 0,
-      scheduleStartTime: normalizeTime(classItem.scheduleStartTime),
-      scheduleEndTime: normalizeTime(classItem.scheduleEndTime),
+      scheduleGroups: normalizedGroups,
       maxStudents: classItem.maxStudents,
       isActive: classItem.isActive,
     });
@@ -291,21 +505,7 @@ export default function ClassesTable() {
         <button
           onClick={() => {
             setEditingId(null);
-            setFormData({
-              className: "",
-              classCode: "",
-              description: "",
-              courseID: "",
-              instructorID: "",
-              roomID: "",
-              startDate: "",
-              endDate: "",
-              scheduleDaysMask: 0,
-              scheduleStartTime: "",
-              scheduleEndTime: "",
-              maxStudents: "",
-              isActive: true,
-            });
+            setFormData(createDefaultFormData());
             setShowModal(true);
           }}
           className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
@@ -427,15 +627,16 @@ export default function ClassesTable() {
 
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              {t(K.ADMIN_TABLE_INSTRUCTOR, "Instructor")}
+              {`${t(K.ADMIN_TABLE_INSTRUCTOR, "Instructor")} *`}
             </label>
             <select
               name="instructorID"
               value={formData.instructorID}
               onChange={handleInputChange}
+              required
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
-              <option value="">{t(K.ADMIN_TABLE_SELECT_INSTRUCTOR_OPTIONAL, "Select an instructor (optional)")}</option>
+              <option value="">{t(K.ADMIN_TABLE_SELECT_INSTRUCTOR_REQUIRED, "Select an instructor")}</option>
               {instructors.map((instructor) => (
                 <option key={instructor.id} value={instructor.id}>
                   {instructor.name} {instructor.email ? `(${instructor.email})` : ""}
@@ -504,57 +705,116 @@ export default function ClassesTable() {
             />
           </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              {`${t(K.ADMIN_TABLE_CLASS_DAYS, "Class Days")} *`}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {scheduleDays.map((day) => {
-                const checked = (Number(formData.scheduleDaysMask) || 0) & day.bit;
-                return (
-                  <button
-                    type="button"
-                    key={day.bit}
-                    onClick={() => toggleScheduleDay(day.bit)}
-                    className={`rounded border px-3 py-1 text-xs font-semibold ${
-                      checked
-                        ? "border-brand-500 bg-brand-500 text-white"
-                        : "border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-200"
-                    }`}
-                  >
-                    {day.label}
-                  </button>
-                );
-              })}
+          <div className={`rounded-lg border px-3 py-2 text-sm ${
+            isScheduleHoursInsufficient || hasScheduleOverlap
+              ? "border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200"
+              : "border-gray-200 bg-gray-50 text-navy-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-200"
+          }`}>
+            <p>
+              <span className="font-semibold">{t(K.ADMIN_TABLE_TOTAL_SCHEDULE_HOURS, "Total scheduled hours")}:</span>{" "}
+              {totalScheduledHours.toFixed(2)}
+            </p>
+            <p>
+              <span className="font-semibold">{t(K.ADMIN_TABLE_REQUIRED_COURSE_HOURS, "Required course hours")}:</span>{" "}
+              {selectedCourseHours}
+            </p>
+            {isScheduleHoursInsufficient ? (
+              <p className="mt-1 font-medium">
+                {t(K.ADMIN_TABLE_SCHEDULE_HOURS_INSUFFICIENT, "Total scheduled hours must be at least course hours.")}
+              </p>
+            ) : null}
+            {hasScheduleOverlap ? (
+              <p className="mt-1 font-medium">
+                {t(K.ADMIN_TABLE_SCHEDULE_GROUPS_OVERLAP, "Schedule groups cannot overlap on the same day.")}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-navy-700 dark:text-white">
+                {`${t(K.ADMIN_TABLE_SCHEDULE, "Schedule")} *`}
+              </label>
+              <button
+                type="button"
+                onClick={addScheduleGroup}
+                className="rounded border border-brand-500 px-3 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50 dark:border-brand-400 dark:text-brand-300"
+              >
+                {`${t(K.ADMIN_TABLE_ADD, "Add")} ${t(K.ADMIN_TABLE_SCHEDULE, "Schedule")} +`}
+              </button>
             </div>
-          </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              {`${t(K.ADMIN_TABLE_TIMEFRAME_START, "Start Time")} *`}
-            </label>
-            <input
-              type="time"
-              name="scheduleStartTime"
-              value={formData.scheduleStartTime}
-              onChange={handleInputChange}
-              required
-              className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-            />
-          </div>
+            {(formData.scheduleGroups || []).map((group, groupIndex) => (
+              <div key={`schedule-group-${groupIndex}`} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                    {`${t(K.ADMIN_TABLE_SCHEDULE, "Schedule")} ${groupIndex + 1}`}
+                  </p>
+                  {(formData.scheduleGroups || []).length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => removeScheduleGroup(groupIndex)}
+                      className="rounded border border-red-300 px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-300"
+                    >
+                      {t(K.ADMIN_TABLE_DELETE, "Delete")}
+                    </button>
+                  ) : null}
+                </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              {`${t(K.ADMIN_TABLE_TIMEFRAME_END, "End Time")} *`}
-            </label>
-            <input
-              type="time"
-              name="scheduleEndTime"
-              value={formData.scheduleEndTime}
-              onChange={handleInputChange}
-              required
-              className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-            />
+                <div className="mb-3">
+                  <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
+                    {`${t(K.ADMIN_TABLE_CLASS_DAYS, "Class Days")} *`}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {scheduleDays.map((day) => {
+                      const checked = (Number(group.daysMask) || 0) & day.bit;
+                      return (
+                        <button
+                          type="button"
+                          key={`${groupIndex}-${day.bit}`}
+                          onClick={() => toggleScheduleDay(groupIndex, day.bit)}
+                          className={`rounded border px-3 py-1 text-xs font-semibold ${
+                            checked
+                              ? "border-brand-500 bg-brand-500 text-white"
+                              : "border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-200"
+                          }`}
+                        >
+                          {day.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
+                      {`${t(K.ADMIN_TABLE_TIMEFRAME_START, "Start Time")} *`}
+                    </label>
+                    <input
+                      type="time"
+                      value={group.startTime}
+                      onChange={(e) => handleScheduleGroupTimeChange(groupIndex, "startTime", e.target.value)}
+                      required
+                      className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
+                      {`${t(K.ADMIN_TABLE_TIMEFRAME_END, "End Time")} *`}
+                    </label>
+                    <input
+                      type="time"
+                      value={group.endTime}
+                      onChange={(e) => handleScheduleGroupTimeChange(groupIndex, "endTime", e.target.value)}
+                      required
+                      className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           <div>
