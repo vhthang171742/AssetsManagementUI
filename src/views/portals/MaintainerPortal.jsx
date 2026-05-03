@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { useLocation } from "react-router-dom";
 import Card from "components/card";
 import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import PortalLayout from "layouts/portal";
@@ -18,6 +19,7 @@ const STATUS_OPTIONS = [
 
 export default function TechnicianPortal() {
   const { t } = useLanguage();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
 
   const [assets, setAssets] = useState([]);
@@ -90,6 +92,19 @@ export default function TechnicianPortal() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const dateParam = params.get("date");
+    if (!dateParam) {
+      return;
+    }
+
+    const parsed = new Date(dateParam);
+    if (!Number.isNaN(parsed.getTime())) {
+      setCalendarDate(parsed);
+    }
+  }, [location.search]);
 
   const handleStatusUpdate = async (event) => {
     event.preventDefault();

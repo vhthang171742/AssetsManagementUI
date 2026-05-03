@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { useLocation } from "react-router-dom";
 import Card from "components/card";
 import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import PortalLayout from "layouts/portal";
@@ -38,6 +39,7 @@ const formatSessionTime = (value) => {
 
 export default function StudentPortal() {
   const { t } = useLanguage();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
 
   const [assignments, setAssignments] = useState([]);
@@ -211,6 +213,19 @@ export default function StudentPortal() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const dateParam = params.get("date");
+    if (!dateParam) {
+      return;
+    }
+
+    const parsed = new Date(dateParam);
+    if (!Number.isNaN(parsed.getTime())) {
+      setCalendarDate(parsed);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     return () => {
