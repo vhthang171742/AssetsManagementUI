@@ -12,6 +12,7 @@ import {
   courseService,
 } from "services/api";
 import { getCurrentUser } from "services/userService";
+import { configurationService } from "services/configurationService";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
 
@@ -38,13 +39,14 @@ const formatSessionTime = (value) => {
 };
 
 export default function StudentPortal() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
 
   const [assignments, setAssignments] = useState([]);
   const [sessions, setSessions] = useState([]);
-  const [issueForm, setIssueForm] = useState({ sessionID: "", studentDescription: "" });
+  const [issueForm, setIssueForm] = useState({ sessionID: "", studentDescription: "", errorType: "" });
+  const [incidentCategories, setIncidentCategories] = useState([]);
   const [qrCodeValue, setQrCodeValue] = useState("");
   const [qrBusy, setQrBusy] = useState(false);
   const [myActiveCheckouts, setMyActiveCheckouts] = useState([]);
@@ -215,6 +217,33 @@ export default function StudentPortal() {
   }, []);
 
   useEffect(() => {
+    const PERMANENT_INCIDENT_CATEGORIES = [
+      { itemCode: "HARDWARE_FAILURE", label: t(K.INCIDENT_CATEGORY, "Incident category") === K.INCIDENT_CATEGORY ? "Hardware Failure" : "Hardware Failure" },
+      { itemCode: "SOFTWARE_ISSUE", label: "Software Issue" },
+      { itemCode: "NETWORK_ISSUE", label: "Network / Connectivity" },
+      { itemCode: "POWER_ISSUE", label: "Power Issue" },
+      { itemCode: "OTHER", label: "Other" },
+    ];
+
+    configurationService.getItems("ErrorType", language).then((items) => {
+      const configItems = (items || []).map((item) => ({
+        itemCode: item.itemCode,
+        label: item.label || item.itemCode,
+      }));
+      // Merge permanent options with config items (config items override by code)
+      const merged = [...PERMANENT_INCIDENT_CATEGORIES];
+      configItems.forEach((ci) => {
+        if (!merged.find((m) => m.itemCode === ci.itemCode)) {
+          merged.push(ci);
+        }
+      });
+      setIncidentCategories(merged);
+    }).catch(() => {
+      setIncidentCategories(PERMANENT_INCIDENT_CATEGORIES);
+    });
+  }, [language]);
+
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     const dateParam = params.get("date");
     if (!dateParam) {
@@ -356,10 +385,11 @@ export default function StudentPortal() {
       await practiceErrorLogService.create({
         sessionID: Number(issueForm.sessionID),
         errorTime: new Date().toISOString(),
+        errorType: issueForm.errorType || undefined,
         studentDescription: issueForm.studentDescription,
         instructorNotified: true,
       });
-      setIssueForm({ sessionID: "", studentDescription: "" });
+      setIssueForm({ sessionID: "", studentDescription: "", errorType: "" });
       showToast(t(K.STUDENT_ISSUE_REPORTED, "Issue reported successfully."));
       await loadData();
     } catch (error) {
@@ -535,6 +565,16 @@ export default function StudentPortal() {
                 <option key={session.sessionID} value={session.sessionID}>
                   {t(K.STUDENT_SESSION_ROW, "Session")} #{session.sessionID} • Asset #{session.roomAssetID}
                 </option>
+              ))}
+            </select>
+            <select
+              value={issueForm.errorType}
+              onChange={(e) => setIssueForm((prev) => ({ ...prev, errorType: e.target.value }))}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
+            >
+              <option value="">{t(K.INCIDENT_SELECT_CATEGORY, "Select incident category")}</option>
+              {incidentCategories.map((cat) => (
+                <option key={cat.itemCode} value={cat.itemCode}>{cat.label}</option>
               ))}
             </select>
             <textarea

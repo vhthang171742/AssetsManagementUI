@@ -378,10 +378,24 @@ export default function TrainingCalendarBoard({
                         <span className="tcb__event-badge" style={{ color: cfg.accent }}>
                           {cfg.icon} {cfg.badge}
                         </span>
+                        {event.time && (
+                          <span className="tcb__pill tcb__pill--time">{event.time}</span>
+                        )}
                       </div>
                       <p className="tcb__event-label">{event.label}</p>
                       {event.subtitle && (
                         <p className="tcb__event-subtitle">{event.subtitle}</p>
+                      )}
+                      {event.category && (
+                        <span className="tcb__pill tcb__pill--summary" style={{ marginTop: "4px", display: "inline-block" }}>
+                          {event.category}
+                        </span>
+                      )}
+                      {event.reporter && (
+                        <p className="tcb__event-subtitle">{event.reporter}</p>
+                      )}
+                      {event.room && (
+                        <p className="tcb__event-subtitle">{event.room}</p>
                       )}
                     </div>
                   </div>
