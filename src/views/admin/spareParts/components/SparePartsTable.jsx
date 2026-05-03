@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
+import toast from "react-hot-toast";
 import { sparePartService } from "services/api";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete, MdWarning } from "react-icons/md";
@@ -37,7 +38,7 @@ export default function SparePartsTable() {
       setParts(data || []);
     } catch (error) {
       console.error("Failed to fetch parts:", error);
-      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_SPARE_PARTS, "spare parts")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_SPARE_PARTS, "spare parts")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -58,10 +59,10 @@ export default function SparePartsTable() {
     try {
       if (editingId) {
         await sparePartService.update(editingId, formData);
-        alert(`${t(K.ADMIN_TABLE_PART, "Part")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_PART, "Part")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await sparePartService.create(formData);
-        alert(`${t(K.ADMIN_TABLE_PART, "Part")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_PART, "Part")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -70,7 +71,7 @@ export default function SparePartsTable() {
     } catch (error) {
       console.error("Failed to save part:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_PART, "part")}: ${error.message}${details}`);
+      toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_PART, "part")}: ${error.message}${details}`);
     }
   };
 
@@ -93,11 +94,11 @@ export default function SparePartsTable() {
     if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_PART, "Are you sure you want to delete this part?"))) {
       try {
         await sparePartService.delete(id);
-        alert(`${t(K.ADMIN_TABLE_PART, "Part")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_PART, "Part")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchParts();
       } catch (error) {
         console.error("Failed to delete part:", error);
-        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_PART, "part")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+        toast.error(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_PART, "part")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -105,11 +106,11 @@ export default function SparePartsTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await sparePartService.bulkDelete(ids);
-      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_PARTS, "parts")}`);
+      toast.success(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_PARTS, "parts")}`);
       fetchParts();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_PARTS, "parts")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_PARTS, "parts")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };

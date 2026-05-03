@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
+import toast from "react-hot-toast";
 import { classService, courseService, roomService } from "services/api";
 import { getAllUsers } from "services/userService";
 import Card from "components/card";
@@ -198,7 +199,7 @@ export default function ClassesTable() {
       setClasses(data || []);
     } catch (error) {
       console.error("Failed to fetch classes:", error);
-      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_CLASSES, "classes")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_CLASSES, "classes")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -253,13 +254,13 @@ export default function ClassesTable() {
     e.preventDefault();
 
     if (!formData.instructorID) {
-      alert(t(K.ADMIN_TABLE_INSTRUCTOR_REQUIRED, "Instructor is required."));
+      toast.error(t(K.ADMIN_TABLE_INSTRUCTOR_REQUIRED, "Instructor is required."));
       return;
     }
 
     const validGroups = (formData.scheduleGroups || []).filter((group) => Number(group.daysMask) > 0);
     if (validGroups.length === 0) {
-      alert(t(K.ADMIN_TABLE_SELECT_AT_LEAST_ONE_DAY, "Select at least one class day."));
+      toast.error(t(K.ADMIN_TABLE_SELECT_AT_LEAST_ONE_DAY, "Select at least one class day."));
       return;
     }
 
@@ -269,18 +270,18 @@ export default function ClassesTable() {
       return startMinutes === null || endMinutes === null || startMinutes >= endMinutes;
     });
     if (hasInvalidTimeGroup) {
-      alert(t(K.ADMIN_TABLE_INVALID_TIMEFRAME, "Each schedule group must have a valid start and end time."));
+      toast.error(t(K.ADMIN_TABLE_INVALID_TIMEFRAME, "Each schedule group must have a valid start and end time."));
       return;
     }
 
     if (hasOverlappingScheduleGroups(validGroups)) {
-      alert(t(K.ADMIN_TABLE_SCHEDULE_GROUPS_OVERLAP, "Schedule groups cannot overlap on the same day."));
+      toast.error(t(K.ADMIN_TABLE_SCHEDULE_GROUPS_OVERLAP, "Schedule groups cannot overlap on the same day."));
       return;
     }
 
     const scheduleHours = computeScheduledHours(formData.startDate, formData.endDate, validGroups);
     if (selectedCourseHours > 0 && scheduleHours < selectedCourseHours) {
-      alert(
+      toast.error(
         `${t(K.ADMIN_TABLE_SCHEDULE_HOURS_INSUFFICIENT, "Total scheduled hours must be at least course hours.")} ` +
         `${scheduleHours.toFixed(2)} / ${selectedCourseHours}`,
       );
@@ -312,10 +313,10 @@ export default function ClassesTable() {
 
       if (editingId) {
         await classService.update(editingId, dataToSend);
-        alert(`${t(K.ADMIN_TABLE_CLASS, "Class")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_CLASS, "Class")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await classService.create(dataToSend);
-        alert(`${t(K.ADMIN_TABLE_CLASS, "Class")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_CLASS, "Class")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -324,7 +325,7 @@ export default function ClassesTable() {
     } catch (error) {
       console.error("Failed to save class:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_CLASS, "class")}: ${error.message}${details}`);
+      toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_CLASS, "class")}: ${error.message}${details}`);
     }
   };
 
@@ -421,11 +422,11 @@ export default function ClassesTable() {
     if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_CLASS, "Are you sure you want to delete this class?"))) {
       try {
         await classService.delete(id);
-        alert(`${t(K.ADMIN_TABLE_CLASS, "Class")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_CLASS, "Class")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchClasses();
       } catch (error) {
         console.error("Failed to delete class:", error);
-        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_CLASS, "class")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+        toast.error(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_CLASS, "class")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -433,11 +434,11 @@ export default function ClassesTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await classService.bulkDelete(ids);
-      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_CLASSES, "classes")}`);
+      toast.success(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_CLASSES, "classes")}`);
       fetchClasses();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_CLASSES, "classes")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_CLASSES, "classes")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };

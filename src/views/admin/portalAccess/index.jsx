@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import Card from "components/card";
 import {
   getAllUsers,
@@ -55,7 +56,7 @@ export default function PortalAccessManagement() {
       setSelectedUsers(new Set());
     } catch (error) {
       console.error("Failed to fetch users:", error);
-      alert(t(K.PORTAL_ACCESS_FETCH_FAILED, "Failed to fetch users: {error}").replace("{error}", error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")));
+      toast.error(t(K.PORTAL_ACCESS_FETCH_FAILED, "Failed to fetch users: {error}").replace("{error}", error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")));
     } finally {
       setLoading(false);
     }
@@ -84,7 +85,7 @@ export default function PortalAccessManagement() {
 
   const processBulk = async (mode) => {
     if (selectedCount === 0) {
-      alert(t(K.PORTAL_ACCESS_SELECT_USER, "Please select at least one user."));
+      toast.error(t(K.PORTAL_ACCESS_SELECT_USER, "Please select at least one user."));
       return;
     }
 
@@ -97,7 +98,7 @@ export default function PortalAccessManagement() {
     });
 
     if (usersToProcess.length === 0) {
-      alert(
+      toast.error(
         mode === "grant"
           ? t(K.PORTAL_ACCESS_ALREADY_GRANTED, "All selected users already have {portal} access.").replace("{portal}", portalLabel)
           : t(K.PORTAL_ACCESS_NONE_TO_REVOKE, "None of the selected users currently have {portal} access.").replace("{portal}", portalLabel)
@@ -127,13 +128,13 @@ export default function PortalAccessManagement() {
       const successCount = results.length - failed.length;
 
       if (failed.length === 0) {
-        alert(
+        toast.success(
           mode === "grant"
             ? t(K.PORTAL_ACCESS_GRANTED, "Granted {portal} for {count} user(s).").replace("{portal}", portalLabel).replace("{count}", successCount)
             : t(K.PORTAL_ACCESS_REVOKED, "Revoked {portal} for {count} user(s).").replace("{portal}", portalLabel).replace("{count}", successCount)
         );
       } else {
-        alert(
+        toast.error(
           mode === "grant"
             ? t(K.PORTAL_ACCESS_PARTIAL_GRANT, "Granted {portal} for {count} user(s). {failed} user(s) failed. Check console for details.").replace("{portal}", portalLabel).replace("{count}", successCount).replace("{failed}", failed.length)
             : t(K.PORTAL_ACCESS_PARTIAL_REVOKE, "Revoked {portal} for {count} user(s). {failed} user(s) failed. Check console for details.").replace("{portal}", portalLabel).replace("{count}", successCount).replace("{failed}", failed.length)
@@ -144,7 +145,7 @@ export default function PortalAccessManagement() {
       await fetchUsers();
     } catch (error) {
       console.error("Bulk portal access operation failed:", error);
-      alert(t(K.PORTAL_ACCESS_BULK_FAILED, "Bulk operation failed: {error}").replace("{error}", error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")));
+      toast.error(t(K.PORTAL_ACCESS_BULK_FAILED, "Bulk operation failed: {error}").replace("{error}", error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")));
     } finally {
       setSubmitting(false);
     }
@@ -154,11 +155,11 @@ export default function PortalAccessManagement() {
     const portalLabel = t(portalKey, portalFallback);
     try {
       await assignRole(user.userID, role, null);
-      alert(t(K.PORTAL_ACCESS_GRANT_SUCCESS, "Granted {portal} successfully.").replace("{portal}", portalLabel));
+      toast.success(t(K.PORTAL_ACCESS_GRANT_SUCCESS, "Granted {portal} successfully.").replace("{portal}", portalLabel));
       await fetchUsers();
     } catch (error) {
       console.error("Grant portal access failed:", error);
-      alert(t(K.PORTAL_ACCESS_GRANT_FAILED, "Grant failed: {error}").replace("{error}", error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")));
+      toast.error(t(K.PORTAL_ACCESS_GRANT_FAILED, "Grant failed: {error}").replace("{error}", error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")));
     }
   };
 
@@ -168,11 +169,11 @@ export default function PortalAccessManagement() {
 
     try {
       await removeRole(user.userID, role);
-      alert(t(K.PORTAL_ACCESS_REVOKE_SUCCESS, "Revoked {portal} successfully.").replace("{portal}", portalLabel));
+      toast.success(t(K.PORTAL_ACCESS_REVOKE_SUCCESS, "Revoked {portal} successfully.").replace("{portal}", portalLabel));
       await fetchUsers();
     } catch (error) {
       console.error("Revoke portal access failed:", error);
-      alert(t(K.PORTAL_ACCESS_REVOKE_FAILED, "Revoke failed: {error}").replace("{error}", error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")));
+      toast.error(t(K.PORTAL_ACCESS_REVOKE_FAILED, "Revoke failed: {error}").replace("{error}", error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")));
     }
   };
 

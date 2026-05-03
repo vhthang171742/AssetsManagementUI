@@ -1,5 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import { MsalProvider, useMsal } from "@azure/msal-react";
 import { PublicClientApplication } from "@azure/msal-browser";
 
@@ -126,6 +127,14 @@ const App = () => {
       <AuthProvider>
         <LanguageProvider>
           <AppContent />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              success: { duration: 3000 },
+              error: { duration: 5000 },
+            }}
+          />
         </LanguageProvider>
       </AuthProvider>
     </MsalProvider>

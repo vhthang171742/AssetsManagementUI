@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
+import toast from "react-hot-toast";
 import { courseService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
@@ -34,7 +35,7 @@ export default function CoursesTable() {
       setCourses(data || []);
     } catch (error) {
       console.error("Failed to fetch courses:", error);
-      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_COURSES, "courses")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_COURSES, "courses")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -58,10 +59,10 @@ export default function CoursesTable() {
 
       if (editingId) {
         await courseService.update(editingId, dataToSend);
-        alert(`${t(K.ADMIN_TABLE_COURSE, "Course")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_COURSE, "Course")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await courseService.create(dataToSend);
-        alert(`${t(K.ADMIN_TABLE_COURSE, "Course")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_COURSE, "Course")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -76,7 +77,7 @@ export default function CoursesTable() {
     } catch (error) {
       console.error("Failed to save course:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_COURSE, "course")}: ${error.message}${details}`);
+      toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_COURSE, "course")}: ${error.message}${details}`);
     }
   };
 
@@ -96,11 +97,11 @@ export default function CoursesTable() {
     if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_COURSE, "Are you sure you want to delete this course?"))) {
       try {
         await courseService.delete(id);
-        alert(`${t(K.ADMIN_TABLE_COURSE, "Course")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_COURSE, "Course")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchCourses();
       } catch (error) {
         console.error("Failed to delete course:", error);
-        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_COURSE, "course")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+        toast.error(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_COURSE, "course")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -108,11 +109,11 @@ export default function CoursesTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await courseService.bulkDelete(ids);
-      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_COURSES, "courses")}`);
+      toast.success(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_COURSES, "courses")}`);
       fetchCourses();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_COURSES, "courses")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_COURSES, "courses")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };

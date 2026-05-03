@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
+import toast from "react-hot-toast";
 import { productionLineService, departmentService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
@@ -38,7 +39,7 @@ export default function ProductionLinesTable() {
       setLines(data || []);
     } catch (error) {
       console.error("Failed to fetch production lines:", error);
-      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_PRODUCTION_LINES, "production lines")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_PRODUCTION_LINES, "production lines")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -66,10 +67,10 @@ export default function ProductionLinesTable() {
     try {
       if (editingId) {
         await productionLineService.update(editingId, formData);
-        alert(`${t(K.ADMIN_TABLE_PRODUCTION_LINE, "Production line")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_PRODUCTION_LINE, "Production line")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await productionLineService.create(formData);
-        alert(`${t(K.ADMIN_TABLE_PRODUCTION_LINE, "Production line")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_PRODUCTION_LINE, "Production line")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -85,7 +86,7 @@ export default function ProductionLinesTable() {
     } catch (error) {
       console.error("Failed to save production line:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_PRODUCTION_LINE, "production line")}: ${error.message}${details}`);
+      toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_PRODUCTION_LINE, "production line")}: ${error.message}${details}`);
     }
   };
 
@@ -106,11 +107,11 @@ export default function ProductionLinesTable() {
     if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_PRODUCTION_LINE, "Are you sure you want to delete this production line?"))) {
       try {
         await productionLineService.delete(id);
-        alert(`${t(K.ADMIN_TABLE_PRODUCTION_LINE, "Production line")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_PRODUCTION_LINE, "Production line")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchProductionLines();
       } catch (error) {
         console.error("Failed to delete production line:", error);
-        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_PRODUCTION_LINE, "production line")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+        toast.error(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_PRODUCTION_LINE, "production line")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -118,11 +119,11 @@ export default function ProductionLinesTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await productionLineService.bulkDelete(ids);
-      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_PRODUCTION_LINES, "production lines")}`);
+      toast.success(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_PRODUCTION_LINES, "production lines")}`);
       fetchProductionLines();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_PRODUCTION_LINES, "production lines")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_PRODUCTION_LINES, "production lines")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };

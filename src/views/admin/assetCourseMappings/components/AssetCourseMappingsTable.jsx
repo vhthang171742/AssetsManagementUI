@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
+import toast from "react-hot-toast";
 import { assetCourseMappingService, courseService, assetService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
@@ -37,7 +38,7 @@ export default function AssetCourseMappingsTable() {
       setMappings(data || []);
     } catch (error) {
       console.error("Failed to fetch mappings:", error);
-      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_MAPPINGS, "mappings")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_MAPPINGS, "mappings")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -80,10 +81,10 @@ export default function AssetCourseMappingsTable() {
 
       if (editingId) {
         await assetCourseMappingService.update(editingId, dataToSend);
-        alert(`${t(K.ADMIN_TABLE_MAPPING, "Mapping")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_MAPPING, "Mapping")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await assetCourseMappingService.create(dataToSend);
-        alert(`${t(K.ADMIN_TABLE_MAPPING, "Mapping")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_MAPPING, "Mapping")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -96,7 +97,7 @@ export default function AssetCourseMappingsTable() {
     } catch (error) {
       console.error("Failed to save mapping:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_MAPPING, "mapping")}: ${error.message}${details}`);
+      toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_MAPPING, "mapping")}: ${error.message}${details}`);
     }
   };
 
@@ -114,11 +115,11 @@ export default function AssetCourseMappingsTable() {
     if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_MAPPING, "Are you sure you want to delete this mapping?"))) {
       try {
         await assetCourseMappingService.delete(id);
-        alert(`${t(K.ADMIN_TABLE_MAPPING, "Mapping")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_MAPPING, "Mapping")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchMappings();
       } catch (error) {
         console.error("Failed to delete mapping:", error);
-        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_MAPPING, "mapping")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+        toast.error(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_MAPPING, "mapping")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -126,11 +127,11 @@ export default function AssetCourseMappingsTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await assetCourseMappingService.bulkDelete(ids);
-      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_MAPPINGS, "mappings")}`);
+      toast.success(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_MAPPINGS, "mappings")}`);
       fetchMappings();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_MAPPINGS, "mappings")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_MAPPINGS, "mappings")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };

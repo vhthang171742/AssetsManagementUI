@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
+import toast from "react-hot-toast";
 import { equipmentUsageService, userService, roomService, productionLineService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
@@ -44,7 +45,7 @@ export default function EquipmentUsageTable() {
       setUsageLogs(data || []);
     } catch (error) {
       console.error("Failed to fetch usage logs:", error);
-      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_USAGE_LOGS, "usage logs")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_USAGE_LOGS, "usage logs")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -106,7 +107,7 @@ export default function EquipmentUsageTable() {
           const details = validation?.errors?.length
             ? "\n• " + validation.errors.join("\n• ")
             : "\n• Please refresh and select valid Equipment, Worker, and Production Line values.";
-          alert(t(K.ADMIN_TABLE_REFERENCE_VALIDATION_ERRORS_USAGE_LOG, "Cannot save usage log due to reference validation errors:") + details);
+          toast.error(t(K.ADMIN_TABLE_REFERENCE_VALIDATION_ERRORS_USAGE_LOG, "Cannot save usage log due to reference validation errors:") + details);
           return;
         }
       } catch (validationError) {
@@ -119,10 +120,10 @@ export default function EquipmentUsageTable() {
 
       if (editingId) {
         await equipmentUsageService.update(editingId, formData);
-        alert(`${t(K.ADMIN_TABLE_USAGE_LOG, "Usage log")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_USAGE_LOG, "Usage log")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await equipmentUsageService.create(formData);
-        alert(`${t(K.ADMIN_TABLE_USAGE_LOG, "Usage log")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_USAGE_LOG, "Usage log")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -143,7 +144,7 @@ export default function EquipmentUsageTable() {
       const details = Array.isArray(error.errors) && error.errors.length
         ? "\n• " + error.errors.join("\n• ")
         : "";
-      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_USAGE_LOG, "usage log")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}${details}`);
+      toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_USAGE_LOG, "usage log")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}${details}`);
     }
   };
 
@@ -167,11 +168,11 @@ export default function EquipmentUsageTable() {
     if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_USAGE_LOG, "Are you sure you want to delete this usage log?"))) {
       try {
         await equipmentUsageService.delete(id);
-        alert(`${t(K.ADMIN_TABLE_USAGE_LOG, "Usage log")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_USAGE_LOG, "Usage log")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchUsageLogs();
       } catch (error) {
         console.error("Failed to delete usage log:", error);
-        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_USAGE_LOG, "usage log")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+        toast.error(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_USAGE_LOG, "usage log")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -179,11 +180,11 @@ export default function EquipmentUsageTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await equipmentUsageService.bulkDelete(ids);
-      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_USAGE_LOGS, "usage logs")}`);
+      toast.success(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_USAGE_LOGS, "usage logs")}`);
       fetchUsageLogs();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_USAGE_LOGS, "usage logs")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_USAGE_LOGS, "usage logs")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };

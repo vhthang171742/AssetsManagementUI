@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
+import toast from "react-hot-toast";
 import { maintenanceScheduleService, assetService } from "services/api";
 import { dropdownService } from "services/dropdownService";
 import Table from "components/table/Table";
@@ -43,7 +44,7 @@ export default function MaintenanceSchedulesTable() {
       setSchedules(data || []);
     } catch (error) {
       console.error("Failed to fetch schedules:", error);
-      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_MAINTENANCE_SCHEDULES, "maintenance schedules")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_MAINTENANCE_SCHEDULES, "maintenance schedules")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -80,10 +81,10 @@ export default function MaintenanceSchedulesTable() {
     try {
       if (editingId) {
         await maintenanceScheduleService.update(editingId, formData);
-        alert(`${t(K.ADMIN_TABLE_SCHEDULE, "Schedule")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_SCHEDULE, "Schedule")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await maintenanceScheduleService.create(formData);
-        alert(`${t(K.ADMIN_TABLE_SCHEDULE, "Schedule")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_SCHEDULE, "Schedule")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -92,7 +93,7 @@ export default function MaintenanceSchedulesTable() {
     } catch (error) {
       console.error("Failed to save schedule:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_SCHEDULE, "schedule")}: ${error.message}${details}`);
+      toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_SCHEDULE, "schedule")}: ${error.message}${details}`);
     }
   };
 
@@ -114,11 +115,11 @@ export default function MaintenanceSchedulesTable() {
     if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_SCHEDULE, "Are you sure you want to delete this schedule?"))) {
       try {
         await maintenanceScheduleService.delete(id);
-        alert(`${t(K.ADMIN_TABLE_SCHEDULE, "Schedule")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_SCHEDULE, "Schedule")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchSchedules();
       } catch (error) {
         console.error("Failed to delete schedule:", error);
-        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_SCHEDULE, "schedule")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+        toast.error(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_SCHEDULE, "schedule")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -126,11 +127,11 @@ export default function MaintenanceSchedulesTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await maintenanceScheduleService.bulkDelete(ids);
-      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_SCHEDULES, "schedules")}`);
+      toast.success(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_SCHEDULES, "schedules")}`);
       fetchSchedules();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_SCHEDULES, "schedules")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_SCHEDULES, "schedules")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };

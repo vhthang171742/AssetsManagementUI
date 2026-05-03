@@ -1,4 +1,5 @@
-import React, { useMemo, useState, useEffect } from "react";
+﻿import React, { useMemo, useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
 
@@ -97,7 +98,7 @@ export default function Table({
       setSelected(new Set());
     } catch (err) {
       console.error(err);
-      alert(`${t(K.TABLE_BULK_DELETE_FAILED, "Bulk delete failed")}: ${err.message || err}`);
+      toast.error(`${t(K.TABLE_BULK_DELETE_FAILED, "Bulk delete failed")}: ${err.message || err}`);
     }
   };
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import Card from "components/card";
 import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import PortalLayout from "layouts/portal";
@@ -38,8 +39,6 @@ const formatSessionTime = (value) => {
 export default function StudentPortal() {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [isError, setIsError] = useState(false);
 
   const [assignments, setAssignments] = useState([]);
   const [sessions, setSessions] = useState([]);
@@ -159,8 +158,8 @@ export default function StudentPortal() {
   const calendarEvents = useMemo(() => [], []);
 
   const showToast = (text, error = false) => {
-    setMessage(text);
-    setIsError(error);
+    if (error) toast.error(text);
+    else toast.success(text);
   };
 
   const loadData = async () => {
@@ -372,17 +371,6 @@ export default function StudentPortal() {
 
   return (
     <PortalLayout title="Student Portal" titleKey={K.STUDENT_PORTAL_TITLE}>
-      {message && (
-        <div
-          className={`mt-5 rounded-xl border px-4 py-3 text-sm ${
-            isError
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700"
-          }`}
-        >
-          {message}
-        </div>
-      )}
 
       <div className="grid grid-cols-1 gap-5">
         <Card extra="p-6">

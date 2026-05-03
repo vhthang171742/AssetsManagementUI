@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
+import toast from "react-hot-toast";
 import { configurationService } from "services/configurationService";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
@@ -52,7 +53,7 @@ export default function ConfigurationPanel() {
       }
     } catch (err) {
       console.error("Failed to fetch categories:", err);
-      alert(t(K.CONFIG_FETCH_CATEGORIES_FAILED, "Failed to fetch categories: {error}").replace("{error}", err.message));
+      toast.error(t(K.CONFIG_FETCH_CATEGORIES_FAILED, "Failed to fetch categories: {error}").replace("{error}", err.message));
     } finally {
       setLoadingCategories(false);
     }
@@ -89,12 +90,12 @@ export default function ConfigurationPanel() {
     e.preventDefault();
     try {
       await configurationService.createCategory(categoryForm);
-      alert(t(K.CONFIG_CATEGORY_CREATED, "Category created successfully"));
+      toast.success(t(K.CONFIG_CATEGORY_CREATED, "Category created successfully"));
       setShowCategoryModal(false);
       setCategoryForm({ categoryCode: "", categoryName: "", description: "" });
       await fetchCategories();
     } catch (err) {
-      alert(t(K.CONFIG_CREATE_CATEGORY_FAILED, "Failed to create category: {error}").replace("{error}", err.message));
+      toast.error(t(K.CONFIG_CREATE_CATEGORY_FAILED, "Failed to create category: {error}").replace("{error}", err.message));
     }
   };
 
@@ -138,7 +139,7 @@ export default function ConfigurationPanel() {
         await configurationService.updateItemTranslations(editingItemId, {
           translations: itemForm.translations,
         });
-        alert(t(K.CONFIG_TRANSLATIONS_UPDATED, "Translations updated successfully"));
+        toast.success(t(K.CONFIG_TRANSLATIONS_UPDATED, "Translations updated successfully"));
       } else {
         // Create new item
         await configurationService.createItem({
@@ -146,13 +147,13 @@ export default function ConfigurationPanel() {
           itemCode: itemForm.itemCode,
           translations: itemForm.translations,
         });
-        alert(t(K.CONFIG_ITEM_CREATED, "Item created successfully"));
+        toast.success(t(K.CONFIG_ITEM_CREATED, "Item created successfully"));
       }
       setShowItemModal(false);
       fetchItems();
     } catch (err) {
       const details = err.errors?.length ? "\n\u2022 " + err.errors.join("\n\u2022 ") : "";
-      alert(t(K.CONFIG_SAVE_ITEM_FAILED, "Failed to save item: {error}").replace("{error}", `${err.message}${details}`));
+      toast.error(t(K.CONFIG_SAVE_ITEM_FAILED, "Failed to save item: {error}").replace("{error}", `${err.message}${details}`));
     }
   };
 
@@ -160,10 +161,10 @@ export default function ConfigurationPanel() {
     if (!window.confirm(t(K.CONFIG_CONFIRM_DELETE_ITEM, "Are you sure you want to delete this configuration item?"))) return;
     try {
       await configurationService.deleteItem(itemId);
-      alert(t(K.CONFIG_ITEM_DELETED, "Item deleted"));
+      toast.success(t(K.CONFIG_ITEM_DELETED, "Item deleted"));
       fetchItems();
     } catch (err) {
-      alert(t(K.CONFIG_DELETE_ITEM_FAILED, "Failed to delete item: {error}").replace("{error}", err.message));
+      toast.error(t(K.CONFIG_DELETE_ITEM_FAILED, "Failed to delete item: {error}").replace("{error}", err.message));
     }
   };
 

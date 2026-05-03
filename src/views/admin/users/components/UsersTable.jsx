@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
+import toast from "react-hot-toast";
 import { getAllUsers, assignRole, removeRole, updateUserCode } from "services/userService";
 import Card from "components/card";
 import Table from "components/table/Table";
@@ -31,7 +32,7 @@ export default function UsersTable() {
       setUsers(data || []);
     } catch (error) {
       console.error("Failed to fetch users:", error);
-      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_USERS, "users")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_USERS, "users")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -45,14 +46,14 @@ export default function UsersTable() {
         roleFormData.role,
         roleFormData.roleCode || null
       );
-      alert(`${t(K.ADMIN_TABLE_ROLE, "Role")} "${roleFormData.role}" ${t(K.ADMIN_TABLE_ASSIGNED_SUCCESSFULLY, "assigned successfully")}`);
+      toast.success(`${t(K.ADMIN_TABLE_ROLE, "Role")} "${roleFormData.role}" ${t(K.ADMIN_TABLE_ASSIGNED_SUCCESSFULLY, "assigned successfully")}`);
       setShowRoleModal(false);
       setRoleFormData({ role: "Student", roleCode: "" });
       setSelectedUser(null);
       fetchUsers();
     } catch (error) {
       console.error("Failed to assign role:", error);
-      alert(`${t(K.ADMIN_TABLE_FAILED_ASSIGN_ROLE, "Failed to assign role")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_FAILED_ASSIGN_ROLE, "Failed to assign role")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     }
   };
 
@@ -60,11 +61,11 @@ export default function UsersTable() {
     if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_REMOVE_ROLE, `Are you sure you want to remove the "${role}" role from this user?`, { role }))) {
       try {
         await removeRole(userId, role);
-        alert(`${t(K.ADMIN_TABLE_ROLE, "Role")} "${role}" ${t(K.ADMIN_TABLE_REMOVED_SUCCESSFULLY, "removed successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_ROLE, "Role")} "${role}" ${t(K.ADMIN_TABLE_REMOVED_SUCCESSFULLY, "removed successfully")}`);
         fetchUsers();
       } catch (error) {
         console.error("Failed to remove role:", error);
-        alert(`${t(K.ADMIN_TABLE_FAILED_REMOVE_ROLE, "Failed to remove role")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+        toast.error(`${t(K.ADMIN_TABLE_FAILED_REMOVE_ROLE, "Failed to remove role")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -77,14 +78,14 @@ export default function UsersTable() {
         roleFormData.role,
         roleFormData.roleCode
       );
-      alert(t(K.ADMIN_TABLE_CODE_UPDATED_SUCCESSFULLY, "Code updated successfully"));
+      toast.success(t(K.ADMIN_TABLE_CODE_UPDATED_SUCCESSFULLY, "Code updated successfully"));
       setShowCodeModal(false);
       setRoleFormData({ role: "Student", roleCode: "" });
       setSelectedUser(null);
       fetchUsers();
     } catch (error) {
       console.error("Failed to update code:", error);
-      alert(`${t(K.ADMIN_TABLE_FAILED_UPDATE_CODE, "Failed to update code")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_FAILED_UPDATE_CODE, "Failed to update code")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     }
   };
 

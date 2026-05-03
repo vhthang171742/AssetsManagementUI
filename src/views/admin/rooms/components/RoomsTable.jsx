@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
+import toast from "react-hot-toast";
 import { roomService, departmentService, assetService } from "services/api";
 import { dropdownService } from "services/dropdownService";
 import Card from "components/card";
@@ -51,7 +52,7 @@ export default function RoomsTable() {
       setRooms(data || []);
     } catch (error) {
       console.error("Failed to fetch rooms:", error);
-      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_ROOMS, "rooms")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ROUTE_ROOMS, "rooms")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -114,10 +115,10 @@ export default function RoomsTable() {
     try {
       if (editingId) {
         await roomService.update(editingId, formData);
-        alert(`${t(K.ADMIN_TABLE_ROOM, "Room")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_ROOM, "Room")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await roomService.create(formData);
-        alert(`${t(K.ADMIN_TABLE_ROOM, "Room")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_ROOM, "Room")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -130,7 +131,7 @@ export default function RoomsTable() {
     } catch (error) {
       console.error("Failed to save room:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_ROOM, "room")}: ${error.message}${details}`);
+      toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_ROOM, "room")}: ${error.message}${details}`);
     }
   };
 
@@ -139,9 +140,9 @@ export default function RoomsTable() {
     try {
       const created = await roomService.addAsset(selectedRoomId, assetFormData);
       if (created?.qrCodeValue) {
-        alert(`${t(K.ADMIN_TABLE_ASSET_ADDED_TO_ROOM_SUCCESSFULLY_QR, "Asset added to room successfully. QR: {qr}").replace("{qr}", created.qrCodeValue)}`);
+        toast.success(`${t(K.ADMIN_TABLE_ASSET_ADDED_TO_ROOM_SUCCESSFULLY_QR, "Asset added to room successfully. QR: {qr}").replace("{qr}", created.qrCodeValue)}`);
       } else {
-        alert(t(K.ADMIN_TABLE_ASSET_ADDED_TO_ROOM_SUCCESSFULLY, "Asset added to room successfully"));
+        toast.success(t(K.ADMIN_TABLE_ASSET_ADDED_TO_ROOM_SUCCESSFULLY, "Asset added to room successfully"));
       }
       setShowAssetModal(false);
       setAssetFormData({
@@ -154,7 +155,7 @@ export default function RoomsTable() {
     } catch (error) {
       console.error("Failed to add asset:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert(`${t(K.ADMIN_TABLE_FAILED_ADD_ASSET, "Failed to add asset")}: ${error.message}${details}`);
+      toast.error(`${t(K.ADMIN_TABLE_FAILED_ADD_ASSET, "Failed to add asset")}: ${error.message}${details}`);
     }
   };
 
@@ -172,11 +173,11 @@ export default function RoomsTable() {
     if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_ROOM, "Are you sure you want to delete this room?"))) {
       try {
         await roomService.delete(id);
-        alert(`${t(K.ADMIN_TABLE_ROOM, "Room")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_ROOM, "Room")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchRooms();
       } catch (error) {
         console.error("Failed to delete room:", error);
-        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_ROOM, "room")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+        toast.error(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_ROOM, "room")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -184,11 +185,11 @@ export default function RoomsTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await roomService.bulkDelete(ids);
-      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ROUTE_ROOMS, "rooms")}`);
+      toast.success(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ROUTE_ROOMS, "rooms")}`);
       fetchRooms();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ROUTE_ROOMS, "rooms")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ROUTE_ROOMS, "rooms")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };
@@ -197,11 +198,11 @@ export default function RoomsTable() {
     if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_REMOVE_ASSET_FROM_ROOM, "Are you sure you want to remove this asset from the room?"))) {
       try {
         await roomService.removeAsset(roomId, assetId);
-        alert(`${t(K.ADMIN_TABLE_ASSET, "Asset")} ${t(K.ADMIN_TABLE_REMOVED_SUCCESSFULLY, "removed successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_ASSET, "Asset")} ${t(K.ADMIN_TABLE_REMOVED_SUCCESSFULLY, "removed successfully")}`);
         fetchRoomAssets(roomId);
       } catch (error) {
         console.error("Failed to remove asset:", error);
-        alert(`${t(K.ADMIN_TABLE_FAILED_REMOVE_ASSET, "Failed to remove asset")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+        toast.error(`${t(K.ADMIN_TABLE_FAILED_REMOVE_ASSET, "Failed to remove asset")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };

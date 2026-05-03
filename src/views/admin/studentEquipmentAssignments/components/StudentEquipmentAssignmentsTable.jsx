@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
+import toast from "react-hot-toast";
 import { studentEquipmentAssignmentService, classService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
@@ -37,7 +38,7 @@ export default function StudentEquipmentAssignmentsTable() {
       setAssignments(data || []);
     } catch (error) {
       console.error("Failed to fetch assignments:", error);
-      alert(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_ASSIGNMENTS, "assignments")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_ASSIGNMENTS, "assignments")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
     }
@@ -72,10 +73,10 @@ export default function StudentEquipmentAssignmentsTable() {
 
       if (editingId) {
         await studentEquipmentAssignmentService.update(editingId, dataToSend);
-        alert(`${t(K.ADMIN_TABLE_ASSIGNMENT, "Assignment")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_ASSIGNMENT, "Assignment")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
         await studentEquipmentAssignmentService.create(dataToSend);
-        alert(`${t(K.ADMIN_TABLE_ASSIGNMENT, "Assignment")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_ASSIGNMENT, "Assignment")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
@@ -90,7 +91,7 @@ export default function StudentEquipmentAssignmentsTable() {
     } catch (error) {
       console.error("Failed to save assignment:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      alert(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_ASSIGNMENT, "assignment")}: ${error.message}${details}`);
+      toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_ASSIGNMENT, "assignment")}: ${error.message}${details}`);
     }
   };
 
@@ -110,11 +111,11 @@ export default function StudentEquipmentAssignmentsTable() {
     if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_ASSIGNMENT, "Are you sure you want to delete this assignment?"))) {
       try {
         await studentEquipmentAssignmentService.delete(id);
-        alert(`${t(K.ADMIN_TABLE_ASSIGNMENT, "Assignment")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
+        toast.success(`${t(K.ADMIN_TABLE_ASSIGNMENT, "Assignment")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
         fetchAssignments();
       } catch (error) {
         console.error("Failed to delete assignment:", error);
-        alert(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_ASSIGNMENT, "assignment")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+        toast.error(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_ASSIGNMENT, "assignment")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -123,11 +124,11 @@ export default function StudentEquipmentAssignmentsTable() {
     if (window.confirm(t(K.ADMIN_TABLE_CONFIRM_UNASSIGN_EQUIPMENT, "Are you sure you want to unassign this equipment?"))) {
       try {
         await studentEquipmentAssignmentService.unassign(id);
-        alert(t(K.ADMIN_TABLE_EQUIPMENT_UNASSIGNED_SUCCESSFULLY, "Equipment unassigned successfully"));
+        toast.success(t(K.ADMIN_TABLE_EQUIPMENT_UNASSIGNED_SUCCESSFULLY, "Equipment unassigned successfully"));
         fetchAssignments();
       } catch (error) {
         console.error("Failed to unassign equipment:", error);
-        alert(`${t(K.ADMIN_TABLE_FAILED_UNASSIGN_EQUIPMENT, "Failed to unassign equipment")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+        toast.error(`${t(K.ADMIN_TABLE_FAILED_UNASSIGN_EQUIPMENT, "Failed to unassign equipment")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       }
     }
   };
@@ -135,11 +136,11 @@ export default function StudentEquipmentAssignmentsTable() {
   const handleBulkDelete = async (ids) => {
     try {
       await studentEquipmentAssignmentService.bulkDelete(ids);
-      alert(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_ASSIGNMENTS, "assignments")}`);
+      toast.success(`${t(K.ADMIN_TABLE_DELETED_SELECTED, "Deleted selected")} ${t(K.ADMIN_TABLE_ASSIGNMENTS, "assignments")}`);
       fetchAssignments();
     } catch (err) {
       console.error("Bulk delete failed:", err);
-      alert(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_ASSIGNMENTS, "assignments")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      toast.error(`${t(K.ADMIN_TABLE_DELETE_SELECTED_FAILED, "Failed to delete selected")} ${t(K.ADMIN_TABLE_ASSIGNMENTS, "assignments")}: ${err.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
       throw err;
     }
   };
@@ -164,7 +165,7 @@ export default function StudentEquipmentAssignmentsTable() {
     },
     {
       header: t(K.ADMIN_TABLE_STATUS, "Status"),
-      accessor: (row) => (row.isActive ? t(K.ADMIN_TABLE_ACTIVE, "Active") : t(K.ADMIN_TABLE_UNASSIGNED, "Unassigned")),
+      accessor: (row) => (row.isActive ? t(K.ADMIN_TABLE_IN_USE, "In Use") : t(K.ADMIN_TABLE_UNASSIGNED, "Unassigned")),
     },
   ];
 
@@ -241,7 +242,7 @@ export default function StudentEquipmentAssignmentsTable() {
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
-            <option value="true">{t(K.ADMIN_TABLE_ACTIVE, "Active")}</option>
+            <option value="true">{t(K.ADMIN_TABLE_IN_USE, "In Use")}</option>
             <option value="false">{t(K.ADMIN_TABLE_UNASSIGNED, "Unassigned")}</option>
           </select>
         </div>
