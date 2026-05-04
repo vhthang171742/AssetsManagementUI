@@ -42,4 +42,7 @@ export { dashboardService } from "./dashboardService";
 // Phase 11: Practice Session Services
 export { practiceSessionService, practiceErrorLogService, sessionEvaluationService } from "./practiceSessionService";
 
+// Phase 14: Asset Lifecycle State Machine
+export { assetLifecycleService } from "./assetLifecycleService";
+
 export const userService = userServiceDefault;
