@@ -4,6 +4,8 @@ import Widget from "components/widget/Widget";
 import { dashboardService } from "services/api";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
+import { useAuth } from "context/AuthContext";
+import { toDateKeyInTimeZone } from "services/dateTimeService";
 import {
   MdBuild,
   MdDevices,
@@ -22,6 +24,8 @@ import SparePartsHealthTable from "./components/SparePartsHealthTable";
 
 const Dashboard = () => {
   const { t } = useLanguage();
+  const { currentUser } = useAuth();
+  const userTimeZoneId = currentUser?.timeZoneId || "";
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,8 +54,7 @@ const Dashboard = () => {
 
   const selectedDateEvents = maintenanceEvents.filter((e) => {
     if (!e.date) return false;
-    const d = new Date(e.date);
-    return d.toISOString().slice(0, 10) === calendarDate.toISOString().slice(0, 10);
+    return toDateKeyInTimeZone(e.date, userTimeZoneId) === toDateKeyInTimeZone(calendarDate, userTimeZoneId);
   });
 
   return (

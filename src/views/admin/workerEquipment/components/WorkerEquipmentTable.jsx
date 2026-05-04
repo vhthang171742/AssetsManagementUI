@@ -7,9 +7,13 @@ import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
+import { useAuth } from "context/AuthContext";
+import { formatDateInTimeZone } from "services/dateTimeService";
 
 export default function WorkerEquipmentTable() {
   const { t } = useLanguage();
+  const { currentUser } = useAuth();
+  const userTimeZoneId = currentUser?.timeZoneId || "";
   const [assignments, setAssignments] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [workers, setWorkers] = useState([]);
@@ -208,13 +212,13 @@ export default function WorkerEquipmentTable() {
     },
     {
       header: t(K.ADMIN_TABLE_ASSIGNED_DATE, "Assigned Date"),
-      accessor: (row) => new Date(row.assignedDate).toLocaleDateString(),
+      accessor: (row) => formatDateInTimeZone(row.assignedDate, userTimeZoneId),
       sortKey: "assignedDate",
     },
     {
       header: t(K.ADMIN_TABLE_UNASSIGNED_DATE, "Unassigned Date"),
       accessor: (row) =>
-        row.unassignedDate ? new Date(row.unassignedDate).toLocaleDateString() : "—",
+        row.unassignedDate ? formatDateInTimeZone(row.unassignedDate, userTimeZoneId) : "—",
       sortKey: "unassignedDate",
     },
     {

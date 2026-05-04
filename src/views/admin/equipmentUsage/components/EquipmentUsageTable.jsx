@@ -7,9 +7,13 @@ import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
+import { useAuth } from "context/AuthContext";
+import { formatDateTimeInTimeZone } from "services/dateTimeService";
 
 export default function EquipmentUsageTable() {
   const { t } = useLanguage();
+  const { currentUser } = useAuth();
+  const userTimeZoneId = currentUser?.timeZoneId || "";
   const [usageLogs, setUsageLogs] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [workers, setWorkers] = useState([]);
@@ -238,13 +242,13 @@ export default function EquipmentUsageTable() {
     },
     {
       header: t(K.ADMIN_TABLE_START_TIME, "Start Time"),
-      accessor: (row) => new Date(row.startTime).toLocaleString(),
+      accessor: (row) => formatDateTimeInTimeZone(row.startTime, userTimeZoneId, { dateStyle: "short", timeStyle: "short" }),
       sortKey: "startTime",
     },
     {
       header: t(K.ADMIN_TABLE_END_TIME, "End Time"),
       accessor: (row) =>
-        row.endTime ? new Date(row.endTime).toLocaleString() : "—",
+        row.endTime ? formatDateTimeInTimeZone(row.endTime, userTimeZoneId, { dateStyle: "short", timeStyle: "short" }) : "—",
       sortKey: "endTime",
     },
     {

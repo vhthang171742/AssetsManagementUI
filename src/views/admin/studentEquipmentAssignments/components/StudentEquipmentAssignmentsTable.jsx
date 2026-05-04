@@ -7,9 +7,13 @@ import { MdModeEditOutline, MdDelete, MdLogout } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
+import { useAuth } from "context/AuthContext";
+import { formatDateInTimeZone } from "services/dateTimeService";
 
 export default function StudentEquipmentAssignmentsTable() {
   const { t } = useLanguage();
+  const { currentUser } = useAuth();
+  const userTimeZoneId = currentUser?.timeZoneId || "";
   const [assignments, setAssignments] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [classes, setClasses] = useState([]);
@@ -194,7 +198,7 @@ export default function StudentEquipmentAssignmentsTable() {
     },
     {
       header: t(K.ADMIN_TABLE_ASSIGNED_DATE, "Assigned Date"),
-      accessor: (row) => new Date(row.assignedDate).toLocaleDateString(),
+      accessor: (row) => formatDateInTimeZone(row.assignedDate, userTimeZoneId),
       sortKey: "assignedDate",
     },
     {

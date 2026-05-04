@@ -8,9 +8,13 @@ import Card from "components/card";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
+import { useAuth } from "context/AuthContext";
+import { formatDateInTimeZone } from "services/dateTimeService";
 
 export default function MaintenanceSchedulesTable() {
   const { t } = useLanguage();
+  const { currentUser } = useAuth();
+  const userTimeZoneId = currentUser?.timeZoneId || "";
   const [schedules, setSchedules] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [assets, setAssets] = useState([]);
@@ -278,8 +282,8 @@ export default function MaintenanceSchedulesTable() {
             { header: t(K.ADMIN_TABLE_ASSET, 'Asset'), accessor: 'assetID', sortKey: "assetName", render: (row) => getAssetName(row.assetID) },
             { header: t(K.ADMIN_TABLE_TYPE, 'Type'), accessor: 'maintenanceTypeItemID', sortKey: "maintenanceType", render: (row) => getMaintenanceTypeName(row.maintenanceTypeItemID) },
             { header: t(K.ADMIN_TABLE_FREQUENCY, 'Frequency'), accessor: 'frequency', sortKey: "frequency", render: (row) => t(K.ADMIN_TABLE_FREQUENCY_DAYS_HOURS, `${row.frequency} days/hours`).replace("{value}", row.frequency) },
-            { header: t(K.ADMIN_TABLE_LAST_MAINTENANCE, 'Last Maintenance'), accessor: 'lastMaintenanceDate', sortKey: "lastMaintenanceDate", render: (row) => row.lastMaintenanceDate ? new Date(row.lastMaintenanceDate).toLocaleDateString() : t(K.ADMIN_TABLE_NA, 'N/A') },
-            { header: t(K.ADMIN_TABLE_NEXT_DUE, 'Next Due'), accessor: 'nextDueDate', sortKey: "nextDueDate", render: (row) => row.nextDueDate ? new Date(row.nextDueDate).toLocaleDateString() : t(K.ADMIN_TABLE_NA, 'N/A') },
+            { header: t(K.ADMIN_TABLE_LAST_MAINTENANCE, 'Last Maintenance'), accessor: 'lastMaintenanceDate', sortKey: "lastMaintenanceDate", render: (row) => row.lastMaintenanceDate ? formatDateInTimeZone(row.lastMaintenanceDate, userTimeZoneId) : t(K.ADMIN_TABLE_NA, 'N/A') },
+            { header: t(K.ADMIN_TABLE_NEXT_DUE, 'Next Due'), accessor: 'nextDueDate', sortKey: "nextDueDate", render: (row) => row.nextDueDate ? formatDateInTimeZone(row.nextDueDate, userTimeZoneId) : t(K.ADMIN_TABLE_NA, 'N/A') },
             { header: t(K.ADMIN_TABLE_ACTIVE, 'Active'), accessor: 'isActive', sortKey: "isActive", render: (row) => row.isActive ? '✓' : '✗' },
             {
               header: t(K.ADMIN_TABLE_ACTIONS, 'Actions'),

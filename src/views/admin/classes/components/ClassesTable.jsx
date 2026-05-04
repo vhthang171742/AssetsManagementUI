@@ -8,9 +8,14 @@ import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
+import { useAuth } from "context/AuthContext";
+import { formatDateInTimeZone } from "services/dateTimeService";
+import { utcClockTimeToTimeZone } from "services/dateTimeService";
 
 export default function ClassesTable() {
   const { t } = useLanguage();
+  const { currentUser } = useAuth();
+  const userTimeZoneId = currentUser?.timeZoneId || "";
   const createEmptyScheduleGroup = () => ({ daysMask: 0, startTime: "", endTime: "" });
   const createDefaultFormData = () => ({
     className: "",
@@ -366,6 +371,16 @@ export default function ClassesTable() {
     return String(value).slice(0, 5);
   };
 
+  // Convert a UTC HH:MM[:SS] time string to the local HH:MM in a given IANA timezone.
+  const utcTimeToLocal = (utcTimeStr, tzId, referenceDate) => {
+    if (!utcTimeStr || !tzId) return normalizeTime(utcTimeStr);
+    try {
+      return utcClockTimeToTimeZone(utcTimeStr, tzId, referenceDate);
+    } catch {
+      return normalizeTime(utcTimeStr);
+    }
+  };
+
   const toggleScheduleDay = (groupIndex, bit) => {
     setFormData((prev) => {
       const currentGroup = prev.scheduleGroups[groupIndex] || createEmptyScheduleGroup();
@@ -418,16 +433,17 @@ export default function ClassesTable() {
   };
 
   const handleEdit = (classItem) => {
+    const tzId = currentUser?.timeZoneId;
     const normalizedGroups = (classItem.scheduleGroups && classItem.scheduleGroups.length > 0)
       ? classItem.scheduleGroups.map((group) => ({
           daysMask: Number(group.daysMask) || 0,
-          startTime: normalizeTime(group.startTime),
-          endTime: normalizeTime(group.endTime),
+          startTime: utcTimeToLocal(group.startTime, tzId, classItem.startDate),
+          endTime: utcTimeToLocal(group.endTime, tzId, classItem.startDate),
         }))
       : [{
           daysMask: classItem.scheduleDaysMask || 0,
-          startTime: normalizeTime(classItem.scheduleStartTime),
-          endTime: normalizeTime(classItem.scheduleEndTime),
+          startTime: utcTimeToLocal(classItem.scheduleStartTime, tzId, classItem.startDate),
+          endTime: utcTimeToLocal(classItem.scheduleEndTime, tzId, classItem.startDate),
         }];
 
     setFormData({
@@ -509,7 +525,7 @@ export default function ClassesTable() {
     {
       header: t(K.ADMIN_TABLE_START_DATE, "Start Date"),
       accessor: (row) =>
-        row.startDate ? new Date(row.startDate).toLocaleDateString() : t(K.ADMIN_TABLE_NA, "N/A"),
+        row.startDate ? formatDateInTimeZone(row.startDate, userTimeZoneId) : t(K.ADMIN_TABLE_NA, "N/A"),
       sortKey: "startDate",
     },
     {

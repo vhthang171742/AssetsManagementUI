@@ -3,13 +3,15 @@ import Calendar from "react-calendar";
 import { MdChevronLeft, MdChevronRight } from "react-icons/md";
 import "react-calendar/dist/Calendar.css";
 import "assets/css/TrainingCalendarBoard.css";
+import {
+  formatTimeInTimeZone,
+  toDateKeyInTimeZone,
+  utcClockTimeToTimeZone,
+} from "services/dateTimeService";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-const toDateKey = (value) => {
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
-};
+const toDateKey = (value, timeZoneId) => toDateKeyInTimeZone(value, timeZoneId);
 
 const addDays = (date, n) => {
   const d = new Date(date);
@@ -17,33 +19,35 @@ const addDays = (date, n) => {
   return d;
 };
 
-const formatDayLabel = (date) =>
+const formatDayLabel = (date, timeZoneId) =>
   date.toLocaleDateString(undefined, {
     weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
+    timeZone: timeZoneId || undefined,
   });
 
-const formatTime = (value) => {
+const formatTime = (value, timeZoneId, referenceDate) => {
   if (!value) {
     return "";
   }
 
-  if (typeof value === "string" && value.includes(":")) {
-    return value.slice(0, 5);
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+
+    // Full timestamp (ISO/API) should be formatted directly in the target timezone.
+    if (trimmed.includes("T") || trimmed.endsWith("Z") || /[+\-]\d{2}:\d{2}$/.test(trimmed)) {
+      return formatTimeInTimeZone(trimmed, timeZoneId);
+    }
+
+    // Clock-only strings from class schedules are stored as UTC clock time.
+    if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+      return utcClockTimeToTimeZone(trimmed, timeZoneId, referenceDate);
+    }
   }
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  return date.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  return formatTimeInTimeZone(value, timeZoneId);
 };
 
 /**
@@ -51,19 +55,19 @@ const formatTime = (value) => {
  * Backend encodes days as: dayBit = 1 << DayOfWeek  (Sunday=0 … Saturday=6)
  * which matches JS Date.prototype.getDay().
  */
-const isScheduledOnDate = (item, date) => {
+const isScheduledOnDate = (item, date, timeZoneId) => {
   if (!item.daysMask || !item.startDate || !item.endDate) return false;
-  const key = toDateKey(date);
-  const startKey = toDateKey(item.startDate);
-  const endKey = toDateKey(item.endDate);
+  const key = toDateKey(date, timeZoneId);
+  const startKey = toDateKey(item.startDate, timeZoneId);
+  const endKey = toDateKey(item.endDate, timeZoneId);
   if (!key || !startKey || !endKey) return false;
   if (key < startKey || key > endKey) return false;
   const dow = (date instanceof Date ? date : new Date(date)).getDay();
   return (item.daysMask & (1 << dow)) !== 0;
 };
 
-const getLessonsForDate = (item, date) => {
-  const key = toDateKey(date);
+const getLessonsForDate = (item, date, timeZoneId) => {
+  const key = toDateKey(date, timeZoneId);
   const byDate = (key && item.lessonsByDate && item.lessonsByDate[key]) || [];
 
   if (byDate.length > 0) {
@@ -88,12 +92,12 @@ const getLessonsForDate = (item, date) => {
   return [];
 };
 
-const lessonCountForDate = (item, date) => {
-  if (!isScheduledOnDate(item, date)) {
+const lessonCountForDate = (item, date, timeZoneId) => {
+  if (!isScheduledOnDate(item, date, timeZoneId)) {
     return 0;
   }
 
-  const lessons = getLessonsForDate(item, date);
+  const lessons = getLessonsForDate(item, date, timeZoneId);
   return lessons.length > 0 ? lessons.length : 1;
 };
 
@@ -124,31 +128,33 @@ export default function TrainingCalendarBoard({
   onChange,
   scheduleItems = [],
   events = [],
+  timeZoneId,
   title,
   detailsTitle,
   noEventsText,
   onForceReturn,
+  renderLessonActions,
 }) {
   const [expandedLessons, setExpandedLessons] = useState({});
   // ── event map (point-in-time: sessions, assignments, issues) ───────────────
   const eventMap = useMemo(() => {
     const map = new Map();
     events.forEach((ev) => {
-      const key = toDateKey(ev.date);
+      const key = toDateKey(ev.date, timeZoneId);
       if (!key) return;
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(ev);
     });
     return map;
-  }, [events]);
+  }, [events, timeZoneId]);
 
   // ── schedule: which dates have at least one active class? ──────────────────
   // We don't pre-expand all dates; instead the tileContent callback checks per tile.
   // But for the tileClassName (dot indicator) we need a fast lookup.
   // We mark a date as "has schedule" only in tileContent (cheap per-tile check).
 
-  const today = toDateKey(new Date());
-  const selectedDateKey = toDateKey(value);
+  const today = toDateKey(new Date(), timeZoneId);
+  const selectedDateKey = toDateKey(value, timeZoneId);
 
   // Events for the selected day
   const selectedEvents = useMemo(
@@ -169,12 +175,12 @@ export default function TrainingCalendarBoard({
     }
 
     return scheduleItems
-      .filter((item) => isScheduledOnDate(item, value))
+      .filter((item) => isScheduledOnDate(item, value, timeZoneId))
       .map((item) => ({
         ...item,
-        dailyLessons: getLessonsForDate(item, value),
+        dailyLessons: getLessonsForDate(item, value, timeZoneId),
       }));
-  }, [scheduleItems, value]);
+  }, [scheduleItems, value, timeZoneId]);
 
   const isToday = selectedDateKey === today;
   const hasAnything = activeScheduleItems.length > 0 || sortedEvents.length > 0;
@@ -207,9 +213,9 @@ export default function TrainingCalendarBoard({
           view="month"
           tileClassName={({ date, view }) => {
             if (view !== "month") return null;
-            const key = toDateKey(date);
+            const key = toDateKey(date, timeZoneId);
             const parts = [];
-            const hasSchedule = scheduleItems.some((item) => lessonCountForDate(item, date) > 0);
+            const hasSchedule = scheduleItems.some((item) => lessonCountForDate(item, date, timeZoneId) > 0);
             if (hasSchedule) {
               parts.push("tcb__schedule-tile");
               if (key && key < today) {
@@ -221,10 +227,10 @@ export default function TrainingCalendarBoard({
           }}
           tileContent={({ date, view }) => {
             if (view !== "month") return null;
-            const key = toDateKey(date);
+            const key = toDateKey(date, timeZoneId);
 
             const scheduleCount = scheduleItems.reduce(
-              (sum, item) => sum + lessonCountForDate(item, date),
+              (sum, item) => sum + lessonCountForDate(item, date, timeZoneId),
               0
             );
             const dayEvents = key ? (eventMap.get(key) || []) : [];
@@ -254,7 +260,7 @@ export default function TrainingCalendarBoard({
               {isToday && <span className="tcb__today-badge">Today</span>}
             </span>
             <span className="tcb__right-date">
-              {value ? formatDayLabel(value) : ""}
+              {value ? formatDayLabel(value, timeZoneId) : ""}
             </span>
           </div>
           <div className="tcb__day-nav">
@@ -307,7 +313,7 @@ export default function TrainingCalendarBoard({
                           >
                             {(lesson.startTime || lesson.endTime) && (
                               <span className="tcb__pill tcb__pill--time">
-                                {formatTime(lesson.startTime)}-{formatTime(lesson.endTime)}
+                                {formatTime(lesson.startTime, timeZoneId, value)}-{formatTime(lesson.endTime, timeZoneId, value)}
                               </span>
                             )}
                             {lesson.summaryLabel && (
@@ -356,6 +362,16 @@ export default function TrainingCalendarBoard({
                               ))}
                             </div>
                           ) : null}
+
+                          {renderLessonActions
+                            ? renderLessonActions({
+                                item,
+                                lesson,
+                                lessonIndex: index,
+                                lessonKey: `${item.id}-${index}`,
+                                selectedDate: value,
+                              })
+                            : null}
                         </div>
                       ))}
                     </div>

@@ -4,12 +4,18 @@ import { useLocation } from "react-router-dom";
 import Card from "components/card";
 import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import PortalLayout from "layouts/portal";
-import { classService, practiceErrorLogService, studentEquipmentAssignmentService } from "services/api";
+import { classService, practiceErrorLogService } from "services/api";
 import assetService from "services/assetService";
 import { assetLifecycleService } from "services/assetLifecycleService";
 import { configurationService } from "services/configurationService";
 import { useLanguage } from "context/LanguageContext";
+import { useAuth } from "context/AuthContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
+import {
+  formatDateInTimeZone,
+  formatDateTimeInTimeZone,
+  formatTimeInTimeZone,
+} from "services/dateTimeService";
 
 const STATUS_OPTIONS = [
   { code: "OPERATIONAL", key: K.MAINTAINER_STATUS_OPERATIONAL, fallback: "Operational" },
@@ -27,13 +33,14 @@ const JOB_STATUS_COLORS = {
 
 export default function TechnicianPortal() {
   const { t, language } = useLanguage();
+  const { currentUser } = useAuth();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
+  const userTimeZoneId = currentUser?.timeZoneId || "";
 
   const [assets, setAssets] = useState([]);
   const [issues, setIssues] = useState([]);
   const [openJobs, setOpenJobs] = useState([]);
-  const [activeAssignments, setActiveAssignments] = useState([]);
   const [classes, setClasses] = useState([]);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [resolutionCategories, setResolutionCategories] = useState([]);
@@ -55,7 +62,7 @@ export default function TechnicianPortal() {
         ? [{ startTime: cls.scheduleStartTime || "", endTime: cls.scheduleEndTime || "" }]
         : [],
     }))
-  , [classes]);
+  , [classes, userTimeZoneId]);
 
   const openIssues = useMemo(
     () => issues.filter((issue) => !issue.resolutionTime).slice(0, 8),
@@ -69,11 +76,11 @@ export default function TechnicianPortal() {
       label: `${t("MAINTAINER_ISSUE", "Incident")} #${issue.errorLogID}`,
       subtitle: `${t("MAINTAINER_SESSION", "Session")} #${issue.sessionID}`,
       category: issue.errorType || null,
-      time: issue.errorTime ? new Date(issue.errorTime).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false }) : null,
+      time: issue.errorTime ? formatTimeInTimeZone(issue.errorTime, userTimeZoneId) : null,
       reporter: issue.reporterName || null,
       room: issue.roomName || null,
     }))
-  , [openIssues, t]);
+  , [openIssues, t, userTimeZoneId]);
 
   const showToast = (text, error = false) => {
     if (error) toast.error(text);
@@ -83,10 +90,9 @@ export default function TechnicianPortal() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allAssets, allIssues, active, classList, jobs] = await Promise.all([
+      const [allAssets, allIssues, classList, jobs] = await Promise.all([
         assetService.getAllStatuses(),
         practiceErrorLogService.getAll(),
-        studentEquipmentAssignmentService.getActive(),
         classService.getActive(),
         assetLifecycleService.getOpenJobs().catch(() => []),
       ]);
@@ -97,7 +103,6 @@ export default function TechnicianPortal() {
           (a, b) => new Date(b.errorTime || 0) - new Date(a.errorTime || 0)
         )
       );
-      setActiveAssignments(active || []);
       setClasses(classList || []);
       setOpenJobs(jobs || []);
     } catch (error) {
@@ -205,28 +210,11 @@ export default function TechnicianPortal() {
             onChange={setCalendarDate}
             scheduleItems={scheduleItems}
             events={calendarEvents}
+            timeZoneId={userTimeZoneId}
             title={t("MAINTAINER_TRAINING_CALENDAR", "Training Calendar")}
             detailsTitle={t("COMMON_DAILY_DETAILS", "Daily Details")}
             noEventsText={t("MAINTAINER_NO_EVENTS_ON_DATE", "No training events on selected date.")}
           />
-        </Card>
-      </div>
-
-      <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-3">
-        <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.MAINTAINER_OPEN_REPORTS, "Open Reports")}</p>
-          <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{openJobs.length}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.MAINTAINER_AWAITING_DECISION, "Awaiting maintainer decision")}</p>
-        </Card>
-        <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.MAINTAINER_TRACKED_ASSETS, "Tracked Assets")}</p>
-          <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{assets.length}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.MAINTAINER_ALL_STATUSES_VISIBLE, "All statuses visible")}</p>
-        </Card>
-        <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.MAINTAINER_ASSETS_IN_USE, "Assets In Use")}</p>
-          <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{activeAssignments.length}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.MAINTAINER_PROTECTED_TRANSITIONS, "Protected from risky transitions")}</p>
         </Card>
       </div>
 
@@ -333,13 +321,13 @@ export default function TechnicianPortal() {
                   {job.expectedBy && (
                     <div>
                       <span className="font-semibold">{t("MAINTAINER_SLA_DUE", "SLA Due")}:</span>{" "}
-                      {new Date(job.expectedBy).toLocaleDateString()}
+                      {formatDateInTimeZone(job.expectedBy, userTimeZoneId)}
                     </div>
                   )}
                   {job.createdAt && (
                     <div>
                       <span className="font-semibold">{t(K.MAINTAINER_DATETIME_LABEL, "Reported at")}:</span>{" "}
-                      {new Date(job.createdAt).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short", hour12: false })}
+                      {formatDateTimeInTimeZone(job.createdAt, userTimeZoneId, { dateStyle: "short", timeStyle: "short" })}
                     </div>
                   )}
                 </div>

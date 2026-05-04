@@ -28,8 +28,8 @@ function severityIcon(severity) {
 }
 
 function toDateKey(value) {
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
+  const date = parseTimestamp(value);
+  if (!date || Number.isNaN(date.getTime())) {
     return null;
   }
   return date.toISOString().slice(0, 10);
@@ -38,18 +38,19 @@ function toDateKey(value) {
 function parseTimestamp(value) {
   if (!value) return null;
 
+  if (typeof value === "string") {
+    // Some APIs may return ISO without timezone suffix; treat those as UTC first.
+    if (!/[zZ]|[+\-]\d{2}:\d{2}$/.test(value)) {
+      const parsedUtc = new Date(`${value}Z`);
+      if (!Number.isNaN(parsedUtc.getTime())) {
+        return parsedUtc;
+      }
+    }
+  }
+
   const direct = new Date(value);
   if (!Number.isNaN(direct.getTime())) {
     return direct;
-  }
-
-  if (typeof value === "string") {
-    // Some APIs may return ISO without timezone suffix; treat as UTC fallback.
-    const utcFallback = /[zZ]|[+\-]\d{2}:\d{2}$/.test(value) ? value : `${value}Z`;
-    const parsed = new Date(utcFallback);
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed;
-    }
   }
 
   return null;
@@ -80,7 +81,7 @@ function splitNotificationMessage(message) {
   return { summary, details };
 }
 
-function NotificationDropdown({ t, language }) {
+function NotificationDropdown({ t, language, timeZoneId }) {
   const { notifications, unreadCount, loading, error, markAsRead, dismissNotification, markAllAsReadAndDismiss } = useNotifications();
   const navigate = useNavigate();
   const [nowMs, setNowMs] = React.useState(() => Date.now());
@@ -119,8 +120,9 @@ function NotificationDropdown({ t, language }) {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
+      timeZone: timeZoneId || undefined,
     });
-  }, [nowMs, language, t]);
+  }, [nowMs, language, t, timeZoneId]);
 
   const getTargetPath = (n) => {
     const typeCode = String(n.typeCode || "").toUpperCase();
@@ -298,7 +300,7 @@ const Navbar = (props) => {
     onMobileSearchOpenChange,
     compact = false,
   } = props;
-  const { isDarkMode, toggleDarkMode, userProfile, userPhoto, getAvailablePortals, selectedPortalId, setSelectedPortal } = useAuth();
+  const { isDarkMode, toggleDarkMode, userProfile, userPhoto, getAvailablePortals, selectedPortalId, setSelectedPortal, currentUser } = useAuth();
   const { t, language } = useLanguage();
   const { instance } = useMsal();
   const location = useLocation();
@@ -414,7 +416,7 @@ const Navbar = (props) => {
               <FiSearch className="h-4 w-4 text-gray-400 dark:text-white" />
             </button>
             <div className={`ml-auto flex items-center gap-1 sm:gap-1.5 ${searchOpen ? "hidden sm:flex" : ""}`}>
-              <NotificationDropdown t={t} language={language} />
+              <NotificationDropdown t={t} language={language} timeZoneId={currentUser?.timeZoneId} />
               <div className="hidden sm:block">
                 <LanguageSwitcher className="" />
               </div>

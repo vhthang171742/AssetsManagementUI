@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useLocation } from "react-router-dom";
 import Card from "components/card";
@@ -15,27 +15,44 @@ import { getCurrentUser } from "services/userService";
 import { configurationService } from "services/configurationService";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
+import {
+  formatDateTimeInTimeZone,
+  formatTimeInTimeZone,
+  parseApiDateTime,
+  toDateKeyInTimeZone,
+  utcClockTimeToTimeZone,
+} from "services/dateTimeService";
 
-const toDateKey = (value) => {
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
+const CLOCK_TIME_REGEX = /^\d{1,2}:\d{2}(:\d{2})?$/;
+
+const parseClockMinutes = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  const [hours, minutes] = String(value).split(":").map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return null;
+  }
+
+  return (hours * 60) + minutes;
 };
 
-const formatSessionTime = (value) => {
+const getMinutesInTimeZone = (value, timeZoneId, referenceDate) => {
   if (!value) {
-    return "";
+    return null;
   }
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
+  if (typeof value === "string" && CLOCK_TIME_REGEX.test(value.trim())) {
+    return parseClockMinutes(utcClockTimeToTimeZone(value.trim(), timeZoneId, referenceDate));
   }
 
-  return date.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  const parsed = parseApiDateTime(value);
+  if (!parsed) {
+    return null;
+  }
+
+  return parseClockMinutes(formatTimeInTimeZone(parsed, timeZoneId));
 };
 
 export default function StudentPortal() {
@@ -47,11 +64,11 @@ export default function StudentPortal() {
   const [sessions, setSessions] = useState([]);
   const [issueForm, setIssueForm] = useState({ sessionID: "", studentDescription: "", errorType: "" });
   const [incidentCategories, setIncidentCategories] = useState([]);
-  const [qrCodeValue, setQrCodeValue] = useState("");
   const [qrBusy, setQrBusy] = useState(false);
   const [myActiveCheckouts, setMyActiveCheckouts] = useState([]);
   const [isScanning, setIsScanning] = useState(false);
   const [scannerSupported, setScannerSupported] = useState(true);
+  const [scannerTarget, setScannerTarget] = useState(null);
   const [courses, setCourses] = useState([]);
   const [courseClasses, setCourseClasses] = useState([]);
   const [selectedCourseId, setSelectedCourseId] = useState("");
@@ -59,6 +76,7 @@ export default function StudentPortal() {
   const [myClassId, setMyClassId] = useState(null);
   const [myClassDetails, setMyClassDetails] = useState(null);
   const [calendarDate, setCalendarDate] = useState(new Date());
+  const [userTimeZoneId, setUserTimeZoneId] = useState("");
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -74,15 +92,61 @@ export default function StudentPortal() {
     [assignments]
   );
 
+  const activeCheckoutByAsset = useMemo(
+    () => myActiveCheckouts.reduce((acc, item) => {
+      acc.set(`${item.classID ?? ""}-${item.roomAssetID ?? ""}`, item);
+      return acc;
+    }, new Map()),
+    [myActiveCheckouts]
+  );
+
+  const assignedAssetsWithSessions = useMemo(() => {
+    const sessionKeyFor = (item) => `${item.roomAssetID ?? ""}-${item.classID ?? ""}`;
+
+    const openSessionByAsset = openSessions.reduce((acc, session) => {
+      const key = sessionKeyFor(session);
+      if (!acc.has(key)) {
+        acc.set(key, session);
+      }
+      return acc;
+    }, new Map());
+
+    const assignmentItems = assignments.slice(0, 6).map((item) => ({
+      type: "assignment",
+      key: `assignment-${item.assignmentID}`,
+      assignment: item,
+      session: openSessionByAsset.get(sessionKeyFor(item)) || null,
+    }));
+
+    const existingSessionKeys = new Set(
+      assignmentItems
+        .filter((item) => item.session)
+        .map((item) => String(item.session.sessionID))
+    );
+
+    const sessionOnlyItems = openSessions
+      .filter((session) => !existingSessionKeys.has(String(session.sessionID)))
+      .map((session) => ({
+        type: "session",
+        key: `session-${session.sessionID}`,
+        assignment: null,
+        session,
+      }));
+
+    return [...assignmentItems, ...sessionOnlyItems].slice(0, 6);
+  }, [assignments, openSessions]);
+
   // Schedule items: enrolled class(es) → day-by-day view with asset info
   const scheduleItems = useMemo(() => {
-    const assetByClass = activeAssignments.reduce((acc, a) => {
-      if (!acc[a.classID]) acc[a.classID] = a.roomAssetID;
+    const assignmentByClass = activeAssignments.reduce((acc, assignment) => {
+      if (!acc[assignment.classID]) {
+        acc[assignment.classID] = assignment;
+      }
       return acc;
     }, {});
 
     const sessionsByClassDate = sessions.reduce((acc, session) => {
-      const key = toDateKey(session.startTime);
+      const key = toDateKeyInTimeZone(session.startTime, userTimeZoneId);
       if (!key || !session.classID) {
         return acc;
       }
@@ -96,8 +160,11 @@ export default function StudentPortal() {
       }
 
       acc[classKey][key].push({
-        startTime: formatSessionTime(session.startTime),
-        endTime: formatSessionTime(session.endTime),
+        sessionID: session.sessionID,
+        classID: session.classID,
+        roomAssetID: session.roomAssetID,
+        startTime: session.startTime,
+        endTime: session.endTime,
         assetLabel: session.roomAssetID ? `Asset #${session.roomAssetID}` : null,
         attendanceStatus: session.attendanceStatus || "Pending",
       });
@@ -136,28 +203,61 @@ export default function StudentPortal() {
     // Only show classes the student is enrolled in
     return sourceClasses
       .filter((item) => !myClassId || item.classID === myClassId)
-      .map((item) => ({
-        id: item.classID,
-        name: item.className,
-        courseName: item.courseName || courseNameById[item.courseID] || item.className,
-        room: item.roomName || "",
-        startDate: item.startDate,
-        endDate: item.endDate,
-        daysMask: item.scheduleDaysMask || 0,
-        lessons: [
-          {
-            startTime: item.scheduleStartTime || "",
-            endTime: item.scheduleEndTime || "",
-            assetLabel: assetByClass[item.classID]
-              ? `Asset #${assetByClass[item.classID]}`
-              : "No assigned asset",
-            attendanceStatus:
-              latestStatusByClass[String(item.classID)]?.status || "Not-checked",
+      .map((item) => {
+        const assignment = assignmentByClass[item.classID] || null;
+        const defaultAssetId = assignment?.roomAssetID || null;
+        const defaultCheckout = defaultAssetId
+          ? activeCheckoutByAsset.get(`${item.classID ?? ""}-${defaultAssetId}`) || null
+          : null;
+
+        const defaultLesson = {
+          classID: item.classID,
+          assignmentID: assignment?.assignmentID || null,
+          roomAssetID: defaultAssetId,
+          startTime: item.scheduleStartTime || "",
+          endTime: item.scheduleEndTime || "",
+          plannedStartTime: item.scheduleStartTime || "",
+          plannedEndTime: item.scheduleEndTime || "",
+          assetLabel: defaultAssetId ? `Asset #${defaultAssetId}` : "No assigned asset",
+          activeCheckout: defaultCheckout,
+          attendanceStatus: latestStatusByClass[String(item.classID)]?.status || "Not-checked",
+        };
+
+        const lessonsByDate = Object.entries(sessionsByClassDate[String(item.classID)] || {}).reduce(
+          (acc, [dateKey, lessons]) => {
+            acc[dateKey] = lessons.map((lesson) => {
+              const lessonAssetId = lesson.roomAssetID || defaultAssetId;
+              return {
+                ...lesson,
+                classID: item.classID,
+                assignmentID: assignment?.assignmentID || null,
+                roomAssetID: lessonAssetId,
+                assetLabel: lessonAssetId ? `Asset #${lessonAssetId}` : "No assigned asset",
+                plannedStartTime: item.scheduleStartTime || lesson.startTime || "",
+                plannedEndTime: item.scheduleEndTime || lesson.endTime || "",
+                activeCheckout: lessonAssetId
+                  ? activeCheckoutByAsset.get(`${item.classID ?? ""}-${lessonAssetId}`) || null
+                  : null,
+              };
+            });
+            return acc;
           },
-        ],
-        lessonsByDate: sessionsByClassDate[String(item.classID)] || {},
-      }));
-  }, [courseClasses, myClassDetails, activeAssignments, myClassId, sessions, courses]);
+          {}
+        );
+
+        return {
+          id: item.classID,
+          name: item.className,
+          courseName: item.courseName || courseNameById[item.courseID] || item.className,
+          room: item.roomName || "",
+          startDate: item.startDate,
+          endDate: item.endDate,
+          daysMask: item.scheduleDaysMask || 0,
+          lessons: [defaultLesson],
+          lessonsByDate,
+        };
+      });
+  }, [courseClasses, myClassDetails, activeAssignments, myClassId, sessions, courses, userTimeZoneId, activeCheckoutByAsset]);
 
   const calendarEvents = useMemo(() => [], []);
 
@@ -182,6 +282,7 @@ export default function StudentPortal() {
 
       const studentId = me?.studentRole?.studentID;
       const classId = me?.studentRole?.classID;
+      setUserTimeZoneId(me?.timeZoneId || "");
 
       setMyClassId(classId || null);
 
@@ -289,6 +390,7 @@ export default function StudentPortal() {
 
   const stopScanner = () => {
     setIsScanning(false);
+    setScannerTarget(null);
     if (scannerTimerRef.current) {
       clearInterval(scannerTimerRef.current);
       scannerTimerRef.current = null;
@@ -299,11 +401,35 @@ export default function StudentPortal() {
     }
   };
 
-  const startScanner = async () => {
+  const runQrAction = async (action, qrCodeValue) => {
+    setQrBusy(true);
+    try {
+      if (action === "checkin") {
+        await studentEquipmentAssignmentService.checkinByQr(qrCodeValue.trim());
+        showToast(t(K.STUDENT_QR_CHECKIN_SUCCESS, "Asset check-in successful."));
+      } else {
+        await studentEquipmentAssignmentService.checkoutByQr(qrCodeValue.trim());
+        showToast(t(K.STUDENT_QR_CHECKOUT_SUCCESS, "Asset checkout successful."));
+      }
+      await loadData();
+    } catch (error) {
+      showToast(
+        `${t(
+          action === "checkin" ? K.STUDENT_QR_CHECKIN_FAILED : K.STUDENT_QR_CHECKOUT_FAILED,
+          action === "checkin" ? "QR check-in failed" : "QR checkout failed"
+        )}: ${error.message}`,
+        true
+      );
+    } finally {
+      setQrBusy(false);
+    }
+  };
+
+  const startScanner = async (target) => {
     try {
       if (!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia) {
         setScannerSupported(false);
-        showToast(t(K.STUDENT_SCANNER_UNSUPPORTED, "Camera QR scanning is not supported on this browser. Use manual input."), true);
+        showToast(t(K.STUDENT_SCANNER_UNSUPPORTED, "Camera QR scanning is not supported on this browser."), true);
         return;
       }
 
@@ -314,23 +440,26 @@ export default function StudentPortal() {
       streamRef.current = stream;
       setIsScanning(true);
       setScannerSupported(true);
+      setScannerTarget(target);
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
 
+      let processing = false;
+
       scannerTimerRef.current = setInterval(async () => {
-        if (!videoRef.current) {
+        if (!videoRef.current || processing) {
           return;
         }
 
         try {
           const codes = await detector.detect(videoRef.current);
           if (codes.length > 0 && codes[0].rawValue) {
-            setQrCodeValue(codes[0].rawValue);
+            processing = true;
             stopScanner();
-            showToast(t(K.STUDENT_QR_DETECTED, "QR detected. Ready to submit."));
+            await runQrAction(target.action, codes[0].rawValue);
           }
         } catch {
           // Ignore intermittent frame decode failures.
@@ -342,42 +471,69 @@ export default function StudentPortal() {
     }
   };
 
-  const handleQrCheckout = async (event) => {
-    event.preventDefault();
-    if (!qrCodeValue.trim()) {
-      showToast(t(K.STUDENT_ENTER_QR_FIRST, "Scan or enter a QR code value first."), true);
-      return;
+  const getLessonQrState = useCallback((lesson, selectedDate, lessonKey) => {
+    const selectedDateKey = toDateKeyInTimeZone(selectedDate, userTimeZoneId);
+    const todayKey = toDateKeyInTimeZone(new Date(), userTimeZoneId);
+    const startMinutes = getMinutesInTimeZone(lesson.plannedStartTime || lesson.startTime, userTimeZoneId, selectedDate);
+    const endMinutes = getMinutesInTimeZone(lesson.plannedEndTime || lesson.endTime, userTimeZoneId, selectedDate);
+    const nowMinutes = getMinutesInTimeZone(new Date(), userTimeZoneId, selectedDate);
+    const isTodayLesson = Boolean(selectedDateKey && todayKey && selectedDateKey === todayKey);
+    const isCheckedOut = Boolean(lesson.activeCheckout);
+    const canCheckout = isTodayLesson && !isCheckedOut && startMinutes !== null && nowMinutes !== null && nowMinutes >= startMinutes && nowMinutes <= startMinutes + 15;
+    const canCheckin = isTodayLesson && isCheckedOut && endMinutes !== null && nowMinutes !== null && nowMinutes >= endMinutes && nowMinutes <= endMinutes + 15;
+    const isCurrentScannerTarget = isScanning && scannerTarget?.lessonKey === lessonKey;
+
+    if (!canCheckout && !canCheckin && !isCurrentScannerTarget) {
+      return null;
     }
 
-    setQrBusy(true);
-    try {
-      await studentEquipmentAssignmentService.checkoutByQr(qrCodeValue.trim());
-      showToast(t(K.STUDENT_QR_CHECKOUT_SUCCESS, "Asset checkout successful."));
-      await loadData();
-    } catch (error) {
-      showToast(`${t(K.STUDENT_QR_CHECKOUT_FAILED, "QR checkout failed")}: ${error.message}`, true);
-    } finally {
-      setQrBusy(false);
-    }
-  };
+    return {
+      action: canCheckin ? "checkin" : "checkout",
+      isCurrentScannerTarget,
+      buttonLabel: canCheckin
+        ? t(K.STUDENT_QR_CHECKIN_BUTTON, "QR Check-In")
+        : t(K.STUDENT_START_CAMERA, "Start Camera"),
+      helperText: canCheckin
+        ? t(K.STUDENT_QR_SCAN_CHECKIN_HINT, "Scan the asset QR to check in automatically.")
+        : t(K.STUDENT_QR_SCAN_CHECKOUT_HINT, "Scan the asset QR to check out automatically."),
+    };
+  }, [isScanning, scannerTarget, t, userTimeZoneId]);
 
-  const handleQrCheckin = async () => {
-    if (!qrCodeValue.trim()) {
-      showToast(t(K.STUDENT_ENTER_QR_FIRST, "Scan or enter a QR code value first."), true);
-      return;
+  const renderLessonActions = useCallback(({ lesson, lessonKey, selectedDate }) => {
+    const qrState = getLessonQrState(lesson, selectedDate, lessonKey);
+
+    if (!qrState) {
+      return null;
     }
 
-    setQrBusy(true);
-    try {
-      await studentEquipmentAssignmentService.checkinByQr(qrCodeValue.trim());
-      showToast(t(K.STUDENT_QR_CHECKIN_SUCCESS, "Asset check-in successful."));
-      await loadData();
-    } catch (error) {
-      showToast(`${t(K.STUDENT_QR_CHECKIN_FAILED, "QR check-in failed")}: ${error.message}`, true);
-    } finally {
-      setQrBusy(false);
-    }
-  };
+    return (
+      <div className="mt-3 rounded-xl border border-sky-100 bg-white/70 p-3 dark:border-sky-900 dark:bg-navy-800/60">
+        <p className="text-xs text-gray-500 dark:text-gray-300">{qrState.helperText}</p>
+        <div className="mt-3 flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={() => (qrState.isCurrentScannerTarget ? stopScanner() : startScanner({ lessonKey, action: qrState.action }))}
+            disabled={qrBusy || (!scannerSupported && !qrState.isCurrentScannerTarget)}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-60 ${
+              qrState.action === "checkin"
+                ? "bg-navy-700 text-white hover:bg-navy-800"
+                : "border border-gray-300 text-gray-700 hover:bg-gray-50 dark:text-white"
+            }`}
+          >
+            {qrState.isCurrentScannerTarget
+              ? t(K.STUDENT_STOP_CAMERA, "Stop Camera")
+              : qrState.buttonLabel}
+          </button>
+          <video
+            ref={qrState.isCurrentScannerTarget ? videoRef : null}
+            className={`w-full rounded-xl border border-gray-200 dark:border-gray-700 ${qrState.isCurrentScannerTarget ? "block" : "hidden"}`}
+            muted
+            playsInline
+          />
+        </div>
+      </div>
+    );
+  }, [getLessonQrState, qrBusy, scannerSupported, t]);
 
   const handleReportIssue = async (event) => {
     event.preventDefault();
@@ -424,28 +580,12 @@ export default function StudentPortal() {
             onChange={setCalendarDate}
             scheduleItems={scheduleItems}
             events={calendarEvents}
+            timeZoneId={userTimeZoneId}
             title={t(K.STUDENT_TRAINING_CALENDAR, "Training Calendar")}
             detailsTitle={t("COMMON_DAILY_DETAILS", "Daily Details")}
             noEventsText={t(K.STUDENT_NO_EVENTS_ON_DATE, "No training events on selected date.")}
+            renderLessonActions={renderLessonActions}
           />
-        </Card>
-      </div>
-
-      <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-3">
-        <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_MY_ACTIVE_ASSETS, "My Active Assets")}</p>
-          <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{activeAssignments.length}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.STUDENT_READY_FOR_ATTENDANCE, "Ready for class attendance check")}</p>
-        </Card>
-        <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_OPEN_SESSIONS, "Open Sessions")}</p>
-          <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{openSessions.length}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.STUDENT_CHECKOUT_TO_COMPLETE, "Check out to complete attendance")}</p>
-        </Card>
-        <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_TOTAL_SESSIONS, "Total Sessions")}</p>
-          <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{sessions.length}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.STUDENT_PRACTICE_HISTORY, "Practice activity history")}</p>
         </Card>
       </div>
 
@@ -498,56 +638,7 @@ export default function StudentPortal() {
         </Card>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_QR_SECTION_TITLE, "QR Checkout / Check-In")}</h2>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-            {t(K.STUDENT_QR_SECTION_HINT, "Scan with camera or enter QR manually to check out and check in assets.")}
-          </p>
-          <form className="mt-4 space-y-3" onSubmit={handleQrCheckout}>
-            <input
-              required
-              value={qrCodeValue}
-              onChange={(e) => setQrCodeValue(e.target.value)}
-              placeholder={t(K.STUDENT_QR_CODE_VALUE, "QR code value")}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
-            />
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              <button
-                type="submit"
-                disabled={loading || qrBusy}
-                className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
-              >
-                {t(K.STUDENT_QR_CHECKOUT_BUTTON, "QR Checkout")}
-              </button>
-              <button
-                type="button"
-                onClick={handleQrCheckin}
-                disabled={loading || qrBusy}
-                className="rounded-xl bg-navy-700 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-800 disabled:opacity-60"
-              >
-                {t(K.STUDENT_QR_CHECKIN_BUTTON, "QR Check-In")}
-              </button>
-              <button
-                type="button"
-                onClick={isScanning ? stopScanner : startScanner}
-                disabled={!scannerSupported && !isScanning}
-                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-              >
-                {isScanning
-                  ? t(K.STUDENT_STOP_CAMERA, "Stop Camera")
-                  : t(K.STUDENT_START_CAMERA, "Start Camera")}
-              </button>
-            </div>
-            <video
-              ref={videoRef}
-              className={`w-full rounded-xl border border-gray-200 ${isScanning ? "block" : "hidden"}`}
-              muted
-              playsInline
-            />
-          </form>
-        </Card>
-
+      <div className="mt-6 grid grid-cols-1 gap-5">
         <Card extra="p-6">
           <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_REPORT_ISSUE_TITLE, "Report an Issue")}</h2>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
@@ -614,7 +705,7 @@ export default function StudentPortal() {
                   Asset #{item.roomAssetID} • Class #{item.classID}
                 </p>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-                  {t(K.STUDENT_QR_CHECKOUT_INFO, "Checked out at")} {new Date(item.assignedDate).toLocaleString()}
+                  {t(K.STUDENT_QR_CHECKOUT_INFO, "Checked out at")} {formatDateTimeInTimeZone(item.assignedDate, userTimeZoneId)}
                 </p>
               </div>
             ))}
@@ -622,65 +713,65 @@ export default function StudentPortal() {
         </Card>
 
         <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_MY_ASSIGNED_ASSETS, "My Assigned Assets")}</h2>
+          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_ASSETS_AND_SESSIONS, "My Assets & Sessions")}</h2>
           <div className="mt-4 space-y-3">
-            {assignments.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_NO_ASSIGNMENTS, "No assignments yet.")}</p>
+            {assignedAssetsWithSessions.length === 0 && (
+              <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_NO_ASSETS_OR_SESSIONS, "No assigned assets or active sessions.")}</p>
             )}
-            {assignments.slice(0, 6).map((item) => (
+            {assignedAssetsWithSessions.map(({ key, assignment, session, type }) => (
               <div
-                key={item.assignmentID}
-                className="rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-700 dark:bg-navy-900"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-navy-700 dark:text-white">
-                    Asset #{item.roomAssetID}
-                  </p>
-                  <span
-                    className={`rounded-full px-2 py-1 text-[10px] font-bold ${
-                      item.isActive
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    {item.isActive
-                      ? t(K.STUDENT_ACTIVE, "Active")
-                      : t(K.STUDENT_UNASSIGNED, "Unassigned")}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-                  Class #{item.classID} • {t(K.STUDENT_ASSIGNED_INFO, "Assigned")} {new Date(item.assignedDate).toLocaleString()}
-                </p>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_OPEN_SESSIONS, "Open Sessions")}</h2>
-          <div className="mt-4 space-y-3">
-            {openSessions.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_NO_ACTIVE_CHECKINS, "No active check-ins.")}</p>
-            )}
-            {openSessions.map((session) => (
-              <div
-                key={session.sessionID}
+                key={key}
                 className="rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-700 dark:bg-navy-900"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-navy-700 dark:text-white">
-                      {t(K.STUDENT_SESSION_ROW, "Session")} #{session.sessionID}
+                      Asset #{assignment?.roomAssetID ?? session?.roomAssetID}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-300">
-                      Asset #{session.roomAssetID} • {t(K.STUDENT_SESSION_INFO, "Start")} {new Date(session.startTime).toLocaleString()}
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
+                      Class #{assignment?.classID ?? session?.classID}
+                      {assignment?.assignedDate && (
+                        <>
+                          {" • "}{t(K.STUDENT_ASSIGNED_INFO, "Assigned")} {formatDateTimeInTimeZone(assignment.assignedDate, userTimeZoneId)}
+                        </>
+                      )}
                     </p>
-                    {session.attendanceStatus && (
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-                        {t(K.STUDENT_ATTENDANCE_STATUS, "Attendance")}: {session.attendanceStatus}
-                      </p>
+                    {session ? (
+                      <>
+                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-300">
+                          {t(K.STUDENT_SESSION_ROW, "Session")} #{session.sessionID} • {t(K.STUDENT_SESSION_INFO, "Start")} {formatDateTimeInTimeZone(session.startTime, userTimeZoneId)}
+                        </p>
+                        {session.attendanceStatus && (
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
+                            {t(K.STUDENT_ATTENDANCE_STATUS, "Attendance")}: {session.attendanceStatus}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      assignment && (
+                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-300">
+                          {t(K.STUDENT_NO_OPEN_SESSION, "No active session on this asset.")}
+                        </p>
+                      )
                     )}
                   </div>
+                  <span
+                    className={`rounded-full px-2 py-1 text-[10px] font-bold ${
+                      session
+                        ? "bg-sky-100 text-sky-700"
+                        : assignment?.isActive
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    {session
+                      ? t(K.STUDENT_SESSION_OPEN, "Session Open")
+                      : assignment?.isActive
+                      ? t(K.STUDENT_ACTIVE, "Active")
+                      : type === "session"
+                      ? t(K.STUDENT_SESSION_OPEN, "Session Open")
+                      : t(K.STUDENT_UNASSIGNED, "Unassigned")}
+                  </span>
                 </div>
               </div>
             ))}

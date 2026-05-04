@@ -248,6 +248,13 @@ export const updateMyLanguage = async (languageCode) => {
   });
 };
 
+export const updateMyTimezone = async (timeZoneId) => {
+  return await httpClient("/users/me/timezone", {
+    method: "PUT",
+    body: JSON.stringify({ timeZoneId }),
+  });
+};
+
 export default {
   getUserProfile,
   getUserPhoto,
@@ -258,4 +265,5 @@ export default {
   removeRole,
   updateUserCode,
   updateMyLanguage,
+  updateMyTimezone,
 };

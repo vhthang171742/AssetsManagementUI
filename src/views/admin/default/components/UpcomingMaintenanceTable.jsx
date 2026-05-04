@@ -2,9 +2,13 @@ import React from "react";
 import Card from "components/card";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
+import { useAuth } from "context/AuthContext";
+import { formatDateInTimeZone } from "services/dateTimeService";
 
 const UpcomingMaintenanceTable = ({ data = [] }) => {
   const { t } = useLanguage();
+  const { currentUser } = useAuth();
+  const userTimeZoneId = currentUser?.timeZoneId || "";
 
   return (
     <Card extra="rounded-[20px] p-4">
@@ -49,7 +53,7 @@ const UpcomingMaintenanceTable = ({ data = [] }) => {
                 <td className="py-2 text-navy-700 dark:text-white">{item.assetName}</td>
                 <td className="py-2 text-gray-600 dark:text-gray-300">{item.maintenanceType}</td>
                 <td className="py-2 text-gray-600 dark:text-gray-300">
-                  {item.nextDueDate ? new Date(item.nextDueDate).toLocaleDateString() : "—"}
+                  {item.nextDueDate ? formatDateInTimeZone(item.nextDueDate, userTimeZoneId) : "—"}
                 </td>
                 <td className="py-2">
                   {item.isOverdue ? (

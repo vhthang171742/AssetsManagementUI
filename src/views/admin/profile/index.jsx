@@ -6,30 +6,59 @@ import { useAuth } from "context/AuthContext";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
 import { notificationService } from "services/notificationService";
+import { updateMyTimezone, getCurrentUser } from "services/userService";
+
+// Curated list of common IANA timezone IDs with human-readable labels.
+const TIMEZONE_OPTIONS = [
+  { value: "UTC", label: "UTC (UTC+00:00)" },
+  { value: "Europe/London", label: "London (UTC+00:00 / +01:00)" },
+  { value: "Europe/Paris", label: "Paris / Berlin (UTC+01:00 / +02:00)" },
+  { value: "Europe/Moscow", label: "Moscow (UTC+03:00)" },
+  { value: "Asia/Dubai", label: "Dubai (UTC+04:00)" },
+  { value: "Asia/Karachi", label: "Karachi (UTC+05:00)" },
+  { value: "Asia/Kolkata", label: "India (UTC+05:30)" },
+  { value: "Asia/Dhaka", label: "Dhaka (UTC+06:00)" },
+  { value: "Asia/Bangkok", label: "Bangkok (UTC+07:00)" },
+  { value: "Asia/Ho_Chi_Minh", label: "Ho Chi Minh City (UTC+07:00)" },
+  { value: "Asia/Singapore", label: "Singapore (UTC+08:00)" },
+  { value: "Asia/Shanghai", label: "Shanghai / Beijing (UTC+08:00)" },
+  { value: "Asia/Tokyo", label: "Tokyo (UTC+09:00)" },
+  { value: "Asia/Seoul", label: "Seoul (UTC+09:00)" },
+  { value: "Australia/Sydney", label: "Sydney (UTC+10:00 / +11:00)" },
+  { value: "Pacific/Auckland", label: "Auckland (UTC+12:00 / +13:00)" },
+  { value: "America/Sao_Paulo", label: "São Paulo (UTC-03:00)" },
+  { value: "America/New_York", label: "New York (UTC-05:00 / -04:00)" },
+  { value: "America/Chicago", label: "Chicago (UTC-06:00 / -05:00)" },
+  { value: "America/Denver", label: "Denver (UTC-07:00 / -06:00)" },
+  { value: "America/Los_Angeles", label: "Los Angeles (UTC-08:00 / -07:00)" },
+  { value: "America/Anchorage", label: "Anchorage (UTC-09:00)" },
+  { value: "Pacific/Honolulu", label: "Honolulu (UTC-10:00)" },
+];
 
 const PAGE_SIZE = 10;
 
 function toDateKey(value) {
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
+  const date = parseTimestamp(value);
+  if (!date || Number.isNaN(date.getTime())) return null;
   return date.toISOString().slice(0, 10);
 }
 
 function parseTimestamp(value) {
   if (!value) return null;
 
+  if (typeof value === "string") {
+    // Some APIs may return ISO without timezone suffix; treat those as UTC first.
+    if (!/[zZ]|[+\-]\d{2}:\d{2}$/.test(value)) {
+      const parsedUtc = new Date(`${value}Z`);
+      if (!Number.isNaN(parsedUtc.getTime())) {
+        return parsedUtc;
+      }
+    }
+  }
+
   const direct = new Date(value);
   if (!Number.isNaN(direct.getTime())) {
     return direct;
-  }
-
-  if (typeof value === "string") {
-    // Some APIs may return ISO without timezone suffix; treat as UTC fallback.
-    const utcFallback = /[zZ]|[+\-]\d{2}:\d{2}$/.test(value) ? value : `${value}Z`;
-    const parsed = new Date(utcFallback);
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed;
-    }
   }
 
   return null;
@@ -73,7 +102,7 @@ function getTargetPath(item) {
   return "/profile";
 }
 
-function formatTimestamp(value, language, t, nowMs) {
+function formatTimestamp(value, language, t, nowMs, timeZoneId) {
   const date = parseTimestamp(value);
   if (!date) return "";
 
@@ -96,11 +125,12 @@ function formatTimestamp(value, language, t, nowMs) {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
+    timeZone: timeZoneId || undefined,
   });
 }
 
 const ProfileOverview = () => {
-  const { userProfile, userPhoto, getAvailablePortals } = useAuth();
+  const { userProfile, userPhoto, getAvailablePortals, currentUser, setCurrentUser } = useAuth();
   const { t, language } = useLanguage();
   const navigate = useNavigate();
 
@@ -110,6 +140,35 @@ const ProfileOverview = () => {
   const [page, setPage] = React.useState(1);
   const [totalCount, setTotalCount] = React.useState(0);
   const [nowMs, setNowMs] = React.useState(() => Date.now());
+
+  // Timezone state
+  const [selectedTz, setSelectedTz] = React.useState(currentUser?.timeZoneId || "");
+  const [tzSaving, setTzSaving] = React.useState(false);
+  const [tzMessage, setTzMessage] = React.useState(null); // { type: "success"|"error", text: string }
+
+  // Sync selectedTz if currentUser changes (e.g. after refresh)
+  React.useEffect(() => {
+    if (currentUser?.timeZoneId) {
+      setSelectedTz(currentUser.timeZoneId);
+    }
+  }, [currentUser?.timeZoneId]);
+
+  const handleSaveTimezone = async () => {
+    if (!selectedTz) return;
+    setTzSaving(true);
+    setTzMessage(null);
+    try {
+      await updateMyTimezone(selectedTz);
+      // Refresh currentUser from backend so the new timezone propagates
+      const refreshed = await getCurrentUser();
+      if (refreshed) setCurrentUser(refreshed);
+      setTzMessage({ type: "success", text: t(K.PROFILE_TIMEZONE_SAVED, "Timezone saved!") });
+    } catch {
+      setTzMessage({ type: "error", text: t(K.PROFILE_TIMEZONE_ERROR, "Failed to save timezone") });
+    } finally {
+      setTzSaving(false);
+    }
+  };
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const portals = getAvailablePortals();
@@ -214,6 +273,45 @@ const ProfileOverview = () => {
         </div>
       </Card>
 
+      {/* Timezone Settings */}
+      <Card extra="w-full p-6">
+        <h4 className="mb-4 text-xl font-bold text-navy-700 dark:text-white">
+          {t(K.PROFILE_TIMEZONE_SETTINGS, "Timezone Settings")}
+        </h4>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <label className="mb-1 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+              {t(K.PROFILE_TIMEZONE_LABEL, "Your Timezone")}
+            </label>
+            <select
+              value={selectedTz}
+              onChange={(e) => { setSelectedTz(e.target.value); setTzMessage(null); }}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none dark:border-white/20 dark:bg-navy-900 dark:text-white"
+            >
+              <option value="">{t(K.PROFILE_TIMEZONE_PLACEHOLDER, "Select your timezone...")}</option>
+              {TIMEZONE_OPTIONS.map((tz) => (
+                <option key={tz.value} value={tz.value}>{tz.label}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            disabled={!selectedTz || tzSaving}
+            onClick={handleSaveTimezone}
+            className="rounded-lg bg-brand-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {tzSaving
+              ? t(K.PROFILE_TIMEZONE_SAVING, "Saving...")
+              : t(K.PROFILE_TIMEZONE_SAVE, "Save Timezone")}
+          </button>
+        </div>
+        {tzMessage && (
+          <p className={`mt-2 text-sm font-medium ${tzMessage.type === "success" ? "text-green-600" : "text-red-500"}`}>
+            {tzMessage.text}
+          </p>
+        )}
+      </Card>
+
       <Card extra="w-full p-6">
         <div className="flex items-center">
           <h4 className="text-xl font-bold text-navy-700 dark:text-white">
@@ -273,7 +371,7 @@ const ProfileOverview = () => {
                             </div>
                           ) : null}
                           <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                            {formatTimestamp(item.triggeredAt, language, t, nowMs)}
+                            {formatTimestamp(item.triggeredAt, language, t, nowMs, currentUser?.timeZoneId)}
                           </p>
                         </>
                       );

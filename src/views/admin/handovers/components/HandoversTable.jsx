@@ -7,9 +7,13 @@ import { MdInfoOutline, MdModeEditOutline, MdDelete, MdRemoveCircle } from "reac
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
+import { useAuth } from "context/AuthContext";
+import { formatDateInTimeZone } from "services/dateTimeService";
 
 export default function HandoversTable() {
   const { t } = useLanguage();
+  const { currentUser } = useAuth();
+  const userTimeZoneId = currentUser?.timeZoneId || "";
   const [handovers, setHandovers] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [rooms, setRooms] = useState([]);
@@ -242,7 +246,7 @@ export default function HandoversTable() {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString();
+    return formatDateInTimeZone(dateString, userTimeZoneId);
   };
 
   return (

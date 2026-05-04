@@ -7,9 +7,13 @@ import { MdModeEditOutline, MdDelete, MdAdd } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
+import { useAuth } from "context/AuthContext";
+import { formatDateTimeInTimeZone } from "services/dateTimeService";
 
 export default function UsersTable() {
   const { t } = useLanguage();
+  const { currentUser } = useAuth();
+  const userTimeZoneId = currentUser?.timeZoneId || "";
   const [users, setUsers] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -274,7 +278,7 @@ export default function UsersTable() {
                 sortKey: "lastLoginAt",
                 render: (row) => 
                   row.lastLoginAt 
-                    ? new Date(row.lastLoginAt).toLocaleString() 
+                    ? formatDateTimeInTimeZone(row.lastLoginAt, userTimeZoneId, { dateStyle: "short", timeStyle: "short" })
                     : t(K.ADMIN_TABLE_NEVER, "Never"),
               },
               {

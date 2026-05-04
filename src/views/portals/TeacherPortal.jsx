@@ -15,28 +15,9 @@ import { getCurrentUser } from "services/userService";
 import { configurationService } from "services/configurationService";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
-
-const toDateKey = (value) => {
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
-};
-
-const formatSessionTime = (value) => {
-  if (!value) {
-    return "";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  return date.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-};
+import {
+  toDateKeyInTimeZone,
+} from "services/dateTimeService";
 
 export default function TeacherPortal() {
   const { t, language } = useLanguage();
@@ -50,6 +31,7 @@ export default function TeacherPortal() {
   const [recentIssues, setRecentIssues] = useState([]);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [incidentCategories, setIncidentCategories] = useState([]);
+  const [userTimeZoneId, setUserTimeZoneId] = useState("");
 
   const [assignForm, setAssignForm] = useState({
     studentID: "",
@@ -110,7 +92,7 @@ export default function TeacherPortal() {
     }, {});
 
     const sessionsByClassDate = sessions.reduce((acc, session) => {
-      const key = toDateKey(session.startTime);
+      const key = toDateKeyInTimeZone(session.startTime, userTimeZoneId);
       if (!key || !session.classID) {
         return acc;
       }
@@ -124,8 +106,8 @@ export default function TeacherPortal() {
         acc[classKey][key] = {};
       }
 
-      const startTime = formatSessionTime(session.startTime);
-      const endTime = formatSessionTime(session.endTime);
+      const startTime = session.startTime || "";
+      const endTime = session.endTime || "";
       const lessonKey = `${startTime}-${endTime}`;
 
       if (!acc[classKey][key][lessonKey]) {
@@ -215,7 +197,7 @@ export default function TeacherPortal() {
         }, {}),
       };
     });
-  }, [classes, activeAssignments, sessions]);
+  }, [classes, activeAssignments, sessions, userTimeZoneId]);
 
   const calendarEvents = useMemo(
     () =>
@@ -243,6 +225,7 @@ export default function TeacherPortal() {
     try {
       const currentUser = await getCurrentUser();
       const instructorId = currentUser?.instructorRole?.instructorID;
+      setUserTimeZoneId(currentUser?.timeZoneId || "");
 
       const [availableRes, activeRes, issuesRes, classListRes, sessionListRes] =
         await Promise.allSettled([
@@ -400,31 +383,12 @@ export default function TeacherPortal() {
             onChange={setCalendarDate}
             scheduleItems={scheduleItems}
             events={calendarEvents}
+            timeZoneId={userTimeZoneId}
             onForceReturn={handleForceReturn}
             title={t(K.TEACHER_TRAINING_CALENDAR, "Training Calendar")}
             detailsTitle={t("COMMON_DAILY_DETAILS", "Daily Details")}
             noEventsText={t(K.TEACHER_NO_EVENTS_ON_DATE, "No training events on selected date.")}
           />
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-3 mt-5">
-        <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.TEACHER_AVAILABLE_ASSETS, "Available Assets")}</p>
-          <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{availableAssets.length}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.TEACHER_READY_FOR_USE, "Good condition and ready for use")}</p>
-        </Card>
-        <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.TEACHER_ACTIVE_ASSIGNMENTS, "Active Assignments")}</p>
-          <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">{activeAssignments.length}</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.TEACHER_IN_STUDENT_HANDS, "Currently in student hands")}</p>
-        </Card>
-        <Card extra="p-6">
-          <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.TEACHER_OPEN_REPORTS, "Open Reports")}</p>
-          <p className="mt-2 text-3xl font-bold text-navy-700 dark:text-white">
-            {filteredIssues.filter((issue) => !issue.resolutionTime).length}
-          </p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">{t(K.TEACHER_REPORTED_ISSUES, "Teacher/student reported issues")}</p>
         </Card>
       </div>
 

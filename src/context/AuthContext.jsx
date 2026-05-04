@@ -300,6 +300,7 @@ export const AuthProvider = ({ children }) => {
     userProfile,
     userPhoto,
     currentUser,
+    setCurrentUser,
     userGroups,
     userRoles,
     isAuthenticated,

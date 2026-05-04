@@ -8,9 +8,13 @@ import Card from "components/card";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
+import { useAuth } from "context/AuthContext";
+import { formatDateInTimeZone } from "services/dateTimeService";
 
 export default function MaintenanceRecordsTable() {
   const { t } = useLanguage();
+  const { currentUser } = useAuth();
+  const userTimeZoneId = currentUser?.timeZoneId || "";
   const [records, setRecords] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [assets, setAssets] = useState([]);
@@ -340,7 +344,7 @@ export default function MaintenanceRecordsTable() {
           columns={[
             { header: t(K.ADMIN_TABLE_ASSET, 'Asset'), accessor: 'assetID', sortKey: "assetName", render: (row) => getAssetName(row.assetID) },
             { header: t(K.ADMIN_TABLE_TYPE, 'Type'), accessor: 'maintenanceTypeItemID', sortKey: "maintenanceType", render: (row) => getMaintenanceTypeName(row.maintenanceTypeItemID) },
-            { header: t(K.ADMIN_TABLE_DATE, 'Date'), accessor: 'maintenanceDate', sortKey: "maintenanceDate", render: (row) => new Date(row.maintenanceDate).toLocaleDateString() },
+            { header: t(K.ADMIN_TABLE_DATE, 'Date'), accessor: 'maintenanceDate', sortKey: "maintenanceDate", render: (row) => formatDateInTimeZone(row.maintenanceDate, userTimeZoneId) },
             { header: t(K.ADMIN_TABLE_TECHNICIAN, 'Technician'), accessor: 'technicianID', sortKey: "technicianName", render: (row) => getTechnicianName(row.technicianID) },
             { header: t(K.ADMIN_TABLE_DURATION_MIN, 'Duration (min)'), accessor: 'repairDurationMinutes', sortKey: "repairDurationMinutes" },
             {
