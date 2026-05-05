@@ -1,13 +1,14 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
 import Card from "components/card";
 import PortalLayout from "layouts/portal";
-import { workerEquipmentService, equipmentUsageService } from "services";
+import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
+import { workerEquipmentService, equipmentUsageService, workerCalendarService } from "services";
 import { httpClient } from "services/httpClient";
 import { useLanguage } from "context/LanguageContext";
 import { useAuth } from "context/AuthContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
-import { formatDateInTimeZone, formatDateTimeInTimeZone, parseApiDateTime } from "services/dateTimeService";
+import { formatDateInTimeZone, formatDateTimeInTimeZone, parseApiDateTime, toDateKeyInTimeZone } from "services/dateTimeService";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -46,14 +47,25 @@ export default function WorkerPortal() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Active session (first open log — no endTime)
-  const activeSession = usageLogs.find((l) => !l.endTime) || null;
+  // Active production session (exclude worker attendance-only logs)
+  const activeSession = usageLogs.find((l) => !l.endTime && !(l.notes || "").includes("[WORKING_ATTENDANCE]")) || null;
 
   // Form state
   const [startForm, setStartForm] = useState({ roomAssetID: "", startTime: "" });
   const [endForm, setEndForm] = useState({ endTime: "", runningMinutes: "", downtimeMinutes: "", stitchCount: "", notes: "" });
   const [activeForm, setActiveForm] = useState(null); // "start" | "end" | null
   const [submitting, setSubmitting] = useState(false);
+
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [workingEvents, setWorkingEvents] = useState([]);
+  const [qrBusy, setQrBusy] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scannerSupported, setScannerSupported] = useState(true);
+  const [scannerTarget, setScannerTarget] = useState(null);
+
+  const videoRef = useRef(null);
+  const scannerTimerRef = useRef(null);
+  const cameraStreamRef = useRef(null);
 
   // ── Load data ──────────────────────────────────────────────────────────────
 
@@ -80,6 +92,111 @@ export default function WorkerPortal() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const loadWorkingCalendar = useCallback(async (date) => {
+    try {
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const data = await workerCalendarService.getMyCalendar(year, month);
+      setWorkingEvents(data || []);
+    } catch (err) {
+      console.error("Worker calendar load error:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadWorkingCalendar(calendarDate);
+  }, [calendarDate, loadWorkingCalendar]);
+
+  const stopScanner = useCallback(() => {
+    setIsScanning(false);
+    setScannerTarget(null);
+    if (scannerTimerRef.current) {
+      clearInterval(scannerTimerRef.current);
+      scannerTimerRef.current = null;
+    }
+
+    const stream = cameraStreamRef.current;
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      cameraStreamRef.current = null;
+    }
+  }, []);
+
+  const runQrAttendanceAction = useCallback(async (mode, code) => {
+    const cleaned = (code || "").trim();
+    if (!cleaned) {
+      toast.error(t(K.WORKER_QR_INPUT_PLACEHOLDER, "Enter or scan QR code value"));
+      return;
+    }
+
+    setQrBusy(true);
+    try {
+      if (mode === "checkout") {
+        await workerCalendarService.checkoutByQr(cleaned);
+        toast.success(t(K.WORKER_QR_CHECKOUT_SUCCESS, "Attendance check-out successful."));
+      } else {
+        await workerCalendarService.checkinByQr(cleaned);
+        toast.success(t(K.WORKER_QR_CHECKIN_SUCCESS, "Attendance check-in successful."));
+      }
+      await Promise.all([loadData(), loadWorkingCalendar(calendarDate)]);
+    } catch (err) {
+      toast.error(`${t(K.WORKER_QR_ACTION_FAILED, "QR attendance action failed")}: ${err?.message || "Unknown error"}`);
+    } finally {
+      setQrBusy(false);
+    }
+  }, [calendarDate, loadData, loadWorkingCalendar, t]);
+
+  const startScanner = useCallback(async (target) => {
+    try {
+      if (!window.BarcodeDetector) {
+        setScannerSupported(false);
+        toast.error(t(K.WORKER_CAMERA_UNSUPPORTED, "Camera QR scanning is not supported on this browser."));
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+
+      cameraStreamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+      setScannerTarget(target);
+      setIsScanning(true);
+      setScannerSupported(true);
+
+      scannerTimerRef.current = setInterval(async () => {
+        if (!videoRef.current) return;
+
+        try {
+          const codes = await detector.detect(videoRef.current);
+          if (!codes || codes.length === 0) return;
+
+          const raw = codes[0]?.rawValue || "";
+          if (!raw) return;
+
+          stopScanner();
+          await runQrAttendanceAction(target.action, raw);
+        } catch {
+          // ignore transient detection errors
+        }
+      }, 600);
+    } catch (error) {
+      stopScanner();
+      toast.error(`${t(K.WORKER_CAMERA_START_FAILED, "Unable to start camera scanner")}: ${error.message}`);
+    }
+  }, [runQrAttendanceAction, stopScanner, t]);
+
+  useEffect(() => {
+    return () => {
+      stopScanner();
+    };
+  }, [stopScanner]);
 
   // ── Start session ──────────────────────────────────────────────────────────
 
@@ -140,6 +257,97 @@ export default function WorkerPortal() {
     }
   };
 
+  // ── Derived (hooks must come before early returns) ───────────────────────────
+
+  const calendarScheduleItems = useMemo(
+    () =>
+      (workingEvents || []).map((item, index) => {
+        const eventDate = parseApiDateTime(item.date) || new Date(item.date);
+        const dayBit = 1 << eventDate.getDay();
+        return {
+          id: `worker-shift-${index}`,
+          name: item.title || t(K.WORKER_WORKING_CALENDAR, "Working Calendar"),
+          room: workerProfile?.workerRole?.productionLineName || "",
+          startDate: item.date,
+          endDate: item.date,
+          daysMask: dayBit,
+          lessons: [
+            {
+              summaryLabel: item.title || t(K.WORKER_SHIFT_LABEL, "Shift"),
+              startTime: item.shiftStartUtc,
+              endTime: item.shiftEndUtc,
+              attendanceStatus: item.attendanceStatus,
+              checkinAtUtc: item.checkinAtUtc,
+              checkoutAtUtc: item.checkoutAtUtc,
+              assetLabel: item.checkinAtUtc
+                ? `${t(K.WORKER_QR_CHECKIN, "QR Check-In")}: ${formatDateTimeInTimeZone(parseApiDateTime(item.checkinAtUtc), userTimeZoneId)}`
+                : null,
+            },
+          ],
+        };
+      }),
+    [t, userTimeZoneId, workerProfile?.workerRole?.productionLineName, workingEvents]
+  );
+
+  const getShiftQrState = useCallback((lesson, selectedDate, lessonKey) => {
+    const selectedDateKey = toDateKeyInTimeZone(selectedDate, userTimeZoneId);
+    const todayKey = toDateKeyInTimeZone(new Date(), userTimeZoneId);
+    const isTodayShift = Boolean(selectedDateKey && todayKey && selectedDateKey === todayKey);
+    const attendance = String(lesson.attendanceStatus || "").toLowerCase();
+    const isCheckedIn = Boolean(lesson.checkinAtUtc) || attendance.includes("checked-in") || attendance.includes("present");
+    const isCheckedOut = Boolean(lesson.checkoutAtUtc) || attendance.includes("checked-out") || attendance.includes("completed");
+    const action = isCheckedIn && !isCheckedOut ? "checkout" : "checkin";
+    const isCurrentScannerTarget = isScanning && scannerTarget?.lessonKey === lessonKey;
+
+    if (!isTodayShift && !isCurrentScannerTarget) {
+      return null;
+    }
+
+    return {
+      action,
+      isCurrentScannerTarget,
+      buttonLabel: `${t(K.WORKER_OPEN_CAMERA, "Open Camera")} (${action === "checkin" ? t(K.WORKER_QR_CHECKIN, "QR Check-In") : t(K.WORKER_QR_CHECKOUT, "QR Check-Out")})`,
+      helperText: action === "checkin"
+        ? t(K.WORKER_QR_SCAN_CHECKIN_HINT, "Scan QR code to check in this shift.")
+        : t(K.WORKER_QR_SCAN_CHECKOUT_HINT, "Scan QR code to check out this shift."),
+    };
+  }, [isScanning, scannerTarget, t, userTimeZoneId]);
+
+  const renderShiftActions = useCallback(({ lesson, lessonKey, selectedDate }) => {
+    const qrState = getShiftQrState(lesson, selectedDate, lessonKey);
+    if (!qrState) {
+      return null;
+    }
+
+    return (
+      <div className="mt-3 rounded-xl border border-sky-100 bg-white/70 p-3 dark:border-sky-900 dark:bg-navy-800/60">
+        <p className="text-xs text-gray-500 dark:text-gray-300">{qrState.helperText}</p>
+        <div className="mt-3 flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={() => (qrState.isCurrentScannerTarget ? stopScanner() : startScanner({ lessonKey, action: qrState.action }))}
+            disabled={qrBusy || (!scannerSupported && !qrState.isCurrentScannerTarget)}
+            className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:text-white"
+          >
+            {qrState.isCurrentScannerTarget
+              ? t(K.WORKER_CLOSE_CAMERA, "Close Camera")
+              : qrState.buttonLabel}
+          </button>
+          <video
+            ref={qrState.isCurrentScannerTarget ? videoRef : null}
+            className={`w-full rounded-xl border border-gray-200 dark:border-gray-700 ${qrState.isCurrentScannerTarget ? "block" : "hidden"}`}
+            muted
+            playsInline
+            autoPlay
+          />
+          {qrState.isCurrentScannerTarget && (
+            <p className="text-xs text-gray-500 dark:text-gray-300">{t(K.WORKER_QR_SCANNING, "Scanning...")}</p>
+          )}
+        </div>
+      </div>
+    );
+  }, [getShiftQrState, qrBusy, scannerSupported, startScanner, stopScanner, t]);
+
   // ── Render: loading / error ────────────────────────────────────────────────
 
   if (loading) {
@@ -166,7 +374,7 @@ export default function WorkerPortal() {
   // ── Derived ────────────────────────────────────────────────────────────────
 
   const activeAssignments = assignments.filter((a) => a.isActive);
-  const recentLogs = usageLogs.slice(0, 10);
+  const recentLogs = usageLogs.filter((l) => !(l.notes || "").includes("[WORKING_ATTENDANCE]")).slice(0, 10);
   const activeSessionStart = activeSession ? parseApiDateTime(activeSession.startTime) : null;
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -193,6 +401,26 @@ export default function WorkerPortal() {
               </div>
             )}
           </div>
+        </Card>
+
+        {/* ── Working Calendar + QR Attendance ────────────────────────────── */}
+        <Card extra="p-5">
+          <h3 className="mb-4 text-base font-bold text-navy-700 dark:text-white">
+            {t(K.WORKER_WORKING_CALENDAR, "Working Calendar")}
+          </h3>
+
+          <TrainingCalendarBoard
+            value={calendarDate}
+            onChange={setCalendarDate}
+            scheduleItems={calendarScheduleItems}
+            events={[]}
+            timeZoneId={userTimeZoneId}
+            title={t(K.WORKER_WORKING_CALENDAR, "Working Calendar")}
+            detailsTitle={t(K.WORKER_WORKING_CALENDAR, "Working Calendar")}
+            noEventsText={t(K.WORKER_NO_WORK_EVENTS, "No working shifts on selected date.")}
+            scheduleBadgeLabel={t(K.WORKER_SHIFT_LABEL, "Shift")}
+            renderLessonActions={renderShiftActions}
+          />
         </Card>
 
         {/* ── My Equipment ─────────────────────────────────────────────────── */}

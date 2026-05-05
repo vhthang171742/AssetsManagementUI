@@ -15,6 +15,7 @@ import PortalAccess from "views/admin/portalAccess";
 import ProductionLines from "views/admin/productionLines";
 import WorkerEquipment from "views/admin/workerEquipment";
 import EquipmentUsage from "views/admin/equipmentUsage";
+import WorkingTime from "views/admin/workingTime";
 
 // Training Mode Imports
 import Courses from "views/admin/courses";
@@ -45,6 +46,7 @@ import {
   MdFactory,
   MdPerson2,
   MdDataUsage,
+  MdSchedule,
   MdSchool,
   MdGroups,
   MdAssignmentInd,
@@ -164,6 +166,15 @@ const routes = [
     icon: <MdDataUsage className="h-6 w-6" />,
     component: <EquipmentUsage />,
     requiredRoles: RoleSets.AssetsUser,
+  },
+  {
+    name: "Working Time",
+    translationKey: K.ROUTE_WORKING_TIME,
+    layout: "/admin",
+    path: "working-time",
+    icon: <MdSchedule className="h-6 w-6" />,
+    component: <WorkingTime />,
+    requiredRoles: RoleSets.ProductionManager,
   },
   {
     name: "Courses",

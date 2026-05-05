@@ -135,6 +135,7 @@ export default function TrainingCalendarBoard({
   noEventsText,
   onForceReturn,
   renderLessonActions,
+  scheduleBadgeLabel,
 }) {
   const [expandedLessons, setExpandedLessons] = useState({});
   // ── event map (point-in-time: sessions, assignments, issues) ───────────────
@@ -294,7 +295,7 @@ export default function TrainingCalendarBoard({
                   <div className="tcb__event-body">
                     <div className="tcb__event-top">
                       <span className="tcb__event-badge" style={{ color: SCHEDULE_CONFIG.accent }}>
-                        Class
+                        {scheduleBadgeLabel || "Class"}
                       </span>
                       {item.classCode ? (
                         <EntityPill type="class" id={item.id} label={item.classCode} />

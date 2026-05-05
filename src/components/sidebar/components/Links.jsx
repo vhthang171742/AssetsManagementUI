@@ -14,11 +14,17 @@ const MENU_GROUPS = [
     id: "asset-management",
     label: "Asset Management",
     translationKey: K.MENU_GROUP_ASSET_MANAGEMENT,
-    items: ["departments", "categories", "assets", "rooms", "production-lines", "handovers", "worker-equipment", "equipment-usage"]
+    items: ["departments", "categories", "assets", "rooms", "handovers"]
+  },
+  {
+    id: "production-workers",
+    label: "Production & Workers",
+    translationKey: K.MENU_GROUP_PRODUCTION_WORKERS,
+    items: ["production-lines", "worker-equipment", "equipment-usage", "working-time"]
   },
   {
     id: "training",
-    label: "Training Mode",
+    label: "Training",
     translationKey: K.MENU_GROUP_TRAINING,
     items: ["courses", "classes", "asset-course-mappings", "student-equipment-assignments"]
   },
