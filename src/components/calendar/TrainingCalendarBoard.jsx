@@ -8,6 +8,7 @@ import {
   toDateKeyInTimeZone,
   utcClockTimeToTimeZone,
 } from "services/dateTimeService";
+import EntityPill from "components/EntityPill";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -295,6 +296,9 @@ export default function TrainingCalendarBoard({
                       <span className="tcb__event-badge" style={{ color: SCHEDULE_CONFIG.accent }}>
                         Class
                       </span>
+                      {item.classCode ? (
+                        <EntityPill type="class" id={item.id} label={item.classCode} />
+                      ) : null}
                     </div>
                     <p className="tcb__event-label">{item.courseName || item.name}</p>
                     {item.courseName && item.name && item.courseName !== item.name && (
@@ -305,44 +309,57 @@ export default function TrainingCalendarBoard({
                     <div className="tcb__lesson-list">
                       {(item.dailyLessons || []).map((lesson, index) => (
                         <div key={`${item.id}-lesson-${index}`} className="tcb__lesson-block">
-                          <button
-                            type="button"
-                            className={`tcb__lesson-row tcb__lesson-row--toggle${lesson.students?.length ? " is-clickable" : ""}`}
-                            onClick={() => lesson.students?.length && toggleLesson(`${item.id}-${index}`)}
-                            disabled={!lesson.students?.length}
-                          >
-                            {(lesson.startTime || lesson.endTime) && (
-                              <span className="tcb__pill tcb__pill--time">
-                                {formatTime(lesson.startTime, timeZoneId, value)}-{formatTime(lesson.endTime, timeZoneId, value)}
-                              </span>
+                          <div className="tcb__lesson-row-wrap" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px" }}>
+                            <button
+                              type="button"
+                              className={`tcb__lesson-row tcb__lesson-row--toggle${lesson.students?.length ? " is-clickable" : ""}`}
+                              onClick={() => lesson.students?.length && toggleLesson(`${item.id}-${index}`)}
+                              disabled={!lesson.students?.length}
+                              style={{ display: "contents" }}
+                            >
+                              {(lesson.startTime || lesson.endTime) && (
+                                <span className="tcb__pill tcb__pill--time">
+                                  {formatTime(lesson.startTime, timeZoneId, value)}-{formatTime(lesson.endTime, timeZoneId, value)}
+                                </span>
+                              )}
+                              {lesson.summaryLabel && (
+                                <span className="tcb__pill tcb__pill--summary">{lesson.summaryLabel}</span>
+                              )}
+                              {lesson.assetLabel && !lesson.assetID && (
+                                <span className="tcb__pill tcb__pill--asset">{lesson.assetLabel}</span>
+                              )}
+                              {lesson.attendanceStatus && (
+                                <span className={`tcb__pill tcb__pill--status tcb__pill--${lesson.attendanceStatus.toLowerCase()}`}>
+                                  {lesson.attendanceStatus}
+                                </span>
+                              )}
+                              {lesson.students?.length ? (
+                                <span className="tcb__lesson-expand-hint">
+                                  {expandedLessons[`${item.id}-${index}`] ? "Hide students" : "Show students"}
+                                </span>
+                              ) : null}
+                            </button>
+                            {lesson.assetID && (
+                              <EntityPill type="asset" id={lesson.assetID} label={lesson.assetCode || lesson.assetLabel} />
                             )}
-                            {lesson.summaryLabel && (
-                              <span className="tcb__pill tcb__pill--summary">{lesson.summaryLabel}</span>
-                            )}
-                            {lesson.assetLabel && (
-                              <span className="tcb__pill tcb__pill--asset">{lesson.assetLabel}</span>
-                            )}
-                            {lesson.attendanceStatus && (
-                              <span className={`tcb__pill tcb__pill--status tcb__pill--${lesson.attendanceStatus.toLowerCase()}`}>
-                                {lesson.attendanceStatus}
-                              </span>
-                            )}
-                            {lesson.students?.length ? (
-                              <span className="tcb__lesson-expand-hint">
-                                {expandedLessons[`${item.id}-${index}`] ? "Hide students" : "Show students"}
-                              </span>
-                            ) : null}
-                          </button>
+                          </div>
 
                           {lesson.students?.length && expandedLessons[`${item.id}-${index}`] ? (
                             <div className="tcb__student-list">
                               {lesson.students.map((student) => (
                                 <div key={`${item.id}-${index}-${student.studentID}`} className="tcb__student-row">
                                   <span className="tcb__student-name">
-                                    {student.name || `Student #${student.studentID}`}
+                                    {student.studentID ? (
+                                      <EntityPill type="student" id={student.studentID} label={student.name || student.fullName || `Student #${student.studentID}`} />
+                                    ) : (
+                                      student.name || `Student #${student.studentID}`
+                                    )}
                                   </span>
-                                  {student.assetLabel ? (
+                                  {student.assetLabel && !student.assetID ? (
                                     <span className="tcb__pill tcb__pill--asset">{student.assetLabel}</span>
+                                  ) : null}
+                                  {student.assetID ? (
+                                    <EntityPill type="asset" id={student.assetID} label={student.assetCode || student.assetLabel} />
                                   ) : null}
                                   {student.attendanceStatus ? (
                                     <span className={`tcb__pill tcb__pill--status tcb__pill--${student.attendanceStatus.toLowerCase()}`}>

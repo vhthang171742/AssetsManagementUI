@@ -131,10 +131,10 @@ export default function TeacherPortal() {
       const assignments = classAssignments[item.classID] || [];
       const defaultStudents = assignments.map((assignment) => ({
         studentID: assignment.studentID,
-        name: assignment.student?.user
-          ? `${assignment.student.user.firstName || ""} ${assignment.student.user.lastName || ""}`.trim() || `Student #${assignment.studentID}`
-          : `Student #${assignment.studentID}`,
-        assetLabel: assignment.roomAssetID ? `Asset #${assignment.roomAssetID}` : null,
+        name: assignment.studentName || `Student #${assignment.studentID}`,
+        assetID: assignment.assetID || null,
+        assetCode: assignment.assetCode || null,
+        assetLabel: assignment.assetCode || (assignment.roomAssetID ? `Asset #${assignment.roomAssetID}` : null),
         attendanceStatus: "Not-recorded",
       }));
 
@@ -142,6 +142,7 @@ export default function TeacherPortal() {
 
       return {
         id: item.classID,
+        classCode: item.classCode || null,
         name: item.className,
         courseName: item.courseName || item.course?.courseName || item.className,
         room: item.roomName || "",
@@ -169,17 +170,17 @@ export default function TeacherPortal() {
 
             const students = assignments.map((assignment) => {
               const sessionDetail = statusByStudent[assignment.studentID];
+              const resolvedAssetId = sessionDetail?.roomAssetID || assignment.roomAssetID;
+              const resolvedAssetCode = sessionDetail?.roomAssetID && sessionDetail.roomAssetID === assignment.roomAssetID
+                ? assignment.assetCode
+                : (resolvedAssetId === assignment.roomAssetID ? assignment.assetCode : null);
               return {
                 studentID: assignment.studentID,
                 assignmentId: assignment.assignmentID,
-                name: assignment.student?.user
-                  ? `${assignment.student.user.firstName || ""} ${assignment.student.user.lastName || ""}`.trim() || `Student #${assignment.studentID}`
-                  : `Student #${assignment.studentID}`,
-                assetLabel: sessionDetail?.roomAssetID
-                  ? `Asset #${sessionDetail.roomAssetID}`
-                  : assignment.roomAssetID
-                  ? `Asset #${assignment.roomAssetID}`
-                  : null,
+                name: assignment.studentName || `Student #${assignment.studentID}`,
+                assetID: assignment.assetID || null,
+                assetCode: resolvedAssetCode || null,
+                assetLabel: resolvedAssetCode || (resolvedAssetId ? `Asset #${resolvedAssetId}` : null),
                 attendanceStatus: sessionDetail?.attendanceStatus || "Not-recorded",
               };
             });
@@ -206,10 +207,8 @@ export default function TeacherPortal() {
         return {
           date: issue.errorTime,
           type: "issue",
-          label: `${t(K.TEACHER_SESSION_LABEL, "Session")} #${issue.sessionID}`,
-          subtitle: session?.roomAssetID
-            ? `Asset #${session.roomAssetID} • ${issue.studentDescription || "Issue reported"}`
-            : issue.studentDescription || "Issue reported",
+          label: session?.assetCode || `${t(K.TEACHER_SESSION_LABEL, "Session")} #${issue.sessionID}`,
+          subtitle: issue.studentDescription || "Issue reported",
         };
       }),
     [filteredIssues, sessionById, t]

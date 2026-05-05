@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import toast from "react-hot-toast";
 import { useLocation } from "react-router-dom";
 import Card from "components/card";
+import EntityPill from "components/EntityPill";
 import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import PortalLayout from "layouts/portal";
 import {
@@ -163,9 +164,11 @@ export default function StudentPortal() {
         sessionID: session.sessionID,
         classID: session.classID,
         roomAssetID: session.roomAssetID,
+        assetID: session.assetID || null,
+        assetCode: session.assetCode || null,
         startTime: session.startTime,
         endTime: session.endTime,
-        assetLabel: session.roomAssetID ? `Asset #${session.roomAssetID}` : null,
+        assetLabel: session.assetCode || (session.roomAssetID ? `Asset #${session.roomAssetID}` : null),
         attendanceStatus: session.attendanceStatus || "Pending",
       });
       return acc;
@@ -214,11 +217,13 @@ export default function StudentPortal() {
           classID: item.classID,
           assignmentID: assignment?.assignmentID || null,
           roomAssetID: defaultAssetId,
+          assetID: assignment?.assetID || null,
+          assetCode: assignment?.assetCode || null,
           startTime: item.scheduleStartTime || "",
           endTime: item.scheduleEndTime || "",
           plannedStartTime: item.scheduleStartTime || "",
           plannedEndTime: item.scheduleEndTime || "",
-          assetLabel: defaultAssetId ? `Asset #${defaultAssetId}` : "No assigned asset",
+          assetLabel: assignment?.assetCode ? assignment.assetCode : (defaultAssetId ? `Asset #${defaultAssetId}` : "No assigned asset"),
           activeCheckout: defaultCheckout,
           attendanceStatus: latestStatusByClass[String(item.classID)]?.status || "Not-checked",
         };
@@ -227,12 +232,15 @@ export default function StudentPortal() {
           (acc, [dateKey, lessons]) => {
             acc[dateKey] = lessons.map((lesson) => {
               const lessonAssetId = lesson.roomAssetID || defaultAssetId;
+              const lessonAssetCode = lesson.assetCode || (lessonAssetId === (assignment?.roomAssetID) ? assignment?.assetCode : null);
               return {
                 ...lesson,
                 classID: item.classID,
                 assignmentID: assignment?.assignmentID || null,
                 roomAssetID: lessonAssetId,
-                assetLabel: lessonAssetId ? `Asset #${lessonAssetId}` : "No assigned asset",
+                assetID: lesson.assetID || (lessonAssetId === (assignment?.roomAssetID) ? assignment?.assetID : null) || null,
+                assetCode: lessonAssetCode || null,
+                assetLabel: lessonAssetCode || (lessonAssetId ? `Asset #${lessonAssetId}` : "No assigned asset"),
                 plannedStartTime: item.scheduleStartTime || lesson.startTime || "",
                 plannedEndTime: item.scheduleEndTime || lesson.endTime || "",
                 activeCheckout: lessonAssetId
@@ -247,6 +255,7 @@ export default function StudentPortal() {
 
         return {
           id: item.classID,
+          classCode: item.classCode || null,
           name: item.className,
           courseName: item.courseName || courseNameById[item.courseID] || item.className,
           room: item.roomName || "",
@@ -595,11 +604,15 @@ export default function StudentPortal() {
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
             {t(K.STUDENT_ENROLL_CLASS_HINT, "Pick a course, browse classes, and enroll into a class.")}
           </p>
-          <p className="mt-2 text-xs font-semibold text-brand-600">
+          <div className="mt-2 text-xs font-semibold text-brand-600">
             {myClassId
-              ? `${t(K.STUDENT_CURRENT_CLASS, "Current class")} #${myClassId}`
+              ? (
+                myClassDetails?.classCode
+                  ? <span>{t(K.STUDENT_CURRENT_CLASS, "Current class")}: <EntityPill type="class" id={myClassId} label={myClassDetails.classCode} /></span>
+                  : `${t(K.STUDENT_CURRENT_CLASS, "Current class")} #${myClassId}`
+              )
               : t(K.STUDENT_NOT_ENROLLED, "You are not enrolled in any class yet.")}
-          </p>
+          </div>
           <form className="mt-4 space-y-3" onSubmit={handleEnroll}>
             <select
               required
@@ -654,7 +667,7 @@ export default function StudentPortal() {
               <option value="">{t(K.STUDENT_SELECT_SESSION, "Select session")}</option>
               {openSessions.map((session) => (
                 <option key={session.sessionID} value={session.sessionID}>
-                  {t(K.STUDENT_SESSION_ROW, "Session")} #{session.sessionID} • Asset #{session.roomAssetID}
+                  {t(K.STUDENT_SESSION_ROW, "Session")} #{session.sessionID} • {session.assetCode || `Asset #${session.roomAssetID}`}
                 </option>
               ))}
             </select>
@@ -701,9 +714,16 @@ export default function StudentPortal() {
                 key={item.assignmentID}
                 className="rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-700 dark:bg-navy-900"
               >
-                <p className="text-sm font-semibold text-navy-700 dark:text-white">
-                  Asset #{item.roomAssetID} • Class #{item.classID}
-                </p>
+                <div className="flex flex-wrap items-center gap-1 text-sm font-semibold text-navy-700 dark:text-white">
+                  {item.assetID
+                    ? <EntityPill type="asset" id={item.assetID} label={item.assetCode || `Asset #${item.roomAssetID}`} />
+                    : <span>Asset #{item.roomAssetID}</span>
+                  }
+                  {item.classCode
+                    ? <EntityPill type="class" id={item.classID} label={item.classCode} />
+                    : <span>Class #{item.classID}</span>
+                  }
+                </div>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
                   {t(K.STUDENT_QR_CHECKOUT_INFO, "Checked out at")} {formatDateTimeInTimeZone(item.assignedDate, userTimeZoneId)}
                 </p>
@@ -725,11 +745,17 @@ export default function StudentPortal() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-navy-700 dark:text-white">
-                      Asset #{assignment?.roomAssetID ?? session?.roomAssetID}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-1">
+                      {(assignment?.assetID || session?.assetID)
+                        ? <EntityPill type="asset" id={assignment?.assetID || session?.assetID} label={assignment?.assetCode || session?.assetCode || `Asset #${assignment?.roomAssetID ?? session?.roomAssetID}`} />
+                        : <p className="text-sm font-semibold text-navy-700 dark:text-white">Asset #{assignment?.roomAssetID ?? session?.roomAssetID}</p>
+                      }
+                      {(assignment?.classCode || session?.classCode)
+                        ? <EntityPill type="class" id={assignment?.classID ?? session?.classID} label={assignment?.classCode || session?.classCode} />
+                        : <p className="text-sm font-semibold text-navy-700 dark:text-white">Class #{assignment?.classID ?? session?.classID}</p>
+                      }
+                    </div>
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-                      Class #{assignment?.classID ?? session?.classID}
                       {assignment?.assignedDate && (
                         <>
                           {" • "}{t(K.STUDENT_ASSIGNED_INFO, "Assigned")} {formatDateTimeInTimeZone(assignment.assignedDate, userTimeZoneId)}

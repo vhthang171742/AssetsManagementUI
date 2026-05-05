@@ -2,6 +2,7 @@
 import toast from "react-hot-toast";
 import { useLocation } from "react-router-dom";
 import Card from "components/card";
+import EntityPill from "components/EntityPill";
 import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import PortalLayout from "layouts/portal";
 import { classService, practiceErrorLogService } from "services/api";
@@ -73,8 +74,8 @@ export default function TechnicianPortal() {
     openIssues.map((issue) => ({
       date: issue.errorTime,
       type: "issue",
-      label: `${t("MAINTAINER_ISSUE", "Incident")} #${issue.errorLogID}`,
-      subtitle: `${t("MAINTAINER_SESSION", "Session")} #${issue.sessionID}`,
+      label: issue.assetCode ? issue.assetCode : `${t("MAINTAINER_ISSUE", "Incident")} #${issue.errorLogID}`,
+      subtitle: issue.assetCode ? `${t("MAINTAINER_ISSUE", "Incident")} #${issue.errorLogID}` : `${t("MAINTAINER_SESSION", "Session")} #${issue.sessionID}`,
       category: issue.errorType || null,
       time: issue.errorTime ? formatTimeInTimeZone(issue.errorTime, userTimeZoneId) : null,
       reporter: issue.reporterName || null,
@@ -295,9 +296,10 @@ export default function TechnicianPortal() {
                 {/* Meta info */}
                 <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400 md:grid-cols-3">
                   {job.assetCode && (
-                    <div>
-                      <span className="font-semibold">{t(K.MAINTAINER_ASSET_LABEL, "Asset")}:</span>{" "}
-                      {job.assetCode} — {job.assetName}
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold">{t(K.MAINTAINER_ASSET_LABEL, "Asset")}:</span>
+                      <EntityPill type="asset" id={job.assetID} label={job.assetCode} />
+                      {job.assetName && <span>— {job.assetName}</span>}
                     </div>
                   )}
                   {job.roomName && (
