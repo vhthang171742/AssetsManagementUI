@@ -15,6 +15,7 @@ import { PortalIds } from "constants/portals";
 import StudentPortal from "views/portals/StudentPortal";
 import TeacherPortal from "views/portals/TeacherPortal";
 import TechnicianPortal from "views/portals/MaintainerPortal";
+import WorkerPortal from "views/portals/WorkerPortal";
 import ProfilePage from "views/profile";
 import NoPortalAccessPage from "views/noPortalAccess";
 
@@ -100,6 +101,14 @@ const AppContent = () => {
         element={
           <PortalRoute portalId={PortalIds.Maintainer}>
             <TechnicianPortal />
+          </PortalRoute>
+        }
+      />
+      <Route
+        path="worker"
+        element={
+          <PortalRoute portalId={PortalIds.Worker}>
+            <WorkerPortal />
           </PortalRoute>
         }
       />

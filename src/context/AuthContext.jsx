@@ -220,9 +220,14 @@ export const AuthProvider = ({ children }) => {
       currentUser?.technicianRole && (currentUser.technicianRole.isActive ?? true)
     );
 
+    const workerActive = Boolean(
+      currentUser?.workerRole && (currentUser.workerRole.isActive ?? true)
+    );
+
     if (portalId === PortalIds.Student) return studentActive;
     if (portalId === PortalIds.Teacher) return instructorActive;
     if (portalId === PortalIds.Maintainer) return technicianActive;
+    if (portalId === PortalIds.Worker) return workerActive;
 
     return false;
   };

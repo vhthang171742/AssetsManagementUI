@@ -6,6 +6,7 @@ export const PortalIds = {
   Student: "student",
   Teacher: "teacher",
   Maintainer: "maintainer",
+  Worker: "worker",
 };
 
 export const PortalConfigs = [
@@ -44,5 +45,14 @@ export const PortalConfigs = [
     description: "Handle maintenance schedules, repair records and spare part activities.",
     requiredRoles: RoleSets.MaintenanceUser,
     requiredGroups: ["maintainers"],
+  },
+  {
+    id: PortalIds.Worker,
+    name: "Worker Portal",
+    translationKey: K.PORTAL_WORKER_NAME,
+    path: "/worker",
+    description: "View your assigned equipment, log shift sessions and track usage history.",
+    requiredRoles: [Roles.ProductionUser, Roles.ProductionManager, Roles.Admin],
+    requiredGroups: ["workers"],
   },
 ];

@@ -11,6 +11,8 @@ export const workerEquipmentService = {
    */
   getAll: () => httpClient("/worker-equipment"),
 
+  getMine: () => httpClient("/worker-equipment/me"),
+
   getPaged: (query = {}) => {
     const params = new URLSearchParams();
     if (query.page != null) params.set("page", String(query.page));
