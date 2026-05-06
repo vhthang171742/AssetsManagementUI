@@ -58,6 +58,14 @@ export const workerEquipmentService = {
     httpClient(`/worker-equipment/by-line/${lineId}`),
 
   /**
+   * Get assets available for assignment to a specific worker's production line.
+   * @param {number} workerId - Worker ID
+   * @returns {Promise<Array>} List of available room assets
+   */
+  getAvailableAssetsByWorker: (workerId) =>
+    httpClient(`/worker-equipment/available-assets/by-worker/${workerId}`),
+
+  /**
    * Create a new worker equipment assignment
    * @param {object} data - Assignment data {workerID, roomAssetID, assignedDate}
    * @returns {Promise<object>} Created assignment

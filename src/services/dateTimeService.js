@@ -1,16 +1,69 @@
 const HAS_TZ_SUFFIX_REGEX = /[zZ]|[+\-]\d{2}:\d{2}$/;
+const resolvedTimeZoneCache = new Map();
+const dateKeyFormatterCache = new Map();
+const timeFormatterCache = new Map();
 
 const resolveTimeZone = (timeZoneId) => {
   if (!timeZoneId) {
     return undefined;
   }
 
+  if (resolvedTimeZoneCache.has(timeZoneId)) {
+    return resolvedTimeZoneCache.get(timeZoneId);
+  }
+
   try {
     Intl.DateTimeFormat("en-US", { timeZone: timeZoneId });
+    resolvedTimeZoneCache.set(timeZoneId, timeZoneId);
     return timeZoneId;
   } catch {
+    resolvedTimeZoneCache.set(timeZoneId, undefined);
     return undefined;
   }
+};
+
+const getDateKeyFormatter = (timeZoneId) => {
+  const tz = resolveTimeZone(timeZoneId);
+  const cacheKey = tz || "__local__";
+  if (dateKeyFormatterCache.has(cacheKey)) {
+    return dateKeyFormatterCache.get(cacheKey);
+  }
+
+  const options = {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  };
+
+  if (tz) {
+    options.timeZone = tz;
+  }
+
+  const formatter = new Intl.DateTimeFormat("en-CA", options);
+  dateKeyFormatterCache.set(cacheKey, formatter);
+  return formatter;
+};
+
+const getTimeFormatter = (timeZoneId) => {
+  const tz = resolveTimeZone(timeZoneId);
+  const cacheKey = tz || "__local__";
+  if (timeFormatterCache.has(cacheKey)) {
+    return timeFormatterCache.get(cacheKey);
+  }
+
+  const options = {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  };
+
+  if (tz) {
+    options.timeZone = tz;
+  }
+
+  const formatter = new Intl.DateTimeFormat(undefined, options);
+  timeFormatterCache.set(cacheKey, formatter);
+  return formatter;
 };
 
 export const parseApiDateTime = (value) => {
@@ -46,12 +99,7 @@ export const toDateKeyInTimeZone = (value, timeZoneId) => {
     return null;
   }
 
-  return new Intl.DateTimeFormat("en-CA", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    timeZone: resolveTimeZone(timeZoneId),
-  }).format(parsed);
+  return getDateKeyFormatter(timeZoneId).format(parsed);
 };
 
 export const formatTimeInTimeZone = (value, timeZoneId) => {
@@ -60,12 +108,7 @@ export const formatTimeInTimeZone = (value, timeZoneId) => {
     return "";
   }
 
-  return parsed.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: resolveTimeZone(timeZoneId),
-  });
+  return getTimeFormatter(timeZoneId).format(parsed);
 };
 
 export const formatDateInTimeZone = (value, timeZoneId, options = {}) => {

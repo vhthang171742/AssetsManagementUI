@@ -21,6 +21,30 @@ function formatElapsed(startDate) {
   return `${minutes}m`;
 }
 
+function extractApiDateKey(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  const parsed = parseApiDateTime(value);
+  if (!parsed) {
+    return null;
+  }
+
+  return parsed.toISOString().slice(0, 10);
+}
+
+function toNoonUtcIso(dateKey) {
+  return `${dateKey}T12:00:00Z`;
+}
+
 function StatusBadge({ active }) {
   return active ? (
     <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">
@@ -66,6 +90,7 @@ export default function WorkerPortal() {
   const videoRef = useRef(null);
   const scannerTimerRef = useRef(null);
   const cameraStreamRef = useRef(null);
+  const loadedCalendarMonthRef = useRef("");
 
   // ── Load data ──────────────────────────────────────────────────────────────
 
@@ -93,12 +118,17 @@ export default function WorkerPortal() {
     loadData();
   }, [loadData]);
 
-  const loadWorkingCalendar = useCallback(async (date) => {
+  const loadWorkingCalendar = useCallback(async (date, force = false) => {
     try {
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
+      const monthKey = `${year}-${month}`;
+      if (!force && loadedCalendarMonthRef.current === monthKey) {
+        return;
+      }
       const data = await workerCalendarService.getMyCalendar(year, month);
       setWorkingEvents(data || []);
+      loadedCalendarMonthRef.current = monthKey;
     } catch (err) {
       console.error("Worker calendar load error:", err);
     }
@@ -107,6 +137,13 @@ export default function WorkerPortal() {
   useEffect(() => {
     loadWorkingCalendar(calendarDate);
   }, [calendarDate, loadWorkingCalendar]);
+
+  const handleCalendarActiveMonthChange = useCallback((activeMonthStartDate) => {
+    if (!activeMonthStartDate) {
+      return;
+    }
+    loadWorkingCalendar(activeMonthStartDate);
+  }, [loadWorkingCalendar]);
 
   const stopScanner = useCallback(() => {
     setIsScanning(false);
@@ -139,7 +176,7 @@ export default function WorkerPortal() {
         await workerCalendarService.checkinByQr(cleaned);
         toast.success(t(K.WORKER_QR_CHECKIN_SUCCESS, "Attendance check-in successful."));
       }
-      await Promise.all([loadData(), loadWorkingCalendar(calendarDate)]);
+      await Promise.all([loadData(), loadWorkingCalendar(calendarDate, true)]);
     } catch (err) {
       toast.error(`${t(K.WORKER_QR_ACTION_FAILED, "QR attendance action failed")}: ${err?.message || "Unknown error"}`);
     } finally {
@@ -262,44 +299,75 @@ export default function WorkerPortal() {
   const calendarScheduleItems = useMemo(
     () =>
       (workingEvents || []).map((item, index) => {
-        const eventDate = parseApiDateTime(item.date) || new Date(item.date);
-        const dayBit = 1 << eventDate.getDay();
+        const eventDateKey = extractApiDateKey(item.date) || toDateKeyInTimeZone(item.date, userTimeZoneId);
+        const normalizedDate = eventDateKey ? toNoonUtcIso(eventDateKey) : item.date;
+        const lesson = {
+          summaryLabel: item.title || t(K.WORKER_SHIFT_LABEL, "Shift"),
+          startTime: item.shiftStartUtc,
+          endTime: item.shiftEndUtc,
+          checkinAllowedFromUtc: item.checkinAllowedFromUtc,
+          checkinAllowedToUtc: item.checkinAllowedToUtc,
+          checkoutAllowedFromUtc: item.checkoutAllowedFromUtc,
+          checkoutAllowedToUtc: item.checkoutAllowedToUtc,
+          attendanceStatus: item.attendanceStatus,
+          checkinAtUtc: item.checkinAtUtc,
+          checkoutAtUtc: item.checkoutAtUtc,
+          assetLabel: item.checkinAtUtc
+            ? `${t(K.WORKER_QR_CHECKIN, "QR Check-In")}: ${formatDateTimeInTimeZone(parseApiDateTime(item.checkinAtUtc), userTimeZoneId)}`
+            : null,
+        };
+
         return {
           id: `worker-shift-${index}`,
           name: item.title || t(K.WORKER_WORKING_CALENDAR, "Working Calendar"),
           room: workerProfile?.workerRole?.productionLineName || "",
-          startDate: item.date,
-          endDate: item.date,
-          daysMask: dayBit,
-          lessons: [
-            {
-              summaryLabel: item.title || t(K.WORKER_SHIFT_LABEL, "Shift"),
-              startTime: item.shiftStartUtc,
-              endTime: item.shiftEndUtc,
-              attendanceStatus: item.attendanceStatus,
-              checkinAtUtc: item.checkinAtUtc,
-              checkoutAtUtc: item.checkoutAtUtc,
-              assetLabel: item.checkinAtUtc
-                ? `${t(K.WORKER_QR_CHECKIN, "QR Check-In")}: ${formatDateTimeInTimeZone(parseApiDateTime(item.checkinAtUtc), userTimeZoneId)}`
-                : null,
-            },
-          ],
+          startDate: normalizedDate,
+          endDate: normalizedDate,
+          // Worker calendar API returns one event per day; keep matching date-key based to avoid timezone day-bit drift.
+          daysMask: (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4) | (1 << 5) | (1 << 6),
+          lessonsByDate: eventDateKey ? { [eventDateKey]: [lesson] } : undefined,
+          lessons: [lesson],
         };
       }),
     [t, userTimeZoneId, workerProfile?.workerRole?.productionLineName, workingEvents]
   );
 
   const getShiftQrState = useCallback((lesson, selectedDate, lessonKey) => {
+    const now = new Date();
     const selectedDateKey = toDateKeyInTimeZone(selectedDate, userTimeZoneId);
     const todayKey = toDateKeyInTimeZone(new Date(), userTimeZoneId);
     const isTodayShift = Boolean(selectedDateKey && todayKey && selectedDateKey === todayKey);
     const attendance = String(lesson.attendanceStatus || "").toLowerCase();
     const isCheckedIn = Boolean(lesson.checkinAtUtc) || attendance.includes("checked-in") || attendance.includes("present");
     const isCheckedOut = Boolean(lesson.checkoutAtUtc) || attendance.includes("checked-out") || attendance.includes("completed");
-    const action = isCheckedIn && !isCheckedOut ? "checkout" : "checkin";
-    const isCurrentScannerTarget = isScanning && scannerTarget?.lessonKey === lessonKey;
 
-    if (!isTodayShift && !isCurrentScannerTarget) {
+    if (isCheckedOut) {
+      return null;
+    }
+
+    const isCheckinWindowEligible = (() => {
+      const from = parseApiDateTime(lesson.checkinAllowedFromUtc);
+      const to = parseApiDateTime(lesson.checkinAllowedToUtc);
+      if (!from || !to) {
+        return false;
+      }
+      return now >= from && now <= to;
+    })();
+
+    const isCheckoutWindowEligible = (() => {
+      const from = parseApiDateTime(lesson.checkoutAllowedFromUtc);
+      const to = parseApiDateTime(lesson.checkoutAllowedToUtc);
+      if (!from || !to) {
+        return false;
+      }
+      return now >= from && now <= to;
+    })();
+
+    const action = isCheckedIn ? "checkout" : "checkin";
+    const isCurrentScannerTarget = isScanning && scannerTarget?.lessonKey === lessonKey;
+    const isEligibleNow = action === "checkout" ? isCheckoutWindowEligible : isCheckinWindowEligible;
+
+    if ((!isTodayShift || !isEligibleNow) && !isCurrentScannerTarget) {
       return null;
     }
 
@@ -412,6 +480,7 @@ export default function WorkerPortal() {
           <TrainingCalendarBoard
             value={calendarDate}
             onChange={setCalendarDate}
+            onActiveMonthChange={handleCalendarActiveMonthChange}
             scheduleItems={calendarScheduleItems}
             events={[]}
             timeZoneId={userTimeZoneId}

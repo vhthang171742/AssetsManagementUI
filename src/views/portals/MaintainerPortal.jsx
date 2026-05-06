@@ -5,7 +5,7 @@ import Card from "components/card";
 import EntityPill from "components/EntityPill";
 import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import PortalLayout from "layouts/portal";
-import { classService, practiceErrorLogService } from "services/api";
+import { practiceErrorLogService } from "services/api";
 import assetService from "services/assetService";
 import { assetLifecycleService } from "services/assetLifecycleService";
 import { configurationService } from "services/configurationService";
@@ -42,28 +42,14 @@ export default function TechnicianPortal() {
   const [assets, setAssets] = useState([]);
   const [issues, setIssues] = useState([]);
   const [openJobs, setOpenJobs] = useState([]);
-  const [classes, setClasses] = useState([]);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [resolutionCategories, setResolutionCategories] = useState([]);
   const [activeForm, setActiveForm] = useState({ jobId: null, type: null }); // type: "resolve" | "decommission"
   const [resolveForm, setResolveForm] = useState({ resolutionNotes: "" });
   const [decommissionForm, setDecommissionForm] = useState({ reason: "" });
 
-  // Technician calendar: class schedule items + reported incidents
-  const scheduleItems = useMemo(() =>
-    classes.map((cls) => ({
-      id: cls.classID,
-      name: cls.className,
-      courseName: cls.courseName || cls.className,
-      room: cls.roomName || "",
-      startDate: cls.startDate,
-      endDate: cls.endDate,
-      daysMask: cls.scheduleDaysMask || 0,
-      lessons: cls.scheduleStartTime || cls.scheduleEndTime
-        ? [{ startTime: cls.scheduleStartTime || "", endTime: cls.scheduleEndTime || "" }]
-        : [],
-    }))
-  , [classes, userTimeZoneId]);
+  // Technician calendar: incidents only.
+  const scheduleItems = useMemo(() => [], []);
 
   const openIssues = useMemo(
     () => issues.filter((issue) => !issue.resolutionTime).slice(0, 8),
@@ -91,10 +77,9 @@ export default function TechnicianPortal() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allAssets, allIssues, classList, jobs] = await Promise.all([
+      const [allAssets, allIssues, jobs] = await Promise.all([
         assetService.getAllStatuses(),
         practiceErrorLogService.getAll(),
-        classService.getActive(),
         assetLifecycleService.getOpenJobs().catch(() => []),
       ]);
 
@@ -104,7 +89,6 @@ export default function TechnicianPortal() {
           (a, b) => new Date(b.errorTime || 0) - new Date(a.errorTime || 0)
         )
       );
-      setClasses(classList || []);
       setOpenJobs(jobs || []);
     } catch (error) {
       showToast(`${t(K.MAINTAINER_LOAD_FAILED, "Failed to load maintainer workspace")}: ${error.message}`, true);
@@ -212,9 +196,9 @@ export default function TechnicianPortal() {
             scheduleItems={scheduleItems}
             events={calendarEvents}
             timeZoneId={userTimeZoneId}
-            title={t("MAINTAINER_TRAINING_CALENDAR", "Training Calendar")}
-            detailsTitle={t("COMMON_DAILY_DETAILS", "Daily Details")}
-            noEventsText={t("MAINTAINER_NO_EVENTS_ON_DATE", "No training events on selected date.")}
+            title={t("MAINTAINER_INCIDENT_CALENDAR", "Incident Calendar")}
+            detailsTitle={t("MAINTAINER_INCIDENT_DETAILS", "Incident Details")}
+            noEventsText={t("MAINTAINER_NO_EVENTS_ON_DATE", "No incidents on selected date.")}
           />
         </Card>
       </div>

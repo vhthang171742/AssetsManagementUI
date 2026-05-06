@@ -33,6 +33,50 @@ const SHIFT_COLORS = [
   "border-l-4 border-l-emerald-400",
 ];
 
+const TIMEZONE_OPTIONS = [
+  { value: "UTC", label: "UTC (UTC+00:00)" },
+  { value: "Europe/London", label: "London (UTC+00:00 / +01:00)" },
+  { value: "Europe/Paris", label: "Paris / Berlin (UTC+01:00 / +02:00)" },
+  { value: "Europe/Moscow", label: "Moscow (UTC+03:00)" },
+  { value: "Asia/Dubai", label: "Dubai (UTC+04:00)" },
+  { value: "Asia/Karachi", label: "Karachi (UTC+05:00)" },
+  { value: "Asia/Kolkata", label: "India (UTC+05:30)" },
+  { value: "Asia/Dhaka", label: "Dhaka (UTC+06:00)" },
+  { value: "Asia/Bangkok", label: "Bangkok (UTC+07:00)" },
+  { value: "Asia/Ho_Chi_Minh", label: "Ho Chi Minh City (UTC+07:00)" },
+  { value: "Asia/Singapore", label: "Singapore (UTC+08:00)" },
+  { value: "Asia/Shanghai", label: "Shanghai / Beijing (UTC+08:00)" },
+  { value: "Asia/Tokyo", label: "Tokyo (UTC+09:00)" },
+  { value: "Asia/Seoul", label: "Seoul (UTC+09:00)" },
+  { value: "Australia/Sydney", label: "Sydney (UTC+10:00 / +11:00)" },
+  { value: "Pacific/Auckland", label: "Auckland (UTC+12:00 / +13:00)" },
+  { value: "America/Sao_Paulo", label: "Sao Paulo (UTC-03:00)" },
+  { value: "America/New_York", label: "New York (UTC-05:00 / -04:00)" },
+  { value: "America/Chicago", label: "Chicago (UTC-06:00 / -05:00)" },
+  { value: "America/Denver", label: "Denver (UTC-07:00 / -06:00)" },
+  { value: "America/Los_Angeles", label: "Los Angeles (UTC-08:00 / -07:00)" },
+  { value: "America/Anchorage", label: "Anchorage (UTC-09:00)" },
+  { value: "Pacific/Honolulu", label: "Honolulu (UTC-10:00)" },
+];
+
+const withCurrentTimeZone = (timeZoneId) => {
+  if (!timeZoneId || TIMEZONE_OPTIONS.some((z) => z.value === timeZoneId)) {
+    return TIMEZONE_OPTIONS;
+  }
+
+  return [{ value: timeZoneId, label: timeZoneId }, ...TIMEZONE_OPTIONS];
+};
+
+const shiftKey = (group = {}) => {
+  const name = String(group.name || "").trim().toLowerCase();
+  const start = String(group.startTime || "");
+  const end = String(group.endTime || "");
+  return `${name}|${Number(group.daysMask || 0)}|${start}|${end}`;
+};
+
+const isShiftExcluded = (excluded = [], group) =>
+  excluded.some((item) => shiftKey(item) === shiftKey(group));
+
 const makeShift = (preset = SHIFT_PRESETS[0]) => ({
   name: preset.name,
   daysMask: WEEKDAY_MASK,
@@ -117,6 +161,7 @@ function ShiftCard({ group, index, colorClass, onChange, onRemove, t }) {
 // ─── WindowsSettings ─────────────────────────────────────────────────────────
 
 function WindowsSettings({ config, onChange, t }) {
+  const timezoneOptions = withCurrentTimeZone(config.timeZoneId);
   const fields = [
     { key: "checkinWindowBeforeMinutes",  label: t(K.ADMIN_WORKING_TIME_CHECKIN_BEFORE,  "Check-in before (min)") },
     { key: "checkinWindowAfterMinutes",   label: t(K.ADMIN_WORKING_TIME_CHECKIN_AFTER,   "Check-in after (min)") },
@@ -132,11 +177,15 @@ function WindowsSettings({ config, onChange, t }) {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <label className="text-sm">
           {t(K.ADMIN_WORKING_TIME_TIMEZONE, "Time Zone")}
-          <input
+          <select
             value={config.timeZoneId}
             onChange={(e) => onChange("timeZoneId", e.target.value)}
             className="mt-1 w-full rounded border border-gray-300 px-3 py-2 dark:border-white/10 dark:bg-navy-700"
-          />
+          >
+            {timezoneOptions.map((tz) => (
+              <option key={tz.value} value={tz.value}>{tz.label}</option>
+            ))}
+          </select>
         </label>
         {fields.map(({ key, label }) => (
           <label key={key} className="text-sm">
@@ -250,11 +299,20 @@ export default function WorkingTimeAdminPage() {
         isActive:       existing.isActive ?? true,
         timeZoneId:     existing.timeZoneId || "",
         scheduleGroups: existing.scheduleGroups?.length ? existing.scheduleGroups : [],
+        excludedScheduleGroups: existing.excludedScheduleGroups?.length ? existing.excludedScheduleGroups : [],
         _workerName:    user?.fullName || user?.email || null,
         _locked:        !!user,
       });
     } else {
-      setOverrideForm({ workerID: "", startDate: "", endDate: "", isActive: true, timeZoneId: "", scheduleGroups: [] });
+      setOverrideForm({
+        workerID: "",
+        startDate: "",
+        endDate: "",
+        isActive: true,
+        timeZoneId: "",
+        scheduleGroups: [],
+        excludedScheduleGroups: [],
+      });
     }
   };
 
@@ -277,21 +335,38 @@ export default function WorkingTimeAdminPage() {
       scheduleGroups: prev.scheduleGroups.filter((_, i) => i !== idx),
     }));
 
+  const toggleExcludedGlobalShift = (group) => {
+    setOverrideForm((prev) => {
+      const excluded = prev.excludedScheduleGroups || [];
+      const exists = isShiftExcluded(excluded, group);
+      return {
+        ...prev,
+        excludedScheduleGroups: exists
+          ? excluded.filter((item) => shiftKey(item) !== shiftKey(group))
+          : [...excluded, group],
+      };
+    });
+  };
+
   const saveOverride = async (e) => {
     e.preventDefault();
-    if (!overrideForm.workerID || !overrideForm.startDate || !overrideForm.endDate) {
-      toast.error(t(K.ADMIN_WORKING_TIME_OVERRIDE_REQUIRED, "Please select worker and date range."));
+    if (!overrideForm.workerID || !overrideForm.startDate) {
+      toast.error(t(K.ADMIN_WORKING_TIME_OVERRIDE_REQUIRED, "Please select worker and start date."));
       return;
     }
+
+    const effectiveEndDate = overrideForm.endDate || overrideForm.startDate;
+
     setSaving(true);
     try {
       await workerCalendarService.upsertOverride({
         workerID:       Number(overrideForm.workerID),
         startDate:      overrideForm.startDate,
-        endDate:        overrideForm.endDate,
+        endDate:        effectiveEndDate,
         isActive:       overrideForm.isActive,
         timeZoneId:     overrideForm.timeZoneId || null,
         scheduleGroups: overrideForm.scheduleGroups,
+        excludedScheduleGroups: overrideForm.excludedScheduleGroups,
       });
       toast.success(t(K.ADMIN_WORKING_TIME_OVERRIDE_SAVED, "Worker override saved."));
       setOverrideForm(null);
@@ -441,7 +516,6 @@ export default function WorkingTimeAdminPage() {
                 </label>
                 <input
                   type="date"
-                  required
                   value={overrideForm.endDate}
                   onChange={(e) => setOverrideForm((p) => ({ ...p, endDate: e.target.value }))}
                   className="w-full rounded border border-gray-300 px-3 py-2 dark:border-white/10 dark:bg-navy-700"
@@ -452,12 +526,16 @@ export default function WorkingTimeAdminPage() {
             <div className="mb-4 flex flex-wrap items-center gap-4">
               <label className="text-sm">
                 {t(K.ADMIN_WORKING_TIME_TIMEZONE_OPTIONAL, "Time Zone (optional)")}
-                <input
+                <select
                   value={overrideForm.timeZoneId}
                   onChange={(e) => setOverrideForm((p) => ({ ...p, timeZoneId: e.target.value }))}
-                  placeholder="Asia/Ho_Chi_Minh"
                   className="ml-2 rounded border border-gray-300 px-2 py-1 text-sm dark:border-white/10 dark:bg-navy-700"
-                />
+                >
+                  <option value="">{t(K.ADMIN_WORKING_TIME_INHERITS_GLOBAL, "Inherits global schedule")}</option>
+                  {withCurrentTimeZone(overrideForm.timeZoneId).map((tz) => (
+                    <option key={tz.value} value={tz.value}>{tz.label}</option>
+                  ))}
+                </select>
               </label>
               <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
                 <input
@@ -501,6 +579,31 @@ export default function WorkingTimeAdminPage() {
                   <span className="text-sm">{t(K.ADMIN_WORKING_TIME_ADD_SHIFT, "Add Shift")}</span>
                 </button>
               </div>
+
+              {overrideForm.scheduleGroups.length === 0 && globalConfig.scheduleGroups.length > 0 && (
+                <div className="mt-4 rounded-lg border border-gray-200 p-3 dark:border-white/10">
+                  <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t(K.ADMIN_WORKING_TIME_EXCLUDE_GLOBAL_SHIFTS, "When inheriting global, unapply selected shifts")}
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {globalConfig.scheduleGroups.map((group, idx) => {
+                      const checked = isShiftExcluded(overrideForm.excludedScheduleGroups, group);
+                      return (
+                        <label key={`exclude-${idx}`} className="inline-flex cursor-pointer items-center gap-2 rounded border border-gray-200 px-2 py-1 text-xs dark:border-white/10">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleExcludedGlobalShift(group)}
+                          />
+                          <span className="text-gray-600 dark:text-gray-300">
+                            {group.name || t(K.WORKER_SHIFT_LABEL, "Shift")} {toTimeInput(group.startTime)}-{toTimeInput(group.endTime)}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">
@@ -556,12 +659,26 @@ export default function WorkingTimeAdminPage() {
                           <p className="font-medium text-navy-700 dark:text-white">{u.fullName || u.email}</p>
                           <p className="text-xs text-gray-400">{u.email}</p>
                         </td>
-                        <td className="py-3 pr-4 text-xs text-gray-400" colSpan={3}>
+                        <td className="py-3 pr-4 text-xs text-gray-500 dark:text-gray-300">
                           {t(K.ADMIN_WORKING_TIME_INHERITS_GLOBAL, "Inherits global schedule")}
+                        </td>
+                        <td className="py-3 pr-4">
+                          <div className="flex flex-wrap gap-1">
+                            {globalConfig.scheduleGroups.map((g, gi) => (
+                              <span key={gi} className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-xs text-brand-700 dark:bg-brand-900/20 dark:text-brand-300">
+                                {g.name || t(K.WORKER_SHIFT_LABEL, "Shift")} {toTimeInput(g.startTime)}-{toTimeInput(g.endTime)}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/20 dark:text-green-300">
+                            {t(K.ADMIN_TABLE_ACTIVE, "Active")}
+                          </span>
                         </td>
                         <td className="py-3 text-right">
                           <button
-                            onClick={() => openAssignForm({ workerID, scheduleGroups: [], isActive: true, startDate: new Date().toISOString().slice(0, 10), endDate: "" })}
+                            onClick={() => openAssignForm({ workerID, scheduleGroups: [], excludedScheduleGroups: [], isActive: true, startDate: new Date().toISOString().slice(0, 10), endDate: "" })}
                             className="rounded border border-brand-300 px-2 py-1 text-xs text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-300"
                           >
                             + {t(K.ADMIN_WORKING_TIME_ASSIGN_WORKER, "Assign")}
@@ -590,7 +707,18 @@ export default function WorkingTimeAdminPage() {
                                 ))}
                               </div>
                             ) : (
-                              <span className="text-xs text-gray-400">{t(K.ADMIN_WORKING_TIME_INHERITS_GLOBAL, "Inherits global")}</span>
+                              <div className="space-y-1">
+                                <span className="block text-xs text-gray-400">{t(K.ADMIN_WORKING_TIME_INHERITS_GLOBAL, "Inherits global")}</span>
+                                {ovr.excludedScheduleGroups?.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {ovr.excludedScheduleGroups.map((g, gi) => (
+                                      <span key={gi} className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs text-red-700 dark:bg-red-900/20 dark:text-red-300">
+                                        {t(K.ADMIN_WORKING_TIME_EXCLUDED_SHIFTS, "Excluded")}: {g.name || t(K.WORKER_SHIFT_LABEL, "Shift")}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </td>
                           <td className="py-3 pr-4">

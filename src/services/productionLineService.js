@@ -92,6 +92,56 @@ export const productionLineService = {
   getAssignedWorkers: (lineId) =>
     httpClient(`/production-lines/${lineId}/workers`),
 
+  getWorkers: (lineId) =>
+    httpClient(`/production-lines/${lineId}/workers`),
+
+  addWorker: (lineId, workerId) =>
+    httpClient(`/production-lines/${lineId}/workers/${workerId}`, {
+      method: "POST",
+    }),
+
+  removeWorker: (lineId, workerId) =>
+    httpClient(`/production-lines/${lineId}/workers/${workerId}`, {
+      method: "DELETE",
+    }),
+
+  /**
+   * Get working assets assigned to a production line.
+   * @param {number} lineId - Production Line ID
+   * @returns {Promise<Array>} Working assets for the line
+   */
+  getAssets: (lineId) =>
+    httpClient(`/production-lines/${lineId}/assets`),
+
+  /**
+   * Assign a room asset as working asset for a production line.
+   * @param {number} lineId - Production Line ID
+   * @param {number} roomAssetID - Room Asset ID
+   * @returns {Promise<object>} Created line asset assignment
+   */
+  addAsset: (lineId, roomAssetID) =>
+    httpClient(`/production-lines/${lineId}/assets`, {
+      method: "POST",
+      body: JSON.stringify({ roomAssetID }),
+    }),
+
+  createAsset: (lineId, data) =>
+    httpClient(`/production-lines/${lineId}/assets/create`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * Remove a working asset mapping from a production line.
+   * @param {number} lineId - Production Line ID
+   * @param {number} assignmentId - Line asset assignment ID
+   * @returns {Promise<null>} No content response
+   */
+  removeAsset: (lineId, assignmentId) =>
+    httpClient(`/production-lines/${lineId}/assets/${assignmentId}`, {
+      method: "DELETE",
+    }),
+
   /**
    * Update production line status
    * @param {number} id - Production Line ID

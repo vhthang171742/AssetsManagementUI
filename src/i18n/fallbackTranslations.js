@@ -45,7 +45,7 @@ export const fallbackTranslations = {
 
     [K.MENU_GROUP_ASSET_MANAGEMENT]: "Asset Management",
     [K.MENU_GROUP_PRODUCTION_WORKERS]: "Production & Workers",
-    [K.MENU_GROUP_TRAINING]: "Training",
+    [K.MENU_GROUP_TRAINING]: "Training Mode",
     [K.MENU_GROUP_MAINTENANCE]: "Maintenance",
     [K.MENU_GROUP_ADMINISTRATION]: "Administration",
 
@@ -53,7 +53,7 @@ export const fallbackTranslations = {
     [K.ROUTE_ASSETS]: "Assets",
     [K.ROUTE_CATEGORIES]: "Categories",
     [K.ROUTE_DEPARTMENTS]: "Departments",
-    [K.ROUTE_ROOMS]: "Rooms",
+    [K.ROUTE_ROOMS]: "Class Room",
     [K.ROUTE_HANDOVERS]: "Handovers",
     [K.ROUTE_CONFIGURATION]: "Configuration",
     [K.ROUTE_USERS]: "Users",
@@ -159,6 +159,8 @@ export const fallbackTranslations = {
     [K.ADMIN_WORKING_TIME_DATE_RANGE_COL]: "Date Range",
     [K.ADMIN_WORKING_TIME_CANCEL]: "Cancel",
     [K.ADMIN_WORKING_TIME_ACTIVE_OVERRIDE]: "Active Override",
+    [K.ADMIN_WORKING_TIME_EXCLUDE_GLOBAL_SHIFTS]: "When inheriting global, unapply selected shifts",
+    [K.ADMIN_WORKING_TIME_EXCLUDED_SHIFTS]: "Excluded",
 
     [K.PAGE_PROFILE]: "Profile",
     [K.PROFILE_ASSIGNED_PORTALS]: "Assigned portal access",
@@ -500,6 +502,7 @@ export const fallbackTranslations = {
     [K.ADMIN_TABLE_ROOM]: "Room",
     [K.ADMIN_TABLE_ROOM_NAME]: "Room Name",
     [K.ADMIN_TABLE_ROOM_ASSETS]: "Room Assets",
+    [K.ADMIN_TABLE_WORKING_ASSETS]: "Working Assets",
     [K.ADMIN_TABLE_ADD_ASSET_TO_ROOM]: "Add Asset to Room",
     [K.ADMIN_TABLE_CURRENT_ASSETS]: "Current Assets",
     [K.ADMIN_TABLE_SERIAL]: "Serial",
@@ -824,7 +827,7 @@ export const fallbackTranslations = {
 
     [K.MENU_GROUP_ASSET_MANAGEMENT]: "Quản lý tài sản",
     [K.MENU_GROUP_PRODUCTION_WORKERS]: "Sản xuất & Công nhân",
-    [K.MENU_GROUP_TRAINING]: "Đào tạo",
+    [K.MENU_GROUP_TRAINING]: "Chế độ đào tạo",
     [K.MENU_GROUP_MAINTENANCE]: "Bảo trì",
     [K.MENU_GROUP_ADMINISTRATION]: "Quản trị",
 
@@ -832,7 +835,7 @@ export const fallbackTranslations = {
     [K.ROUTE_ASSETS]: "Tài sản",
     [K.ROUTE_CATEGORIES]: "Danh mục",
     [K.ROUTE_DEPARTMENTS]: "Phòng ban",
-    [K.ROUTE_ROOMS]: "Phòng",
+    [K.ROUTE_ROOMS]: "Phòng học",
     [K.ROUTE_HANDOVERS]: "Bàn giao",
     [K.ROUTE_CONFIGURATION]: "Cấu hình",
     [K.ROUTE_USERS]: "Người dùng",
@@ -938,6 +941,8 @@ export const fallbackTranslations = {
     [K.ADMIN_WORKING_TIME_DATE_RANGE_COL]: "Khoảng Ngày",
     [K.ADMIN_WORKING_TIME_CANCEL]: "Hủy",
     [K.ADMIN_WORKING_TIME_ACTIVE_OVERRIDE]: "Ghi Đè Đang Hoạt Động",
+    [K.ADMIN_WORKING_TIME_EXCLUDE_GLOBAL_SHIFTS]: "Khi kế thừa lịch toàn cục, bỏ áp dụng các ca đã chọn",
+    [K.ADMIN_WORKING_TIME_EXCLUDED_SHIFTS]: "Đã loại trừ",
 
     [K.PAGE_PROFILE]: "Hồ sơ",
     [K.PROFILE_ASSIGNED_PORTALS]: "Quyền truy cập cổng đã được cấp",
@@ -1279,6 +1284,7 @@ export const fallbackTranslations = {
     [K.ADMIN_TABLE_ROOM]: "Phòng",
     [K.ADMIN_TABLE_ROOM_NAME]: "Tên phòng",
     [K.ADMIN_TABLE_ROOM_ASSETS]: "Tài sản trong phòng",
+    [K.ADMIN_TABLE_WORKING_ASSETS]: "Tài sản sản xuất",
     [K.ADMIN_TABLE_ADD_ASSET_TO_ROOM]: "Thêm tài sản vào phòng",
     [K.ADMIN_TABLE_CURRENT_ASSETS]: "Tài sản hiện tại",
     [K.ADMIN_TABLE_SERIAL]: "Số sê-ri",

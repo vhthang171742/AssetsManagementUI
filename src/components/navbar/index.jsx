@@ -6,7 +6,7 @@ import { FiAlignJustify, FiSearch } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import avatarDefault from "assets/img/avatars/user.png";
 import { RiMoonFill, RiSunFill } from "react-icons/ri";
-import { MdClose, MdKeyboardArrowDown, MdOutlineNotificationsNone, MdWarningAmber, MdErrorOutline, MdHome } from "react-icons/md";
+import { MdClose, MdKeyboardArrowDown, MdOutlineNotificationsNone, MdWarningAmber, MdErrorOutline, MdHome, MdPerson } from "react-icons/md";
 import { IoMdNotificationsOutline } from "react-icons/io";
 import { useAuth } from "context/AuthContext";
 import { useLanguage } from "context/LanguageContext";
@@ -499,8 +499,9 @@ const Navbar = (props) => {
                       </button>
                       <Link
                         to={profilePath}
-                        className="mt-3 text-sm text-gray-800 dark:text-white hover:dark:text-white"
+                        className="mt-3 flex items-center gap-1.5 text-sm text-gray-800 dark:text-white hover:text-brand-500 dark:hover:text-brand-400"
                       >
+                        <MdPerson className="h-4 w-4" />
                         {t(K.NAV_PROFILE_SETTINGS, "Profile")}
                       </Link>
                       <button

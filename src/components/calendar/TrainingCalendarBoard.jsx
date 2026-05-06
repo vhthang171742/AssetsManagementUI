@@ -127,6 +127,7 @@ const resolveConfig = (event) =>
 export default function TrainingCalendarBoard({
   value,
   onChange,
+  onActiveMonthChange,
   scheduleItems = [],
   events = [],
   timeZoneId,
@@ -207,6 +208,11 @@ export default function TrainingCalendarBoard({
 
         <Calendar
           onChange={onChange}
+          onActiveStartDateChange={({ activeStartDate, view }) => {
+            if (view === "month" && activeStartDate && onActiveMonthChange) {
+              onActiveMonthChange(activeStartDate);
+            }
+          }}
           value={value}
           prevLabel={<MdChevronLeft className="tcb__nav-icon" />}
           nextLabel={<MdChevronRight className="tcb__nav-icon" />}

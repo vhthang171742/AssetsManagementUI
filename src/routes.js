@@ -96,7 +96,7 @@ const routes = [
     requiredRoles: RoleSets.AssetsUser,
   },
   {
-    name: "Rooms",
+    name: "Class Room",
     translationKey: K.ROUTE_ROOMS,
     layout: "/admin",
     path: "rooms",

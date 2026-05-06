@@ -14,7 +14,7 @@ const MENU_GROUPS = [
     id: "asset-management",
     label: "Asset Management",
     translationKey: K.MENU_GROUP_ASSET_MANAGEMENT,
-    items: ["departments", "categories", "assets", "rooms", "handovers"]
+    items: ["departments", "categories", "assets", "handovers"]
   },
   {
     id: "production-workers",
@@ -26,7 +26,7 @@ const MENU_GROUPS = [
     id: "training",
     label: "Training",
     translationKey: K.MENU_GROUP_TRAINING,
-    items: ["courses", "classes", "asset-course-mappings", "student-equipment-assignments"]
+    items: ["rooms", "courses", "classes", "asset-course-mappings", "student-equipment-assignments"]
   },
   {
     id: "maintenance",

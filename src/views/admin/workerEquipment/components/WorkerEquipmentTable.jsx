@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { workerEquipmentService, userService, roomService } from "services/api";
+import { workerEquipmentService, userService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
@@ -37,7 +37,6 @@ export default function WorkerEquipmentTable() {
 
   useEffect(() => {
     fetchWorkers();
-    fetchEquipment();
   }, []);
 
   useEffect(() => {
@@ -81,25 +80,30 @@ export default function WorkerEquipmentTable() {
       const data = await userService.getAllUsers();
       // Backend assignment expects WorkerID (role entity), not UserID.
       const workerList =
-        data?.filter((u) => u.roles?.includes("Worker") && u.workerRole?.workerID) || [];
+        data?.filter(
+          (u) =>
+            u.roles?.includes("Worker") &&
+            u.workerRole?.workerID &&
+            u.workerRole?.productionLineID
+        ) || [];
       setWorkers(workerList);
     } catch (error) {
       console.error("Failed to fetch workers:", error);
     }
   };
 
-  const fetchEquipment = async () => {
+  const fetchAvailableEquipmentByWorker = async (workerId) => {
+    if (!workerId) {
+      setEquipment([]);
+      return;
+    }
+
     try {
-      // Get all room assets (equipment)
-      const rooms = await roomService.getAll();
-      let allAssets = [];
-      for (const room of rooms) {
-        const assets = await roomService.getAssets(room.roomID);
-        allAssets = [...allAssets, ...assets];
-      }
-      setEquipment(allAssets || []);
+      const assets = await workerEquipmentService.getAvailableAssetsByWorker(Number(workerId));
+      setEquipment(assets || []);
     } catch (error) {
-      console.error("Failed to fetch equipment:", error);
+      console.error("Failed to fetch available equipment:", error);
+      setEquipment([]);
     }
   };
 
@@ -108,7 +112,12 @@ export default function WorkerEquipmentTable() {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+      ...(name === "workerID" ? { roomAssetID: "" } : {}),
     }));
+
+    if (name === "workerID") {
+      fetchAvailableEquipmentByWorker(value);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -170,6 +179,7 @@ export default function WorkerEquipmentTable() {
     });
     setEditingId(assignment.assignmentID);
     setShowModal(true);
+    fetchAvailableEquipmentByWorker(assignment.workerID);
   };
 
   const handleDelete = async (id) => {
@@ -205,9 +215,13 @@ export default function WorkerEquipmentTable() {
       sortKey: "workerName",
     },
     {
+      header: t(K.ADMIN_TABLE_PRODUCTION_LINE, "Production Line"),
+      accessor: (row) => row.productionLineName || t(K.ADMIN_TABLE_NA, "N/A"),
+      sortKey: "productionLineName",
+    },
+    {
       header: t(K.ADMIN_TABLE_EQUIPMENT, "Equipment"),
-      accessor: (row) =>
-        equipment.find((e) => e.roomAssetID === row.roomAssetID)?.assetName || t(K.ADMIN_TABLE_NA, "N/A"),
+      accessor: (row) => row.assetName || t(K.ADMIN_TABLE_NA, "N/A"),
       sortKey: "assetName",
     },
     {
@@ -260,6 +274,7 @@ export default function WorkerEquipmentTable() {
               assignedDate: new Date().toISOString().split("T")[0],
               unassignedDate: "",
             });
+            setEquipment([]);
             setEditingId(null);
             setShowModal(true);
           }}
@@ -366,7 +381,7 @@ export default function WorkerEquipmentTable() {
                 <option value="">{t(K.ADMIN_TABLE_SELECT_WORKER, "Select Worker")}</option>
                 {workers.map((worker) => (
                   <option key={worker.userID} value={worker.workerRole.workerID}>
-                    {worker.fullName || worker.email}
+                    {(worker.fullName || worker.email) + " - " + (worker.workerRole?.productionLineName || t(K.ADMIN_TABLE_NA, "N/A"))}
                   </option>
                 ))}
               </select>
@@ -386,7 +401,7 @@ export default function WorkerEquipmentTable() {
                 <option value="">{t(K.ADMIN_TABLE_SELECT_EQUIPMENT, "Select Equipment")}</option>
                 {equipment.map((item) => (
                   <option key={item.roomAssetID} value={item.roomAssetID}>
-                    {item.assetName} ({item.serialNumber})
+                    {`${item.assetName} (${item.serialNumber})${item.roomName ? ` - ${item.roomName}` : ""}`}
                   </option>
                 ))}
               </select>

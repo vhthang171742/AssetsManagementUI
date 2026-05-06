@@ -1,9 +1,9 @@
 ﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { productionLineService, departmentService } from "services/api";
+import { productionLineService, departmentService, assetService, userService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
-import { MdModeEditOutline, MdDelete } from "react-icons/md";
+import { MdModeEditOutline, MdDelete, MdAdd } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
@@ -15,7 +15,21 @@ export default function ProductionLinesTable() {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showAssetsModal, setShowAssetsModal] = useState(false);
+  const [showWorkersModal, setShowWorkersModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [managingLine, setManagingLine] = useState(null);
+  const [lineAssets, setLineAssets] = useState([]);
+  const [lineWorkers, setLineWorkers] = useState([]);
+  const [allWorkers, setAllWorkers] = useState([]);
+  const [allAssets, setAllAssets] = useState([]);
+  const [assetFormData, setAssetFormData] = useState({
+    assetID: "",
+    serialNumber: "",
+    condition: "",
+    remarks: "",
+  });
+  const [selectedWorkerId, setSelectedWorkerId] = useState("");
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
@@ -80,6 +94,134 @@ export default function ProductionLinesTable() {
       setDepartments(data || []);
     } catch (error) {
       console.error("Failed to fetch departments:", error);
+    }
+  };
+
+  const fetchAllAssets = async () => {
+    try {
+      const data = await assetService.getAll();
+      setAllAssets(data || []);
+    } catch (error) {
+      console.error("Failed to fetch assets:", error);
+      toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_ASSETS, "assets")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+    }
+  };
+
+  const fetchLineAssets = async (lineId) => {
+    try {
+      const data = await productionLineService.getAssets(lineId);
+      setLineAssets(data || []);
+    } catch (error) {
+      console.error("Failed to fetch production line assets:", error);
+      toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_ROOM_ASSETS, "room assets")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      setLineAssets([]);
+    }
+  };
+
+  const openAssetsModal = async (line) => {
+    setManagingLine(line);
+    setShowAssetsModal(true);
+    setAssetFormData({ assetID: "", serialNumber: "", condition: "", remarks: "" });
+    await Promise.all([fetchLineAssets(line.productionLineID), fetchAllAssets()]);
+  };
+
+  const fetchAllWorkers = async () => {
+    try {
+      const users = await userService.getAllUsers();
+      const workers = (users || []).filter((u) => u.roles?.includes("Worker") && u.workerRole?.workerID);
+      setAllWorkers(workers);
+    } catch (error) {
+      console.error("Failed to fetch workers:", error);
+      toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_WORKERS, "workers")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+    }
+  };
+
+  const fetchLineWorkers = async (lineId) => {
+    try {
+      const data = await productionLineService.getWorkers(lineId);
+      setLineWorkers(data || []);
+    } catch (error) {
+      console.error("Failed to fetch production line workers:", error);
+      toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_WORKERS, "workers")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+      setLineWorkers([]);
+    }
+  };
+
+  const openWorkersModal = async (line) => {
+    setManagingLine(line);
+    setShowWorkersModal(true);
+    setSelectedWorkerId("");
+    await Promise.all([fetchLineWorkers(line.productionLineID), fetchAllWorkers()]);
+  };
+
+  const handleAddWorkerToLine = async () => {
+    if (!managingLine?.productionLineID || !selectedWorkerId) {
+      return;
+    }
+    try {
+      await productionLineService.addWorker(managingLine.productionLineID, Number(selectedWorkerId));
+      toast.success(`${t(K.ADMIN_TABLE_WORKER, "Worker")} ${t(K.ADMIN_TABLE_ASSIGNED_SUCCESSFULLY, "assigned successfully")}`);
+      setSelectedWorkerId("");
+      await fetchLineWorkers(managingLine.productionLineID);
+      await fetchAllWorkers();
+    } catch (error) {
+      console.error("Failed to assign worker:", error);
+      toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_WORKER, "worker")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+    }
+  };
+
+  const handleRemoveWorkerFromLine = async (workerId) => {
+    if (!managingLine?.productionLineID) {
+      return;
+    }
+    try {
+      await productionLineService.removeWorker(managingLine.productionLineID, workerId);
+      toast.success(`${t(K.ADMIN_TABLE_WORKER, "Worker")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "removed successfully")}`);
+      await fetchLineWorkers(managingLine.productionLineID);
+      await fetchAllWorkers();
+    } catch (error) {
+      console.error("Failed to remove worker:", error);
+      toast.error(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_WORKER, "worker")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+    }
+  };
+
+  const handleAddLineAsset = async () => {
+    if (!managingLine?.productionLineID || !assetFormData.assetID || !assetFormData.serialNumber.trim()) {
+      return;
+    }
+
+    try {
+      await productionLineService.createAsset(managingLine.productionLineID, {
+        assetID: Number(assetFormData.assetID),
+        serialNumber: assetFormData.serialNumber.trim(),
+        condition: assetFormData.condition || null,
+        remarks: assetFormData.remarks || null,
+      });
+      toast.success(`${t(K.ADMIN_TABLE_ASSET, "Asset")} ${t(K.ADMIN_TABLE_ASSIGNED_SUCCESSFULLY, "assigned successfully")}`);
+      setAssetFormData({ assetID: "", serialNumber: "", condition: "", remarks: "" });
+      await fetchLineAssets(managingLine.productionLineID);
+    } catch (error) {
+      console.error("Failed to assign production line asset:", error);
+      toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_ASSET, "asset")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+    }
+  };
+
+  const handleRemoveLineAsset = async (assignmentId) => {
+    if (!managingLine?.productionLineID) {
+      return;
+    }
+
+    if (!window.confirm(t(K.ADMIN_TABLE_CONFIRM_DELETE_ASSIGNMENT, "Are you sure you want to delete this assignment?"))) {
+      return;
+    }
+
+    try {
+      await productionLineService.removeAsset(managingLine.productionLineID, assignmentId);
+      toast.success(`${t(K.ADMIN_TABLE_ASSET, "Asset")} ${t(K.ADMIN_TABLE_DELETED_SUCCESSFULLY, "deleted successfully")}`);
+      await fetchLineAssets(managingLine.productionLineID);
+    } catch (error) {
+      console.error("Failed to remove production line asset:", error);
+      toast.error(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_ASSET, "asset")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     }
   };
 
@@ -192,8 +334,22 @@ export default function ProductionLinesTable() {
     },
     {
       header: t(K.ADMIN_TABLE_ACTIONS, "Actions"),
-      cell: (row) => (
+      render: (row) => (
         <div className="flex gap-2">
+          <button
+            onClick={() => openWorkersModal(row)}
+            className="inline-flex min-w-[80px] items-center justify-center rounded-md border border-sky-300 bg-sky-500 px-2 py-1 text-xs font-semibold text-white hover:bg-sky-600"
+            title={t(K.ADMIN_TABLE_WORKERS, "Workers")}
+          >
+            {t(K.ADMIN_TABLE_WORKERS, "Workers")}
+          </button>
+          <button
+            onClick={() => openAssetsModal(row)}
+            className="inline-flex min-w-[110px] items-center justify-center rounded-md border border-emerald-300 bg-emerald-500 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-600"
+            title={t(K.ADMIN_TABLE_WORKING_ASSETS, "Working Assets")}
+          >
+            {t(K.ADMIN_TABLE_WORKING_ASSETS, "Working Assets")}
+          </button>
           <button
             onClick={() => handleEdit(row)}
             className="text-blue-500 hover:text-blue-700 transition-colors"
@@ -418,6 +574,212 @@ export default function ProductionLinesTable() {
               </label>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {showAssetsModal && (
+        <Modal
+          isOpen={showAssetsModal}
+          onClose={() => {
+            setShowAssetsModal(false);
+            setManagingLine(null);
+            setLineAssets([]);
+            setAssetFormData({ assetID: "", serialNumber: "", condition: "", remarks: "" });
+          }}
+          title={`${t(K.ADMIN_TABLE_WORKING_ASSETS, "Working Assets")} - ${managingLine?.lineName || ""}`}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAssetsModal(false);
+                  setManagingLine(null);
+                  setLineAssets([]);
+                  setAssetFormData({ assetID: "", serialNumber: "", condition: "", remarks: "" });
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
+              >
+                {t(K.ADMIN_TABLE_CANCEL, "Close")}
+              </button>
+            </>
+          }
+        >
+          <div className="flex flex-col gap-4">
+            <div className="rounded border border-gray-200 p-3 dark:border-gray-700">
+              <p className="text-sm font-semibold text-gray-700 dark:text-white">
+                {t(K.ADMIN_TABLE_PRODUCTION_LINE, "Production Line")}: {managingLine?.lineName || ""}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-300">
+                {t(K.ADMIN_TABLE_LINE_CODE, "Line Code")}: {managingLine?.lineCode || ""}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <select
+                value={assetFormData.assetID}
+                onChange={(e) => setAssetFormData((prev) => ({ ...prev, assetID: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="">{t(K.ADMIN_TABLE_SELECT_ASSET, "Select Asset")}</option>
+                {allAssets
+                  .map((asset) => (
+                    <option key={asset.assetID} value={asset.assetID}>
+                      {`${asset.assetName || ""} (${asset.assetCode || ""})`}
+                    </option>
+                  ))}
+              </select>
+              <input
+                value={assetFormData.serialNumber}
+                onChange={(e) => setAssetFormData((prev) => ({ ...prev, serialNumber: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder={t(K.ADMIN_TABLE_SERIAL_NUMBER, "Serial Number")}
+              />
+              <button
+                type="button"
+                onClick={handleAddLineAsset}
+                disabled={!assetFormData.assetID || !assetFormData.serialNumber.trim()}
+                className="inline-flex items-center justify-center gap-1 px-4 py-2 rounded bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50"
+              >
+                <MdAdd className="h-4 w-4" />
+                {t(K.ADMIN_TABLE_ADD, "Add")}
+              </button>
+            </div>
+
+            <div className="max-h-72 overflow-auto rounded border border-gray-200 dark:border-gray-700">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th className="px-3 py-2 text-left">{t(K.ADMIN_TABLE_ASSET, "Asset")}</th>
+                    <th className="px-3 py-2 text-left">{t(K.ADMIN_TABLE_SERIAL_NUMBER, "Serial Number")}</th>
+                    <th className="px-3 py-2 text-left">{t(K.ADMIN_TABLE_ROOM, "Room")}</th>
+                    <th className="px-3 py-2 text-right">{t(K.ADMIN_TABLE_ACTIONS, "Actions")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lineAssets.length === 0 ? (
+                    <tr>
+                      <td className="px-3 py-3 text-gray-500 dark:text-gray-300" colSpan={4}>
+                        {t(K.TABLE_NO_DATA, "No data")}
+                      </td>
+                    </tr>
+                  ) : (
+                    lineAssets.map((asset) => (
+                      <tr key={asset.assignmentID} className="border-t border-gray-100 dark:border-gray-700">
+                        <td className="px-3 py-2">{asset.assetName || t(K.ADMIN_TABLE_NA, "N/A")}</td>
+                        <td className="px-3 py-2">{asset.serialNumber || t(K.ADMIN_TABLE_NA, "N/A")}</td>
+                        <td className="px-3 py-2">{asset.roomName || t(K.ADMIN_TABLE_NA, "N/A")}</td>
+                        <td className="px-3 py-2 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveLineAsset(asset.assignmentID)}
+                            className="text-red-500 hover:text-red-700 transition-colors"
+                            title={t(K.ADMIN_TABLE_DELETE, "Delete")}
+                          >
+                            <MdDelete className="h-5 w-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {showWorkersModal && (
+        <Modal
+          isOpen={showWorkersModal}
+          onClose={() => {
+            setShowWorkersModal(false);
+            setManagingLine(null);
+            setLineWorkers([]);
+            setSelectedWorkerId("");
+          }}
+          title={`${t(K.ADMIN_TABLE_WORKERS, "Workers")} - ${managingLine?.lineName || ""}`}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowWorkersModal(false);
+                  setManagingLine(null);
+                  setLineWorkers([]);
+                  setSelectedWorkerId("");
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
+              >
+                {t(K.ADMIN_TABLE_CANCEL, "Close")}
+              </button>
+            </>
+          }
+        >
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <select
+                value={selectedWorkerId}
+                onChange={(e) => setSelectedWorkerId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="">{t(K.ADMIN_TABLE_SELECT_WORKER, "Select Worker")}</option>
+                {allWorkers
+                  .filter((w) => !lineWorkers.some((lw) => lw.workerID === w.workerRole?.workerID))
+                  .map((worker) => (
+                    <option key={worker.workerRole.workerID} value={worker.workerRole.workerID}>
+                      {`${worker.fullName || worker.email} (${worker.workerRole?.employeeCode || ""})`}
+                    </option>
+                  ))}
+              </select>
+              <button
+                type="button"
+                onClick={handleAddWorkerToLine}
+                disabled={!selectedWorkerId}
+                className="inline-flex items-center justify-center gap-1 px-4 py-2 rounded bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50"
+              >
+                <MdAdd className="h-4 w-4" />
+                {t(K.ADMIN_TABLE_ADD, "Add")}
+              </button>
+            </div>
+
+            <div className="max-h-72 overflow-auto rounded border border-gray-200 dark:border-gray-700">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th className="px-3 py-2 text-left">{t(K.ADMIN_TABLE_WORKER, "Worker")}</th>
+                    <th className="px-3 py-2 text-left">{t(K.ADMIN_TABLE_CODE, "Code")}</th>
+                    <th className="px-3 py-2 text-right">{t(K.ADMIN_TABLE_ACTIONS, "Actions")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lineWorkers.length === 0 ? (
+                    <tr>
+                      <td className="px-3 py-3 text-gray-500 dark:text-gray-300" colSpan={3}>
+                        {t(K.TABLE_NO_DATA, "No data")}
+                      </td>
+                    </tr>
+                  ) : (
+                    lineWorkers.map((worker) => (
+                      <tr key={worker.workerID} className="border-t border-gray-100 dark:border-gray-700">
+                        <td className="px-3 py-2">{worker.fullName || worker.email || t(K.ADMIN_TABLE_NA, "N/A")}</td>
+                        <td className="px-3 py-2">{worker.employeeCode || t(K.ADMIN_TABLE_NA, "N/A")}</td>
+                        <td className="px-3 py-2 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveWorkerFromLine(worker.workerID)}
+                            className="text-red-500 hover:text-red-700 transition-colors"
+                            title={t(K.ADMIN_TABLE_DELETE, "Delete")}
+                          >
+                            <MdDelete className="h-5 w-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </Modal>
       )}
     </Card>
