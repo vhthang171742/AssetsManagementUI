@@ -1,9 +1,10 @@
 ﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { handoverService, roomService, assetService } from "services/api";
+import { handoverService, roomService, assetService, productionLineService } from "services/api";
+import { dropdownService } from "services/dropdownService";
 import Card from "components/card";
 import Table from "components/table/Table";
-import { MdInfoOutline, MdModeEditOutline, MdDelete, MdRemoveCircle } from "react-icons/md";
+import { MdInfoOutline, MdModeEditOutline, MdDelete, MdRemoveCircle, MdAdd } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
@@ -18,6 +19,8 @@ export default function HandoversTable() {
   const [totalCount, setTotalCount] = useState(0);
   const [rooms, setRooms] = useState([]);
   const [assets, setAssets] = useState([]);
+  const [productionLines, setProductionLines] = useState([]);
+  const [conditions, setConditions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -40,14 +43,18 @@ export default function HandoversTable() {
   });
   const [detailFormData, setDetailFormData] = useState({
     assetID: "",
-    quantity: 1,
+    serialNumber: "",
+    targetSelection: "",
     conditionAtHandover: "",
     remarks: "",
   });
+  const [stagedItems, setStagedItems] = useState([]);
 
   useEffect(() => {
     fetchRooms();
     fetchAssets();
+    fetchProductionLines();
+    fetchConditions();
   }, []);
 
   useEffect(() => {
@@ -104,6 +111,24 @@ export default function HandoversTable() {
     }
   };
 
+  const fetchProductionLines = async () => {
+    try {
+      const data = await productionLineService.getAll();
+      setProductionLines(data || []);
+    } catch (error) {
+      console.error("Failed to fetch production lines:", error);
+    }
+  };
+
+  const fetchConditions = async () => {
+    try {
+      const data = await dropdownService.getAssetConditions();
+      setConditions(data || []);
+    } catch (error) {
+      console.error("Failed to fetch conditions:", error);
+    }
+  };
+
   const fetchHandoverDetails = async (handoverId) => {
     try {
       const data = await handoverService.getDetails(handoverId);
@@ -125,8 +150,34 @@ export default function HandoversTable() {
     const { name, value } = e.target;
     setDetailFormData((prev) => ({
       ...prev,
-      [name]: name === "quantity" ? parseInt(value) || 1 : value,
+      [name]: value,
     }));
+  };
+
+  const handleStageAssetItem = () => {
+    const assetId = Number(detailFormData.assetID);
+    const serial = detailFormData.serialNumber.trim();
+
+    if (!assetId || !serial) {
+      toast.error(t(K.ADMIN_TABLE_ASSET_AND_SERIAL_REQUIRED, "Asset and serial number are required"));
+      return;
+    }
+
+    const duplicateInStage = stagedItems.some((item) =>
+      item.serialNumber.toLowerCase() === serial.toLowerCase()
+    );
+
+    if (duplicateInStage) {
+      toast.error(t(K.ADMIN_TABLE_SERIAL_ALREADY_STAGED, "This serial number is already added"));
+      return;
+    }
+
+    setStagedItems((prev) => [...prev, { assetID: assetId, serialNumber: serial }]);
+    setDetailFormData((prev) => ({ ...prev, serialNumber: "" }));
+  };
+
+  const handleRemoveStagedItem = (index) => {
+    setStagedItems((prev) => prev.filter((_, idx) => idx !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -159,14 +210,56 @@ export default function HandoversTable() {
   const handleAddDetailSubmit = async (e) => {
     e.preventDefault();
     try {
-      await handoverService.addDetail(selectedHandoverId, detailFormData);
+      if (!detailFormData.targetSelection) {
+        toast.error(t(K.ADMIN_TABLE_TARGET_REQUIRED, "Please select a target"));
+        return;
+      }
+
+      if (stagedItems.length === 0) {
+        toast.error(t(K.ADMIN_TABLE_STAGED_ITEMS_EMPTY, "Add at least one asset item"));
+        return;
+      }
+
+      const [targetType, targetIdRaw] = detailFormData.targetSelection.split(":");
+      const targetId = Number(targetIdRaw);
+      if (!targetType || !targetId) {
+        toast.error(t(K.ADMIN_TABLE_TARGET_REQUIRED, "Please select a target"));
+        return;
+      }
+
+      const grouped = stagedItems.reduce((acc, item) => {
+        if (!acc[item.assetID]) {
+          acc[item.assetID] = [];
+        }
+        acc[item.assetID].push(item.serialNumber);
+        return acc;
+      }, {});
+
+      for (const [assetIdRaw, serialNumbers] of Object.entries(grouped)) {
+        const assetID = Number(assetIdRaw);
+        const roomID = targetType === "room" ? targetId : null;
+        const productionLineID = targetType === "line" ? targetId : null;
+
+        await handoverService.addDetail(selectedHandoverId, {
+          assetID,
+          quantity: serialNumbers.length,
+          serialNumbers,
+          roomID,
+          productionLineID,
+          conditionAtHandover: detailFormData.conditionAtHandover || null,
+          remarks: detailFormData.remarks || null,
+        });
+      }
+
       toast.success(t(K.ADMIN_TABLE_DETAIL_ADDED_SUCCESSFULLY, "Detail added successfully"));
       setDetailFormData({
         assetID: "",
-        quantity: 1,
+        serialNumber: "",
+        targetSelection: "",
         conditionAtHandover: "",
         remarks: "",
       });
+      setStagedItems([]);
       fetchHandoverDetails(selectedHandoverId);
     } catch (error) {
       console.error("Failed to add detail:", error);
@@ -231,6 +324,14 @@ export default function HandoversTable() {
 
   const openDetailsModal = (handoverId) => {
     setSelectedHandoverId(handoverId);
+    setDetailFormData({
+      assetID: "",
+      serialNumber: "",
+      targetSelection: "",
+      conditionAtHandover: "",
+      remarks: "",
+    });
+    setStagedItems([]);
     fetchHandoverDetails(handoverId);
     setShowDetailsModal(true);
   };
@@ -494,28 +595,125 @@ export default function HandoversTable() {
                   </select>
                 </div>
                 <div className="col-span-1">
-                  <label className="block text-sm font-medium mb-1 dark:text-white">{t(K.ADMIN_TABLE_QUANTITY, "Quantity")}</label>
-                  <input
-                    type="number"
-                    name="quantity"
-                    placeholder={t(K.ADMIN_TABLE_QUANTITY_EXAMPLE, "e.g., 5")}
-                    value={detailFormData.quantity}
+                  <label className="block text-sm font-medium mb-1 dark:text-white">{t(K.ADMIN_TABLE_SERIAL_NUMBER, "Serial Number")}</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      name="serialNumber"
+                      value={detailFormData.serialNumber}
+                      onChange={handleDetailInputChange}
+                      className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:placeholder-gray-300"
+                      placeholder={t(K.ADMIN_TABLE_SERIAL_NUMBER_EXAMPLE, "e.g., SN-12345")}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleStageAssetItem}
+                      className="inline-flex items-center gap-1 rounded bg-brand-500 px-3 py-2 text-white hover:bg-brand-600"
+                    >
+                      <MdAdd className="h-4 w-4" />
+                      {t(K.ADMIN_TABLE_ADD_ITEM, "Add")}
+                    </button>
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1 dark:text-white">{t(K.ADMIN_TABLE_TARGET_LOCATION, "Target")}</label>
+                  <select
+                    name="targetSelection"
+                    value={detailFormData.targetSelection}
                     onChange={handleDetailInputChange}
-                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:placeholder-gray-300"
+                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                     required
-                    min="1"
-                  />
+                  >
+                    <option value="">{t(K.ADMIN_TABLE_SELECT_TARGET_LOCATION, "Select target")}</option>
+                    <optgroup label={t(K.ROUTE_ROOMS, "Rooms")}>
+                      {rooms.map((room) => (
+                        <option key={`room-${room.roomID}`} value={`room:${room.roomID}`}>
+                          {room.roomName}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label={t(K.ROUTE_PRODUCTION_LINES, "Production Lines")}>
+                      {productionLines.map((line) => (
+                        <option key={`line-${line.productionLineID}`} value={`line:${line.productionLineID}`}>
+                          {line.lineName} ({line.lineCode})
+                        </option>
+                      ))}
+                    </optgroup>
+                  </select>
                 </div>
                 <div className="col-span-1">
                   <label className="block text-sm font-medium mb-1 dark:text-white">{t(K.ADMIN_TABLE_CONDITION_AT_HANDOVER, "Condition at Handover")}</label>
-                  <input
-                    type="text"
+                  <select
                     name="conditionAtHandover"
-                    placeholder={t(K.ADMIN_TABLE_CONDITION_EXAMPLE, "e.g., Good, Fair, Poor")}
                     value={detailFormData.conditionAtHandover}
                     onChange={handleDetailInputChange}
-                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:placeholder-gray-300"
-                  />
+                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                  >
+                    <option value="">{t(K.ADMIN_TABLE_SELECT_CONDITION_OPTIONAL, "Select Condition (Optional)")}</option>
+                    {conditions.map((cond) => (
+                      <option key={cond.itemCode} value={cond.itemCode}>
+                        {cond.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1 dark:text-white">{t(K.ADMIN_TABLE_STAGED_ITEMS, "Staged Items")}</label>
+                  <div className="max-h-36 overflow-auto rounded border dark:border-gray-500">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-100 dark:bg-gray-600/50">
+                        <tr>
+                          <th className="p-2 text-left">{t(K.ADMIN_TABLE_ASSET, "Asset")}</th>
+                          <th className="p-2 text-left">{t(K.ADMIN_TABLE_SERIAL_NUMBER, "Serial Number")}</th>
+                          <th className="p-2 text-right">{t(K.ADMIN_TABLE_ACTIONS, "Actions")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {stagedItems.length === 0 ? (
+                          <tr>
+                            <td className="p-2 text-gray-500 dark:text-gray-300" colSpan={3}>{t(K.ADMIN_TABLE_STAGED_ITEMS_EMPTY, "No items added yet")}</td>
+                          </tr>
+                        ) : (
+                          stagedItems.map((item, index) => (
+                            <tr key={`${item.assetID}-${item.serialNumber}-${index}`} className="border-t dark:border-gray-600">
+                              <td className="p-2 dark:text-white">{getAssetName(item.assetID)}</td>
+                              <td className="p-2 dark:text-white">{item.serialNumber}</td>
+                              <td className="p-2 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveStagedItem(index)}
+                                  className="rounded bg-red-500 px-2 py-1 text-white hover:bg-red-600"
+                                  title={t(K.ADMIN_TABLE_REMOVE, "Remove")}
+                                >
+                                  {t(K.ADMIN_TABLE_REMOVE, "Remove")}
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1 dark:text-white">{t(K.ADMIN_TABLE_PENDING_GROUPED_SUMMARY, "Pending grouped summary")}</label>
+                  <div className="rounded border p-2 text-xs dark:border-gray-500">
+                    {Object.entries(stagedItems.reduce((acc, item) => {
+                      acc[item.assetID] = (acc[item.assetID] || 0) + 1;
+                      return acc;
+                    }, {})).length === 0 ? (
+                      <span className="text-gray-500 dark:text-gray-300">{t(K.ADMIN_TABLE_STAGED_ITEMS_EMPTY, "No items added yet")}</span>
+                    ) : (
+                      Object.entries(stagedItems.reduce((acc, item) => {
+                        acc[item.assetID] = (acc[item.assetID] || 0) + 1;
+                        return acc;
+                      }, {})).map(([assetId, count]) => (
+                        <div key={assetId} className="dark:text-white">
+                          {getAssetName(Number(assetId))}: {count}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium mb-1 dark:text-white">{t(K.ADMIN_TABLE_REMARKS, "Remarks")}</label>

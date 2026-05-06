@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { productionLineService, departmentService, assetService, userService } from "services/api";
+import { productionLineService, departmentService, userService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete, MdAdd } from "react-icons/md";
@@ -22,13 +22,6 @@ export default function ProductionLinesTable() {
   const [lineAssets, setLineAssets] = useState([]);
   const [lineWorkers, setLineWorkers] = useState([]);
   const [allWorkers, setAllWorkers] = useState([]);
-  const [allAssets, setAllAssets] = useState([]);
-  const [assetFormData, setAssetFormData] = useState({
-    assetID: "",
-    serialNumber: "",
-    condition: "",
-    remarks: "",
-  });
   const [selectedWorkerId, setSelectedWorkerId] = useState("");
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -97,16 +90,6 @@ export default function ProductionLinesTable() {
     }
   };
 
-  const fetchAllAssets = async () => {
-    try {
-      const data = await assetService.getAll();
-      setAllAssets(data || []);
-    } catch (error) {
-      console.error("Failed to fetch assets:", error);
-      toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_ASSETS, "assets")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
-    }
-  };
-
   const fetchLineAssets = async (lineId) => {
     try {
       const data = await productionLineService.getAssets(lineId);
@@ -121,8 +104,7 @@ export default function ProductionLinesTable() {
   const openAssetsModal = async (line) => {
     setManagingLine(line);
     setShowAssetsModal(true);
-    setAssetFormData({ assetID: "", serialNumber: "", condition: "", remarks: "" });
-    await Promise.all([fetchLineAssets(line.productionLineID), fetchAllAssets()]);
+    await fetchLineAssets(line.productionLineID);
   };
 
   const fetchAllWorkers = async () => {
@@ -182,27 +164,6 @@ export default function ProductionLinesTable() {
     } catch (error) {
       console.error("Failed to remove worker:", error);
       toast.error(`${t(K.ADMIN_TABLE_DELETE_FAILED, "Failed to delete")} ${t(K.ADMIN_TABLE_WORKER, "worker")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
-    }
-  };
-
-  const handleAddLineAsset = async () => {
-    if (!managingLine?.productionLineID || !assetFormData.assetID || !assetFormData.serialNumber.trim()) {
-      return;
-    }
-
-    try {
-      await productionLineService.createAsset(managingLine.productionLineID, {
-        assetID: Number(assetFormData.assetID),
-        serialNumber: assetFormData.serialNumber.trim(),
-        condition: assetFormData.condition || null,
-        remarks: assetFormData.remarks || null,
-      });
-      toast.success(`${t(K.ADMIN_TABLE_ASSET, "Asset")} ${t(K.ADMIN_TABLE_ASSIGNED_SUCCESSFULLY, "assigned successfully")}`);
-      setAssetFormData({ assetID: "", serialNumber: "", condition: "", remarks: "" });
-      await fetchLineAssets(managingLine.productionLineID);
-    } catch (error) {
-      console.error("Failed to assign production line asset:", error);
-      toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_ASSET, "asset")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     }
   };
 
@@ -584,7 +545,6 @@ export default function ProductionLinesTable() {
             setShowAssetsModal(false);
             setManagingLine(null);
             setLineAssets([]);
-            setAssetFormData({ assetID: "", serialNumber: "", condition: "", remarks: "" });
           }}
           title={`${t(K.ADMIN_TABLE_WORKING_ASSETS, "Working Assets")} - ${managingLine?.lineName || ""}`}
           footer={
@@ -595,7 +555,6 @@ export default function ProductionLinesTable() {
                   setShowAssetsModal(false);
                   setManagingLine(null);
                   setLineAssets([]);
-                  setAssetFormData({ assetID: "", serialNumber: "", condition: "", remarks: "" });
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
               >
@@ -614,35 +573,8 @@ export default function ProductionLinesTable() {
               </p>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <select
-                value={assetFormData.assetID}
-                onChange={(e) => setAssetFormData((prev) => ({ ...prev, assetID: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              >
-                <option value="">{t(K.ADMIN_TABLE_SELECT_ASSET, "Select Asset")}</option>
-                {allAssets
-                  .map((asset) => (
-                    <option key={asset.assetID} value={asset.assetID}>
-                      {`${asset.assetName || ""} (${asset.assetCode || ""})`}
-                    </option>
-                  ))}
-              </select>
-              <input
-                value={assetFormData.serialNumber}
-                onChange={(e) => setAssetFormData((prev) => ({ ...prev, serialNumber: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder={t(K.ADMIN_TABLE_SERIAL_NUMBER, "Serial Number")}
-              />
-              <button
-                type="button"
-                onClick={handleAddLineAsset}
-                disabled={!assetFormData.assetID || !assetFormData.serialNumber.trim()}
-                className="inline-flex items-center justify-center gap-1 px-4 py-2 rounded bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50"
-              >
-                <MdAdd className="h-4 w-4" />
-                {t(K.ADMIN_TABLE_ADD, "Add")}
-              </button>
+            <div className="rounded border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
+              {t(K.ADMIN_TABLE_WORKING_ASSET_CREATION_HANDOVER_ONLY, "Working asset creation is now available only in Handovers. Please create new production line assets from the Handovers screen.")}
             </div>
 
             <div className="max-h-72 overflow-auto rounded border border-gray-200 dark:border-gray-700">

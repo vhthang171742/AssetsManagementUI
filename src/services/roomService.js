@@ -72,18 +72,6 @@ export const roomService = {
   getAssets: (roomId) => httpClient(`/rooms/${roomId}/assets`),
 
   /**
-   * Add an asset to a room
-   * @param {number} roomId - Room ID
-   * @param {object} data - Asset data {assetID, serialNumber, currentCondition, remarks}
-   * @returns {Promise<object>} Created room-asset association
-   */
-  addAsset: (roomId, data) =>
-    httpClient(`/rooms/${roomId}/assets`, {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-
-  /**
    * Remove an asset from a room
    * @param {number} roomId - Room ID
    * @param {number} roomAssetId - Room Asset ID

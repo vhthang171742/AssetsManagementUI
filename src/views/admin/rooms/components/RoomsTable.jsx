@@ -1,7 +1,6 @@
 ﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { roomService, departmentService, assetService } from "services/api";
-import { dropdownService } from "services/dropdownService";
+import { roomService, departmentService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete, MdInventory2, MdRemoveCircle } from "react-icons/md";
@@ -23,8 +22,6 @@ export default function RoomsTable() {
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [selectedQrAsset, setSelectedQrAsset] = useState(null);
   const [roomAssets, setRoomAssets] = useState([]);
-  const [allAssets, setAllAssets] = useState([]);
-  const [conditions, setConditions] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
@@ -37,17 +34,9 @@ export default function RoomsTable() {
     roomName: "",
     description: "",
   });
-  const [assetFormData, setAssetFormData] = useState({
-    assetID: "",
-    serialNumber: "",
-    condition: "",
-    remarks: "",
-  });
 
   useEffect(() => {
     fetchDepartments();
-    fetchAssets();
-    fetchConditions();
   }, []);
 
   useEffect(() => {
@@ -95,24 +84,6 @@ export default function RoomsTable() {
     }
   };
 
-  const fetchAssets = async () => {
-    try {
-      const data = await assetService.getAll();
-      setAllAssets(data || []);
-    } catch (error) {
-      console.error("Failed to fetch assets:", error);
-    }
-  };
-
-  const fetchConditions = async () => {
-    try {
-      const data = await dropdownService.getAssetConditions();
-      setConditions(data || []);
-    } catch (error) {
-      console.error("Failed to fetch conditions:", error);
-    }
-  };
-
   const fetchRoomAssets = async (roomId) => {
     try {
       const data = await roomService.getAssets(roomId);
@@ -125,14 +96,6 @@ export default function RoomsTable() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleAssetInputChange = (e) => {
-    const { name, value } = e.target;
-    setAssetFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -160,30 +123,6 @@ export default function RoomsTable() {
       console.error("Failed to save room:", error);
       const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
       toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_ROOM, "room")}: ${error.message}${details}`);
-    }
-  };
-
-  const handleAddAssetSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const created = await roomService.addAsset(selectedRoomId, assetFormData);
-      if (created?.qrCodeValue) {
-        toast.success(`${t(K.ADMIN_TABLE_ASSET_ADDED_TO_ROOM_SUCCESSFULLY_QR, "Asset added to room successfully. QR: {qr}").replace("{qr}", created.qrCodeValue)}`);
-      } else {
-        toast.success(t(K.ADMIN_TABLE_ASSET_ADDED_TO_ROOM_SUCCESSFULLY, "Asset added to room successfully"));
-      }
-      setShowAssetModal(false);
-      setAssetFormData({
-        assetID: "",
-        serialNumber: "",
-        condition: "",
-        remarks: "",
-      });
-      fetchRoomAssets(selectedRoomId);
-    } catch (error) {
-      console.error("Failed to add asset:", error);
-      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
-      toast.error(`${t(K.ADMIN_TABLE_FAILED_ADD_ASSET, "Failed to add asset")}: ${error.message}${details}`);
     }
   };
 
@@ -249,11 +188,6 @@ export default function RoomsTable() {
   const getDepartmentName = (departmentID) => {
     const dept = departments.find((d) => d.departmentID === departmentID);
     return dept ? dept.departmentName : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
-  };
-
-  const getAssetName = (assetID) => {
-    const asset = allAssets.find((a) => a.assetID === assetID);
-    return asset ? asset.assetName : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
   };
 
   return (
@@ -459,73 +393,9 @@ export default function RoomsTable() {
           }
         >
           <div className="mb-4">
-            {/* Add Asset Form */}
-            <form onSubmit={handleAddAssetSubmit} className="mb-6 p-4 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
-              <h4 className="font-semibold mb-3 dark:text-white">{t(K.ADMIN_TABLE_ADD_ASSET_TO_ROOM, "Add Asset to Room")}</h4>
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <div className="col-span-1">
-                  <label className="block text-sm font-medium mb-1 dark:text-white">{t(K.ADMIN_TABLE_ASSET, "Asset")}</label>
-                  <select
-                    name="assetID"
-                    value={assetFormData.assetID}
-                    onChange={handleAssetInputChange}
-                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white"
-                    required
-                  >
-                    <option value="">{t(K.ADMIN_TABLE_SELECT_ASSET, "Select Asset")}</option>
-                    {allAssets.map((asset) => (
-                      <option key={asset.assetID} value={asset.assetID}>
-                        {asset.assetName} ({asset.assetCode})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-span-1">
-                  <label className="block text-sm font-medium mb-1 dark:text-white">{t(K.ADMIN_TABLE_SERIAL_NUMBER, "Serial Number")}</label>
-                  <input
-                    type="text"
-                    name="serialNumber"
-                    placeholder={t(K.ADMIN_TABLE_SERIAL_NUMBER_EXAMPLE, "e.g., SN-12345")}
-                    value={assetFormData.serialNumber}
-                    onChange={handleAssetInputChange}
-                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:placeholder-gray-300"
-                  />
-                </div>
-                <div className="col-span-1">
-                  <label className="block text-sm font-medium mb-1 dark:text-white">{t(K.ADMIN_TABLE_CONDITION, "Condition")}</label>
-                  <select
-                    name="condition"
-                    value={assetFormData.condition}
-                    onChange={handleAssetInputChange}
-                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white"
-                  >
-                    <option value="">{t(K.ADMIN_TABLE_SELECT_CONDITION_OPTIONAL, "Select Condition (Optional)")}</option>
-                    {conditions.map((cond) => (
-                      <option key={cond.itemCode} value={cond.itemCode}>
-                        {cond.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1 dark:text-white">{t(K.ADMIN_TABLE_REMARKS, "Remarks")}</label>
-                  <textarea
-                    name="remarks"
-                    placeholder={t(K.ADMIN_TABLE_ADDITIONAL_REMARKS, "Additional remarks...")}
-                    value={assetFormData.remarks}
-                    onChange={handleAssetInputChange}
-                    className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:placeholder-gray-300"
-                    rows="2"
-                  />
-                </div>
-              </div>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
-              >
-                {`${t(K.ADMIN_TABLE_ADD, "Add")} ${t(K.ADMIN_TABLE_ASSET, "Asset")}`}
-              </button>
-            </form>
+            <div className="mb-6 rounded border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
+              {t(K.ADMIN_TABLE_ASSET_CREATION_HANDOVER_ONLY, "Asset creation is now available only in Handovers. Please create new room assets from the Handovers screen.")}
+            </div>
 
             {/* Assets List */}
             <div>

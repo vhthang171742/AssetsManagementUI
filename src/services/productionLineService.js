@@ -125,12 +125,6 @@ export const productionLineService = {
       body: JSON.stringify({ roomAssetID }),
     }),
 
-  createAsset: (lineId, data) =>
-    httpClient(`/production-lines/${lineId}/assets/create`, {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-
   /**
    * Remove a working asset mapping from a production line.
    * @param {number} lineId - Production Line ID
