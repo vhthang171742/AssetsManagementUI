@@ -6,7 +6,6 @@ import { studentEquipmentAssignmentService } from "services/api";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
 import { useAuth } from "context/AuthContext";
-import { Roles } from "constants/authorization";
 
 /**
  * EntityDetailModal - Read-only detail modal for Asset, Class, or Student entities.
@@ -18,12 +17,12 @@ import { Roles } from "constants/authorization";
  */
 export default function EntityDetailModal({ type, id, onClose }) {
   const { t } = useLanguage();
-  const { userRoles } = useAuth();
+  const { hasAnyRole } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const isAdmin = Array.isArray(userRoles) && userRoles.includes(Roles.Admin);
+  const isAdmin = hasAnyRole(["Admin"]);
 
   const loadData = useCallback(async () => {
     setLoading(true);

@@ -6,7 +6,6 @@ import {
   getUserPhoto,
   getUserGroups,
 } from "services/userService";
-import { acquireTokenForApi } from "services/tokenService";
 import { PortalConfigs, PortalIds } from "constants/portals";
 
 /**
@@ -15,13 +14,57 @@ import { PortalConfigs, PortalIds } from "constants/portals";
  */
 const AuthContext = createContext(null);
 
+const normalize = (value) => (value || "").toLowerCase();
+
+const getDbRoleFlags = (currentUser) => ({
+  student: Boolean(currentUser?.studentRole && (currentUser.studentRole.isActive ?? true)),
+  instructor: Boolean(currentUser?.instructorRole && (currentUser.instructorRole.isActive ?? true)),
+  technician: Boolean(currentUser?.technicianRole && (currentUser.technicianRole.isActive ?? true)),
+  worker: Boolean(currentUser?.workerRole && (currentUser.workerRole.isActive ?? true)),
+  productionmanager: Boolean(
+    currentUser?.productionManagerRole && (currentUser.productionManagerRole.isActive ?? true)
+  ),
+});
+
+const expandRequiredRolesToDbRoles = (requiredRoles = []) => {
+  const appRoleToDbRoles = {
+    admin: ["instructor", "technician", "productionmanager"],
+    "assets.user": ["student", "instructor", "worker", "technician", "productionmanager"],
+    "assets.manager": ["instructor", "technician", "productionmanager"],
+    "users.manager": ["instructor", "technician", "productionmanager"],
+    "production.user": ["worker", "productionmanager"],
+    "production.manager": ["productionmanager"],
+    "training.user": ["student", "instructor"],
+    "training.manager": ["instructor"],
+    "maintenance.user": ["technician"],
+    "maintenance.manager": ["technician"],
+  };
+
+  const expanded = new Set();
+  for (const role of requiredRoles) {
+    const key = normalize(role);
+    if (!key) {
+      continue;
+    }
+
+    if (["student", "instructor", "technician", "worker", "productionmanager"].includes(key)) {
+      expanded.add(key);
+      continue;
+    }
+
+    const mapped = appRoleToDbRoles[key] || [];
+    mapped.forEach((item) => expanded.add(item));
+  }
+
+  return Array.from(expanded);
+};
+
 export const AuthProvider = ({ children }) => {
   const { accounts, inProgress } = useMsal();
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [userPhoto, setUserPhoto] = useState(null);
   const [userGroups, setUserGroups] = useState([]);
-  const [userRoles, setUserRoles] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,44 +97,6 @@ export const AuthProvider = ({ children }) => {
           id: account.localAccountId,
           homeAccountId: account.homeAccountId,
         });
-
-        // Extract roles from both ID token and API access token
-        let roles = [];
-        
-        // First, check ID token claims
-        if (account.idTokenClaims?.roles) {
-          roles = account.idTokenClaims.roles;
-          console.log("Roles found in ID token:", roles);
-        }
-        
-        // If no roles in ID token, try to get API access token and extract roles from there
-        if (roles.length === 0) {
-          try {
-            const tokenResponse = await acquireTokenForApi(false); // Get API token silently
-            console.log("API token response:", tokenResponse);
-            
-            if (tokenResponse?.accessToken) {
-              // Decode the access token to get roles
-              const tokenParts = tokenResponse.accessToken.split('.');
-              if (tokenParts.length === 3) {
-                const payload = JSON.parse(atob(tokenParts[1]));
-                console.log("Decoded access token payload:", payload);
-                roles = payload.roles || [];
-                console.log("Roles extracted from access token:", roles);
-              }
-            }
-          } catch (error) {
-            console.warn("Could not acquire API token for role extraction:", error.message);
-          }
-        }
-        
-        setUserRoles(roles);
-        console.log("=== AUTHORIZATION DEBUG ===");
-        console.log("User roles from token:", roles);
-        console.log("Required roles from env:", process.env.REACT_APP_REQUIRED_ROLES);
-        console.log("API scopes from env:", process.env.REACT_APP_API_SCOPES);
-        console.log("ID token claims:", account.idTokenClaims);
-        console.log("=========================");
 
 
         // Fetch detailed profile from Microsoft Graph
@@ -128,7 +133,6 @@ export const AuthProvider = ({ children }) => {
           setUserProfile(null);
           setUserPhoto(null);
           setUserGroups([]);
-          setUserRoles([]);
           setCurrentUser(null);
           setSelectedPortalId(null);
           localStorage.removeItem("selectedPortalId");
@@ -169,17 +173,14 @@ export const AuthProvider = ({ children }) => {
    */
   const isAuthenticated = accounts.length > 0;
 
-  const normalize = (value) => (value || "").toLowerCase();
-
   const hasAnyRole = (requiredRoles = []) => {
     if (!Array.isArray(requiredRoles) || requiredRoles.length === 0) {
       return false;
     }
 
-    const normalizedRequiredRoles = requiredRoles.map(normalize);
-    return (userRoles || []).some((userRole) =>
-      normalizedRequiredRoles.includes(normalize(userRole))
-    );
+    const dbFlags = getDbRoleFlags(currentUser);
+    const normalizedRequiredRoles = expandRequiredRolesToDbRoles(requiredRoles);
+    return normalizedRequiredRoles.some((role) => dbFlags[role]);
   };
 
   const hasAnyGroup = (requiredGroups = []) => {
@@ -201,35 +202,11 @@ export const AuthProvider = ({ children }) => {
       return false;
     }
 
-    const hasPortalApiRole = hasAnyRole(portal.requiredRoles);
-    if (!hasPortalApiRole) {
-      return false;
-    }
-
     if (portalId === PortalIds.Admin) {
-      return true;
+      return hasAnyRole(["Admin"]);
     }
 
-    const studentActive = Boolean(
-      currentUser?.studentRole && (currentUser.studentRole.isActive ?? true)
-    );
-    const instructorActive = Boolean(
-      currentUser?.instructorRole && (currentUser.instructorRole.isActive ?? true)
-    );
-    const technicianActive = Boolean(
-      currentUser?.technicianRole && (currentUser.technicianRole.isActive ?? true)
-    );
-
-    const workerActive = Boolean(
-      currentUser?.workerRole && (currentUser.workerRole.isActive ?? true)
-    );
-
-    if (portalId === PortalIds.Student) return studentActive;
-    if (portalId === PortalIds.Teacher) return instructorActive;
-    if (portalId === PortalIds.Maintainer) return technicianActive;
-    if (portalId === PortalIds.Worker) return workerActive;
-
-    return false;
+    return hasAnyRole(portal.requiredRoles || []);
   };
 
   const getAvailablePortals = () => {
@@ -268,36 +245,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Check if user has at least one required role
-   * Checks if user has any of the required app roles from environment config
-   * Falls back to REACT_APP_API_SCOPES if REACT_APP_REQUIRED_ROLES not set
+   * Legacy helper kept for compatibility. Uses DB roles only.
    */
   const hasRequiredRole = () => {
-    // Get required roles from environment (with fallback to API scopes)
-    const requiredRolesEnv = process.env.REACT_APP_REQUIRED_ROLES || process.env.REACT_APP_API_SCOPES;
-    
-    if (!requiredRolesEnv) {
-      console.warn("Neither REACT_APP_REQUIRED_ROLES nor REACT_APP_API_SCOPES configured. Denying access.");
-      return false;
-    }
-
-    const requiredRoles = requiredRolesEnv
-      .split(",")
-      .map((r) => r.trim())
-      .filter(Boolean);
-
-    console.log("User roles from token:", userRoles);
-    console.log("Required roles from config:", requiredRoles);
-
-    // Check if user has any of the required roles
-    const hasRole = userRoles.some((userRole) =>
-      requiredRoles.some(
-        (requiredRole) => userRole.toLowerCase() === requiredRole.toLowerCase()
-      )
-    );
-
-    console.log("Has required role:", hasRole);
-    return hasRole;
+    return hasAnyRole(["Assets.User"]);
   };
 
   const value = {
@@ -307,7 +258,6 @@ export const AuthProvider = ({ children }) => {
     currentUser,
     setCurrentUser,
     userGroups,
-    userRoles,
     isAuthenticated,
     isLoading,
     isDarkMode,

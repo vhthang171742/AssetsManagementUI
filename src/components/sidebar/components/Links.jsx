@@ -45,7 +45,7 @@ const MENU_GROUPS = [
 export function SidebarLinks(props) {
   // Chakra color mode
   let location = useLocation();
-  const { userRoles } = useAuth();
+  const { hasAnyRole } = useAuth();
   const { t } = useLanguage();
   const [expandedGroups, setExpandedGroups] = useState(new Set());
 
@@ -69,12 +69,7 @@ export function SidebarLinks(props) {
   const canAccessRoute = (route) => {
     const requiredRoles = Array.isArray(route.requiredRoles) ? route.requiredRoles : [];
     return requiredRoles.length === 0 ||
-      (userRoles || []).some((userRole) =>
-        requiredRoles.some(
-          (requiredRole) =>
-            (requiredRole || "").toLowerCase() === (userRole || "").toLowerCase()
-        )
-      );
+      hasAnyRole(requiredRoles);
   };
 
   const getGroupRoutes = (group) => {

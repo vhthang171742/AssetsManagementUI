@@ -29,6 +29,19 @@ const UI_TEXT_OVERRIDES = {
   },
 };
 
+const interpolate = (template, params) => {
+  if (!template || !params || typeof params !== "object") {
+    return template;
+  }
+
+  return template.replace(/\{(\w+)\}/g, (_, key) => {
+    if (params[key] === undefined || params[key] === null) {
+      return `{${key}}`;
+    }
+    return String(params[key]);
+  });
+};
+
 export const LanguageProvider = ({ children }) => {
   const { currentUser, isAuthenticated } = useAuth();
   const [language, setLanguageState] = useState(
@@ -146,12 +159,12 @@ export const LanguageProvider = ({ children }) => {
   /**
    * Resolve a translation key to localized text.
    */
-  const t = useCallback((key, fallback = null) => {
+  const t = useCallback((key, fallback = null, params = null) => {
     if (!key) {
-      return fallback || "";
+      return interpolate(fallback || "", params);
     }
 
-    return translations[key] || fallback || key;
+    return interpolate(translations[key] || fallback || key, params);
   }, [translations]);
 
   const value = {

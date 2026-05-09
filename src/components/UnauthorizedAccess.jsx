@@ -2,6 +2,7 @@ import React from "react";
 import { useMsal } from "@azure/msal-react";
 import { MdLock, MdLogout } from "react-icons/md";
 import { useAuth } from "context/AuthContext";
+import { useLanguage } from "context/LanguageContext";
 
 /**
  * UnauthorizedAccess Component
@@ -9,17 +10,23 @@ import { useAuth } from "context/AuthContext";
  */
 export default function UnauthorizedAccess() {
   const { instance } = useMsal();
-  const { user, userRoles } = useAuth();
-
-  // Get required roles from environment (with fallback)
-  const requiredRolesEnv = process.env.REACT_APP_REQUIRED_ROLES || process.env.REACT_APP_API_SCOPES || "Admin,Assets.User,Assets.Manager";
-  const requiredRoles = requiredRolesEnv.split(",").map((r) => r.trim()).filter(Boolean);
+  const { user } = useAuth();
+  const { t } = useLanguage();
 
   const handleLogout = () => {
     instance.logoutRedirect({
       postLogoutRedirectUri: "/",
     });
   };
+
+  // Portal roles that user can be assigned to
+  const availableRoles = [
+    "Student",
+    "Instructor", 
+    "Worker",
+    "Production Manager",
+    "Technician"
+  ];
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-lightPrimary dark:bg-navy-900">
@@ -32,39 +39,23 @@ export default function UnauthorizedAccess() {
 
           {/* Title */}
           <h1 className="text-2xl font-bold text-navy-700 dark:text-white">
-            Access Denied
+            {t("auth.accessDenied", "Access Denied")}
           </h1>
 
           {/* Message */}
           <div className="space-y-2">
             <p className="text-gray-600 dark:text-gray-400">
-              You are signed in as <strong>{user?.email}</strong>, but you don't have the required permissions to access this application.
+              {t("auth.signedInAs", "You are signed in as")} <strong>{user?.email}</strong>, {t("auth.noRequiredPermissions", "but you don't have the required permissions to access this application.")}
             </p>
             <p className="text-gray-600 dark:text-gray-400">
-              Please contact your administrator to assign you one of the following app roles in Azure AD:
+              {t("auth.contactAdminDbRoles", "Please contact your administrator to assign you one of the following roles:")}
             </p>
             <ul className="mt-2 list-inside list-disc text-left text-sm text-gray-600 dark:text-gray-400">
-              {requiredRoles.map((role, index) => (
+              {availableRoles.map((role, index) => (
                 <li key={index}>{role}</li>
               ))}
             </ul>
           </div>
-
-          {/* Current Roles (for debugging) */}
-          {userRoles && userRoles.length > 0 && (
-            <div className="w-full rounded-lg bg-gray-50 p-3 dark:bg-navy-900 text-left">
-              <p className="mb-1 text-xs font-semibold text-gray-600 dark:text-gray-400">
-                Your current roles:
-              </p>
-              <div className="max-h-32 overflow-y-auto">
-                {userRoles.map((role, index) => (
-                  <p key={index} className="text-xs text-gray-500 dark:text-gray-500">
-                    • {role}
-                  </p>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Logout Button */}
           <button
@@ -72,12 +63,12 @@ export default function UnauthorizedAccess() {
             className="mt-4 flex items-center gap-2 rounded-lg bg-red-500 px-6 py-3 font-medium text-white transition-colors hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700"
           >
             <MdLogout className="h-5 w-5" />
-            Sign Out
+            {t("auth.signOut", "Sign Out")}
           </button>
 
           {/* Help Text */}
           <p className="mt-2 text-xs text-gray-500 dark:text-gray-500">
-            After receiving access, please sign out and sign in again.
+            {t("auth.signOutSignInAgain", "After receiving access, please sign out and sign in again.")}
           </p>
         </div>
       </div>

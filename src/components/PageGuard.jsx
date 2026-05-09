@@ -3,9 +3,9 @@ import { useAuth } from "context/AuthContext";
 import UnauthorizedAccess from "components/UnauthorizedAccess";
 
 export default function PageGuard({ requiredRoles, children }) {
-  const { isLoading, userRoles } = useAuth();
+  const { isLoading, hasAnyRole } = useAuth();
 
-  if (isLoading || userRoles === undefined) {
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-white dark:bg-navy-900">
         <div className="flex flex-col items-center gap-4">
@@ -20,10 +20,7 @@ export default function PageGuard({ requiredRoles, children }) {
     return children;
   }
 
-  const normalizedRequired = requiredRoles.map((role) => role.toLowerCase());
-  const hasRole = (userRoles || []).some((userRole) =>
-    normalizedRequired.includes((userRole || "").toLowerCase())
-  );
+  const hasRole = hasAnyRole(requiredRoles);
 
   if (!hasRole) {
     return <UnauthorizedAccess />;
