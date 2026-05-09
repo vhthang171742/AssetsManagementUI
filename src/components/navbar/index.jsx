@@ -157,7 +157,7 @@ function NotificationDropdown({ t, language, timeZoneId }) {
 
   return (
     <Dropdown
-      positionClass="fixed md:absolute"
+      positionClass="fixed"
       button={
         <p className="relative cursor-pointer">
           <IoMdNotificationsOutline className="h-4 w-4 text-gray-600 dark:text-white" />
@@ -169,9 +169,9 @@ function NotificationDropdown({ t, language, timeZoneId }) {
         </p>
       }
       animation="origin-[65%_0%] md:origin-top-right transition-all duration-300 ease-in-out"
-      classNames={"left-2 right-2 top-[68px] py-2 md:top-8 md:-left-[440px] md:right-auto md:left-auto w-auto md:w-max"}
+      classNames={"right-2 top-[68px] py-2 w-auto"}
       children={
-        <div className="flex w-full max-w-[calc(100vw-16px)] flex-col gap-3 rounded-[20px] bg-white p-4 shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none sm:max-w-[460px]">
+        <div className="flex w-[460px] max-w-[calc(100vw-16px)] flex-col gap-3 rounded-[20px] bg-white p-4 shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none">
           <div className="flex items-center justify-between">
             <p className="text-base font-bold text-navy-700 dark:text-white">
               {t(K.NAV_NOTIFICATION, "Notification")}
