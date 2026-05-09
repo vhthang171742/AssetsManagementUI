@@ -120,7 +120,7 @@ const routes = [
     path: "configuration",
     icon: <MdSettings className="h-6 w-6" />,
     component: <Configuration />,
-    requiredRoles: ["Admin"],
+    requiredRoles: RoleSets.UsersManager,
   },
   {
     name: "Users",

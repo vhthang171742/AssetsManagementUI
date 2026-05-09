@@ -7,6 +7,7 @@ import {
   getUserGroups,
 } from "services/userService";
 import { PortalConfigs, PortalIds } from "constants/portals";
+import { RoleSets } from "constants/authorization";
 
 /**
  * AuthContext - Manages authentication state and session persistence
@@ -27,19 +28,7 @@ const getDbRoleFlags = (currentUser) => ({
 });
 
 const expandRequiredRolesToDbRoles = (requiredRoles = []) => {
-  const appRoleToDbRoles = {
-    admin: ["instructor", "technician", "productionmanager"],
-    "assets.user": ["student", "instructor", "worker", "technician", "productionmanager"],
-    "assets.manager": ["instructor", "technician", "productionmanager"],
-    "users.manager": ["instructor", "technician", "productionmanager"],
-    "production.user": ["worker", "productionmanager"],
-    "production.manager": ["productionmanager"],
-    "training.user": ["student", "instructor"],
-    "training.manager": ["instructor"],
-    "maintenance.user": ["technician"],
-    "maintenance.manager": ["technician"],
-  };
-
+  const supportedDbRoles = ["student", "instructor", "technician", "worker", "productionmanager"];
   const expanded = new Set();
   for (const role of requiredRoles) {
     const key = normalize(role);
@@ -47,13 +36,11 @@ const expandRequiredRolesToDbRoles = (requiredRoles = []) => {
       continue;
     }
 
-    if (["student", "instructor", "technician", "worker", "productionmanager"].includes(key)) {
+    if (supportedDbRoles.includes(key)) {
       expanded.add(key);
       continue;
     }
 
-    const mapped = appRoleToDbRoles[key] || [];
-    mapped.forEach((item) => expanded.add(item));
   }
 
   return Array.from(expanded);
@@ -203,7 +190,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     if (portalId === PortalIds.Admin) {
-      return hasAnyRole(["Admin"]);
+      return hasAnyRole(RoleSets.Admin);
     }
 
     return hasAnyRole(portal.requiredRoles || []);
@@ -248,7 +235,7 @@ export const AuthProvider = ({ children }) => {
    * Legacy helper kept for compatibility. Uses DB roles only.
    */
   const hasRequiredRole = () => {
-    return hasAnyRole(["Assets.User"]);
+    return hasAnyRole(["student", "instructor", "worker", "technician", "productionmanager"]);
   };
 
   const value = {

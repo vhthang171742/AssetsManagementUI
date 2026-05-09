@@ -1,4 +1,4 @@
-import { RoleSets, Roles } from "./authorization";
+import { RoleSets } from "./authorization";
 import { TranslationKeys as K } from "i18n/translationKeys";
 
 export const PortalIds = {
@@ -16,7 +16,7 @@ export const PortalConfigs = [
     translationKey: K.PORTAL_ADMIN_NAME,
     path: "/admin",
     description: "Manage assets, users, configuration, production and training operations.",
-    requiredRoles: [Roles.Admin],
+    requiredRoles: RoleSets.Admin,
     requiredGroups: ["admins"],
   },
   {
@@ -25,7 +25,7 @@ export const PortalConfigs = [
     translationKey: K.PORTAL_STUDENT_NAME,
     path: "/student",
     description: "View assigned assets, check in/check out and track usage history with training calendar.",
-    requiredRoles: [Roles.TrainingUser, Roles.TrainingManager, Roles.Admin],
+    requiredRoles: RoleSets.TrainingUser,
     requiredGroups: ["students"],
   },
   {
@@ -34,7 +34,7 @@ export const PortalConfigs = [
     translationKey: K.PORTAL_TEACHER_NAME,
     path: "/teacher",
     description: "Monitor student asset usage, classes and training execution progress.",
-    requiredRoles: [Roles.TrainingManager, Roles.Admin],
+    requiredRoles: RoleSets.TrainingManager,
     requiredGroups: ["teachers", "instructors", "trainers"],
   },
   {
@@ -52,7 +52,7 @@ export const PortalConfigs = [
     translationKey: K.PORTAL_WORKER_NAME,
     path: "/worker",
     description: "View your assigned equipment, log shift sessions and track usage history.",
-    requiredRoles: [Roles.ProductionUser, Roles.ProductionManager, Roles.Admin],
+    requiredRoles: RoleSets.ProductionUser,
     requiredGroups: ["workers"],
   },
 ];
