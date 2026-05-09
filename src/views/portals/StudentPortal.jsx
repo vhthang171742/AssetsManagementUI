@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { useLocation } from "react-router-dom";
 import Card from "components/card";
 import EntityPill from "components/EntityPill";
+import Modal from "components/modal/Modal";
 import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import PortalLayout from "layouts/portal";
 import {
@@ -378,6 +379,17 @@ export default function StudentPortal() {
   }, []);
 
   useEffect(() => {
+    if (!isScanning || !streamRef.current || !videoRef.current) {
+      return;
+    }
+
+    videoRef.current.srcObject = streamRef.current;
+    videoRef.current.play().catch(() => {
+      // Ignore autoplay issues; camera stays open and user can retry.
+    });
+  }, [isScanning, scannerTarget]);
+
+  useEffect(() => {
     if (!selectedCourseId) {
       setCourseClasses([]);
       setSelectedClassId("");
@@ -407,6 +419,9 @@ export default function StudentPortal() {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
   };
 
@@ -450,11 +465,6 @@ export default function StudentPortal() {
       setIsScanning(true);
       setScannerSupported(true);
       setScannerTarget(target);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
 
       let processing = false;
 
@@ -533,12 +543,6 @@ export default function StudentPortal() {
               ? t(K.STUDENT_STOP_CAMERA, "Stop Camera")
               : qrState.buttonLabel}
           </button>
-          <video
-            ref={qrState.isCurrentScannerTarget ? videoRef : null}
-            className={`w-full rounded-xl border border-gray-200 dark:border-gray-700 ${qrState.isCurrentScannerTarget ? "block" : "hidden"}`}
-            muted
-            playsInline
-          />
         </div>
       </div>
     );
@@ -804,6 +808,37 @@ export default function StudentPortal() {
           </div>
         </Card>
       </div>
+
+      <Modal
+        isOpen={isScanning && Boolean(scannerTarget)}
+        onClose={stopScanner}
+        title={t(K.STUDENT_QR_SECTION_TITLE, "QR Checkout / Check-In")}
+        maxWidth="max-w-xl"
+        footer={(
+          <button
+            type="button"
+            onClick={stopScanner}
+            className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:text-white"
+          >
+            {t(K.STUDENT_STOP_CAMERA, "Stop Camera")}
+          </button>
+        )}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            {scannerTarget?.action === "checkin"
+              ? t(K.STUDENT_QR_SCAN_CHECKIN_HINT, "Scan the asset QR to check in automatically.")
+              : t(K.STUDENT_QR_SCAN_CHECKOUT_HINT, "Scan the asset QR to check out automatically.")}
+          </p>
+          <video
+            ref={videoRef}
+            className="w-full rounded-xl border border-gray-200 bg-black/90 dark:border-gray-700"
+            muted
+            playsInline
+            autoPlay
+          />
+        </div>
+      </Modal>
     </PortalLayout>
   );
 }
