@@ -20,7 +20,7 @@ function useOutsideAlerter(ref, setX) {
 }
 
 const Dropdown = (props) => {
-  const { button, children, classNames, animation } = props;
+  const { button, children, classNames, animation, positionClass = "absolute" } = props;
   const wrapperRef = React.useRef(null);
   const [openWrapper, setOpenWrapper] = React.useState(false);
   useOutsideAlerter(wrapperRef, setOpenWrapper);
@@ -31,7 +31,7 @@ const Dropdown = (props) => {
         {button}
       </div>
       <div
-        className={`${classNames} absolute z-[80] ${
+        className={`${positionClass} z-[80] ${classNames} ${
           animation
             ? animation
             : "origin-top-right transition-all duration-300 ease-in-out"

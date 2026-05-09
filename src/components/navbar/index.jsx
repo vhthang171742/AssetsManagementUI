@@ -157,6 +157,7 @@ function NotificationDropdown({ t, language, timeZoneId }) {
 
   return (
     <Dropdown
+      positionClass="fixed md:absolute"
       button={
         <p className="relative cursor-pointer">
           <IoMdNotificationsOutline className="h-4 w-4 text-gray-600 dark:text-white" />
@@ -168,9 +169,9 @@ function NotificationDropdown({ t, language, timeZoneId }) {
         </p>
       }
       animation="origin-[65%_0%] md:origin-top-right transition-all duration-300 ease-in-out"
-      classNames={"py-2 top-8 -left-[230px] md:-left-[520px] w-max"}
+      classNames={"left-2 right-2 top-[68px] py-2 md:top-8 md:-left-[440px] md:right-auto md:left-auto w-auto md:w-max"}
       children={
-        <div className="flex w-[360px] flex-col gap-3 rounded-[20px] bg-white p-4 shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none sm:w-[540px]">
+        <div className="flex w-full max-w-[calc(100vw-16px)] flex-col gap-3 rounded-[20px] bg-white p-4 shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none sm:max-w-[460px]">
           <div className="flex items-center justify-between">
             <p className="text-base font-bold text-navy-700 dark:text-white">
               {t(K.NAV_NOTIFICATION, "Notification")}
@@ -235,15 +236,15 @@ function NotificationDropdown({ t, language, timeZoneId }) {
                             {getTitle(n)}
                           </p>
                           {parsed.summary ? (
-                            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 break-words whitespace-normal">
                               {parsed.summary}
                             </p>
                           ) : null}
                           {parsed.details.length > 0 ? (
                             <div className="mt-1 flex flex-wrap gap-1.5">
                               {parsed.details.map((d, idx) => (
-                                <span key={`${d.label}-${idx}`} className="break-words rounded-md bg-lightPrimary px-2 py-0.5 text-[11px] font-medium text-navy-700 dark:bg-navy-800 dark:text-gray-200 max-w-full">
-                                  <span className="font-semibold">{d.label}:</span> <span className="break-words">{d.value}</span>
+                                <span key={`${d.label}-${idx}`} className="rounded-md bg-lightPrimary px-1.5 py-0.5 text-[10px] font-medium text-navy-700 dark:bg-navy-800 dark:text-gray-200 break-all">
+                                  <span className="font-semibold">{d.label}:</span> {d.value}
                                 </span>
                               ))}
                             </div>
