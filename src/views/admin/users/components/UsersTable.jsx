@@ -131,6 +131,7 @@ export default function UsersTable() {
     else if (role === "Worker") currentCode = user.workerRole?.employeeCode || "";
     else if (role === "Instructor") currentCode = user.instructorRole?.instructorCode || "";
     else if (role === "Technician") currentCode = user.technicianRole?.technicianCode || "";
+    else if (role === "ProductionManager") currentCode = user.productionManagerRole?.managerCode || "";
 
     setRoleFormData({ role, roleCode: currentCode });
     setShowCodeModal(true);
@@ -263,6 +264,21 @@ export default function UsersTable() {
                         </span>
                         <button
                           onClick={() => openEditCodeModal(row, 'Technician')}
+                          className="text-blue-500 hover:text-blue-700"
+                          title={t(K.ADMIN_TABLE_EDIT_CODE, "Edit code")}
+                        >
+                          <MdModeEditOutline className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                    {row.productionManagerRole && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{t(K.ADMIN_TABLE_PRODUCTION_MANAGER, "Production Manager")}:</span>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          {row.productionManagerRole.managerCode || 'N/A'}
+                        </span>
+                        <button
+                          onClick={() => openEditCodeModal(row, 'ProductionManager')}
                           className="text-blue-500 hover:text-blue-700"
                           title={t(K.ADMIN_TABLE_EDIT_CODE, "Edit code")}
                         >
