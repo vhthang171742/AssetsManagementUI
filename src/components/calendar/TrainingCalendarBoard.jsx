@@ -3,6 +3,7 @@ import Calendar from "react-calendar";
 import { MdChevronLeft, MdChevronRight } from "react-icons/md";
 import "react-calendar/dist/Calendar.css";
 import "assets/css/TrainingCalendarBoard.css";
+import Modal from "components/modal/Modal";
 import {
   formatTimeInTimeZone,
   toDateKeyInTimeZone,
@@ -137,10 +138,12 @@ export default function TrainingCalendarBoard({
   noEventsText,
   onForceReturn,
   renderLessonActions,
+  renderStudentActions,
+  buildStudentAssetModalData,
   scheduleBadgeLabel,
 }) {
   const { t } = useLanguage();
-  const [expandedLessons, setExpandedLessons] = useState({});
+  const [studentModalState, setStudentModalState] = useState(null);
   // ── event map (point-in-time: sessions, assignments, issues) ───────────────
   const eventMap = useMemo(() => {
     const map = new Map();
@@ -195,11 +198,12 @@ export default function TrainingCalendarBoard({
     [value, onChange]
   );
 
-  const toggleLesson = useCallback((lessonKey) => {
-    setExpandedLessons((prev) => ({
-      ...prev,
-      [lessonKey]: !prev[lessonKey],
-    }));
+  const openStudentsModal = useCallback((payload) => {
+    setStudentModalState(payload);
+  }, []);
+
+  const closeStudentsModal = useCallback(() => {
+    setStudentModalState(null);
   }, []);
 
   const eventBadgeByType = useMemo(
@@ -210,6 +214,76 @@ export default function TrainingCalendarBoard({
     }),
     [t]
   );
+
+  const getSerialLabel = useCallback(
+    (serialNumber) => (serialNumber ? `SN ${serialNumber}` : null),
+    []
+  );
+
+  const renderStudentRow = useCallback((student, context) => {
+    const extraModalData = student.assetID && buildStudentAssetModalData
+      ? buildStudentAssetModalData({
+          ...context,
+          student,
+          selectedDate: value,
+        })
+      : null;
+
+    return (
+      <div
+        key={`${context.item.id}-${context.lessonIndex}-${student.studentID || student.studentCode || student.name}`}
+        className="tcb__student-row"
+      >
+        <span className="tcb__student-name">
+          {student.studentID ? (
+            <EntityPill
+              type="student"
+              id={student.studentID}
+              label={student.studentCode || student.name || student.fullName || t(K.TEACHER_STUDENT_LABEL, "Student")}
+            />
+          ) : (
+            student.studentCode || student.name || student.fullName || t(K.TEACHER_STUDENT_LABEL, "Student")
+          )}
+        </span>
+        {student.assetLabel && !student.assetID ? (
+          <span className="tcb__pill tcb__pill--asset">{student.assetLabel}</span>
+        ) : null}
+        {student.assetID ? (
+          <EntityPill
+            type="asset"
+            id={student.assetID}
+            label={getSerialLabel(student.serialNumber) || student.assetCode || student.assetLabel}
+            modalData={{
+              serialNumber: student.serialNumber || null,
+              assetStatus: student.assetStatus || null,
+              ...(extraModalData || {}),
+            }}
+          />
+        ) : null}
+        {student.attendanceStatus ? (
+          <span className={`tcb__pill tcb__pill--status tcb__pill--${student.attendanceStatus.toLowerCase()}`}>
+            {student.attendanceStatus}
+          </span>
+        ) : null}
+        {onForceReturn && student.assignmentId && student.isCheckedOut ? (
+          <button
+            type="button"
+            className="tcb__student-action"
+            onClick={() => onForceReturn(student.assignmentId)}
+          >
+            {t(K.TEACHER_FORCE_RETURN, "Force Return")}
+          </button>
+        ) : null}
+        {renderStudentActions
+          ? renderStudentActions({
+              ...context,
+              student,
+              selectedDate: value,
+            })
+          : null}
+      </div>
+    );
+  }, [buildStudentAssetModalData, getSerialLabel, onForceReturn, renderStudentActions, t, value]);
 
   return (
     <div className="tcb">
@@ -331,7 +405,12 @@ export default function TrainingCalendarBoard({
                             <button
                               type="button"
                               className={`tcb__lesson-row tcb__lesson-row--toggle${lesson.students?.length ? " is-clickable" : ""}`}
-                              onClick={() => lesson.students?.length && toggleLesson(`${item.id}-${index}`)}
+                              onClick={() => lesson.students?.length && openStudentsModal({
+                                item,
+                                lesson,
+                                lessonIndex: index,
+                                lessonKey: `${item.id}-${index}`,
+                              })}
                               disabled={!lesson.students?.length}
                               style={{ display: "contents" }}
                             >
@@ -353,52 +432,22 @@ export default function TrainingCalendarBoard({
                               )}
                               {lesson.students?.length ? (
                                 <span className="tcb__lesson-expand-hint">
-                                  {expandedLessons[`${item.id}-${index}`]
-                                    ? t(K.CALENDAR_HIDE_STUDENTS, "Hide students")
-                                    : t(K.CALENDAR_SHOW_STUDENTS, "Show students")}
+                                  {t(K.CALENDAR_SHOW_STUDENTS, "Show students")}
                                 </span>
                               ) : null}
                             </button>
                             {lesson.assetID && (
-                              <EntityPill type="asset" id={lesson.assetID} label={lesson.assetCode || lesson.assetLabel} />
+                              <EntityPill
+                                type="asset"
+                                id={lesson.assetID}
+                                label={getSerialLabel(lesson.serialNumber) || lesson.assetCode || lesson.assetLabel}
+                                modalData={{
+                                  serialNumber: lesson.serialNumber || null,
+                                  assetStatus: lesson.assetStatus || null,
+                                }}
+                              />
                             )}
                           </div>
-
-                          {lesson.students?.length && expandedLessons[`${item.id}-${index}`] ? (
-                            <div className="tcb__student-list">
-                              {lesson.students.map((student) => (
-                                <div key={`${item.id}-${index}-${student.studentID}`} className="tcb__student-row">
-                                  <span className="tcb__student-name">
-                                    {student.studentID ? (
-                                      <EntityPill type="student" id={student.studentID} label={student.name || student.fullName || `Student #${student.studentID}`} />
-                                    ) : (
-                                      student.name || `Student #${student.studentID}`
-                                    )}
-                                  </span>
-                                  {student.assetLabel && !student.assetID ? (
-                                    <span className="tcb__pill tcb__pill--asset">{student.assetLabel}</span>
-                                  ) : null}
-                                  {student.assetID ? (
-                                    <EntityPill type="asset" id={student.assetID} label={student.assetCode || student.assetLabel} />
-                                  ) : null}
-                                  {student.attendanceStatus ? (
-                                    <span className={`tcb__pill tcb__pill--status tcb__pill--${student.attendanceStatus.toLowerCase()}`}>
-                                      {student.attendanceStatus}
-                                    </span>
-                                  ) : null}
-                                  {onForceReturn && student.assignmentId ? (
-                                    <button
-                                      type="button"
-                                      className="tcb__student-action"
-                                      onClick={() => onForceReturn(student.assignmentId)}
-                                    >
-                                      {t(K.TEACHER_FORCE_RETURN, "Force Return")}
-                                    </button>
-                                  ) : null}
-                                </div>
-                              ))}
-                            </div>
-                          ) : null}
 
                           {renderLessonActions
                             ? renderLessonActions({
@@ -458,6 +507,55 @@ export default function TrainingCalendarBoard({
           )}
         </div>
       </aside>
+
+      <Modal
+        isOpen={Boolean(studentModalState)}
+        onClose={closeStudentsModal}
+        title={studentModalState
+          ? `${t(K.CALENDAR_SHOW_STUDENTS, "Show students")} · ${studentModalState.item.classCode || studentModalState.item.courseName || studentModalState.item.name}`
+          : t(K.CALENDAR_SHOW_STUDENTS, "Show students")}
+        maxWidth="max-w-3xl"
+        footer={(
+          <button
+            type="button"
+            onClick={closeStudentsModal}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700"
+          >
+            {t(K.MODAL_CLOSE, "Close")}
+          </button>
+        )}
+      >
+        {studentModalState ? (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm dark:border-gray-700 dark:bg-navy-900">
+              <p className="font-semibold text-navy-700 dark:text-white">
+                {studentModalState.item.courseName || studentModalState.item.name}
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {(studentModalState.lesson.startTime || studentModalState.lesson.endTime) && (
+                  <span className="tcb__pill tcb__pill--time">
+                    {formatTime(studentModalState.lesson.startTime, timeZoneId, value)}-{formatTime(studentModalState.lesson.endTime, timeZoneId, value)}
+                  </span>
+                )}
+                {studentModalState.lesson.summaryLabel && (
+                  <span className="tcb__pill tcb__pill--summary">{studentModalState.lesson.summaryLabel}</span>
+                )}
+              </div>
+            </div>
+
+            <div className="tcb__student-modal-list">
+              {(studentModalState.lesson.students || []).map((student) =>
+                renderStudentRow(student, {
+                  item: studentModalState.item,
+                  lesson: studentModalState.lesson,
+                  lessonIndex: studentModalState.lessonIndex,
+                  lessonKey: studentModalState.lessonKey,
+                })
+              )}
+            </div>
+          </div>
+        ) : null}
+      </Modal>
     </div>
   );
 }

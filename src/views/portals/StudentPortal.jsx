@@ -226,11 +226,15 @@ export default function StudentPortal() {
           roomAssetID: defaultAssetId,
           assetID: assignment?.assetID || null,
           assetCode: assignment?.assetCode || null,
+          serialNumber: assignment?.serialNumber || null,
+          assetStatus: assignment?.assetStatus || null,
           startTime: group.startTime || item.scheduleStartTime || "",
           endTime: group.endTime || item.scheduleEndTime || "",
           plannedStartTime: group.startTime || item.scheduleStartTime || "",
           plannedEndTime: group.endTime || item.scheduleEndTime || "",
-          assetLabel: assignment?.assetCode ? assignment.assetCode : (defaultAssetId ? `Asset #${defaultAssetId}` : "No assigned asset"),
+          assetLabel: assignment?.serialNumber
+            ? `SN ${assignment.serialNumber}`
+            : assignment?.assetCode ? assignment.assetCode : (defaultAssetId ? `Asset #${defaultAssetId}` : "No assigned asset"),
           activeCheckout: defaultCheckout,
           attendanceStatus: latestStatusByClass[String(item.classID)]?.status || "Not-checked",
         }));
@@ -247,7 +251,11 @@ export default function StudentPortal() {
                 roomAssetID: lessonAssetId,
                 assetID: lesson.assetID || (lessonAssetId === (assignment?.roomAssetID) ? assignment?.assetID : null) || null,
                 assetCode: lessonAssetCode || null,
-                assetLabel: lessonAssetCode || (lessonAssetId ? `Asset #${lessonAssetId}` : "No assigned asset"),
+                serialNumber: assignment?.serialNumber || null,
+                assetStatus: assignment?.assetStatus || null,
+                assetLabel: assignment?.serialNumber
+                  ? `SN ${assignment.serialNumber}`
+                  : lessonAssetCode || (lessonAssetId ? `Asset #${lessonAssetId}` : "No assigned asset"),
                 plannedStartTime: item.scheduleStartTime || lesson.startTime || "",
                 plannedEndTime: item.scheduleEndTime || lesson.endTime || "",
                 activeCheckout: lessonAssetId
@@ -335,11 +343,19 @@ export default function StudentPortal() {
           .map((day) => day.label)
           .join(", ");
 
-        return `${dayText} • ${toShortTime(group.startTime)} - ${toShortTime(group.endTime)}`;
+        const referenceDate = item?.startDate || item?.endDate || null;
+        const startTime = group.startTime
+          ? utcClockTimeToTimeZone(group.startTime, userTimeZoneId, referenceDate)
+          : "";
+        const endTime = group.endTime
+          ? utcClockTimeToTimeZone(group.endTime, userTimeZoneId, referenceDate)
+          : "";
+
+        return `${dayText} • ${toShortTime(startTime)} - ${toShortTime(endTime)}`;
       });
 
     return rows.length > 0 ? rows : ["-"];
-  }, [scheduleDayLabels, toShortTime]);
+  }, [scheduleDayLabels, toShortTime, userTimeZoneId]);
 
   const isCancellationOpen = useCallback((item) => {
     if (!item?.startDate) {
@@ -905,7 +921,15 @@ export default function StudentPortal() {
               >
                 <div className="flex flex-wrap items-center gap-1 text-sm font-semibold text-navy-700 dark:text-white">
                   {item.assetID
-                    ? <EntityPill type="asset" id={item.assetID} label={item.assetCode || `Asset #${item.roomAssetID}`} />
+                    ? <EntityPill
+                        type="asset"
+                        id={item.assetID}
+                        label={item.serialNumber ? `SN ${item.serialNumber}` : (item.assetCode || `Asset #${item.roomAssetID}`)}
+                        modalData={{
+                          serialNumber: item.serialNumber || null,
+                          assetStatus: item.assetStatus || null,
+                        }}
+                      />
                     : <span>Asset #{item.roomAssetID}</span>
                   }
                   {item.classCode
@@ -936,7 +960,17 @@ export default function StudentPortal() {
                   <div>
                     <div className="flex flex-wrap items-center gap-1">
                       {(assignment?.assetID || session?.assetID)
-                        ? <EntityPill type="asset" id={assignment?.assetID || session?.assetID} label={assignment?.assetCode || session?.assetCode || `Asset #${assignment?.roomAssetID ?? session?.roomAssetID}`} />
+                        ? <EntityPill
+                            type="asset"
+                            id={assignment?.assetID || session?.assetID}
+                            label={assignment?.serialNumber
+                              ? `SN ${assignment.serialNumber}`
+                              : assignment?.assetCode || session?.assetCode || `Asset #${assignment?.roomAssetID ?? session?.roomAssetID}`}
+                            modalData={{
+                              serialNumber: assignment?.serialNumber || null,
+                              assetStatus: assignment?.assetStatus || null,
+                            }}
+                          />
                         : <p className="text-sm font-semibold text-navy-700 dark:text-white">Asset #{assignment?.roomAssetID ?? session?.roomAssetID}</p>
                       }
                       {(assignment?.classCode || session?.classCode)

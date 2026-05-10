@@ -10,17 +10,18 @@ import EntityDetailModal from "./EntityDetailModal";
  * @param {string|number} id          - The entity primary ID
  * @param {string} label              - Friendly display label (e.g. AssetCode, ClassCode, FullName)
  * @param {string} [className]        - Optional extra CSS class
+ * @param {object} [modalData]        - Optional extra fields for detail modal
  */
-export default function EntityPill({ type, id, label, className = "" }) {
+export default function EntityPill({ type, id, label, className = "", modalData = null }) {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
 
   if (!label && !id) return null;
 
   const displayLabel = label || (
-    type === "asset" ? `Asset #${id}`
-    : type === "class" ? `Class #${id}`
-    : `Student #${id}`
+    type === "asset" ? t(K.COMMON_ASSET, "Asset")
+    : type === "class" ? t(K.COMMON_CLASS, "Class")
+    : t(K.COMMON_STUDENT, "Student")
   );
 
   const pillColors = {
@@ -44,6 +45,7 @@ export default function EntityPill({ type, id, label, className = "" }) {
         <EntityDetailModal
           type={type}
           id={id}
+          modalData={modalData}
           onClose={() => setOpen(false)}
         />
       )}

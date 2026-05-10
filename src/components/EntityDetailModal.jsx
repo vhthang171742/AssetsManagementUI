@@ -15,8 +15,9 @@ import { RoleSets } from "constants/authorization";
  * @param {"asset"|"class"|"student"} type - The entity type
  * @param {string|number} id              - Entity primary ID
  * @param {function} onClose              - Close callback
+ * @param {object} [modalData]            - Optional context data (serial/status)
  */
-export default function EntityDetailModal({ type, id, onClose }) {
+export default function EntityDetailModal({ type, id, onClose, modalData = null }) {
   const { t } = useLanguage();
   const { hasAnyRole } = useAuth();
   const [data, setData] = useState(null);
@@ -86,6 +87,9 @@ export default function EntityDetailModal({ type, id, onClose }) {
     if (!data) return null;
 
     if (type === "asset") {
+      const serialNumber = modalData?.serialNumber || data.serialNumber;
+      const status = modalData?.assetStatus || data.assetStatus || data.status;
+
       return (
         <div className="grid grid-cols-2 gap-4">
           {renderField(t(K.PILL_FIELD_CODE, "Code"), data.assetCode)}
@@ -93,7 +97,8 @@ export default function EntityDetailModal({ type, id, onClose }) {
           {renderField(t(K.PILL_FIELD_CATEGORY, "Category"), data.categoryName || data.category?.categoryName)}
           {renderField(t(K.PILL_FIELD_BRAND, "Brand"), data.brand)}
           {renderField(t(K.PILL_FIELD_MODEL, "Model"), data.model)}
-          {renderField(t(K.PILL_FIELD_STATUS, "Status"), data.status)}
+          {renderField(t(K.ADMIN_TABLE_SERIAL_NUMBER, "Serial Number"), serialNumber)}
+          {renderField(t(K.PILL_FIELD_STATUS, "Status"), status)}
         </div>
       );
     }
@@ -124,13 +129,24 @@ export default function EntityDetailModal({ type, id, onClose }) {
     return null;
   };
 
-  const footer = isAdmin ? (
+  const customFooterActions = typeof modalData?.footerActions === "function"
+    ? modalData.footerActions({ onClose })
+    : modalData?.footerActions || null;
+
+  const adminEditAction = isAdmin ? (
     <a
       href={getAdminEditPath()}
       className="inline-flex items-center gap-1 rounded-md bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600 transition-colors"
     >
       {t(K.PILL_EDIT, "Edit")}
     </a>
+  ) : null;
+
+  const footer = (customFooterActions || adminEditAction) ? (
+    <>
+      {customFooterActions}
+      {adminEditAction}
+    </>
   ) : null;
 
   return (
