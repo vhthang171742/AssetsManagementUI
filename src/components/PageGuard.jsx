@@ -1,6 +1,7 @@
 import React from "react";
 import { useAuth } from "context/AuthContext";
 import UnauthorizedAccess from "components/UnauthorizedAccess";
+import { RoleSets } from "constants/authorization";
 
 export default function PageGuard({ requiredRoles, children }) {
   const { isLoading, hasAnyRole } = useAuth();
@@ -17,6 +18,10 @@ export default function PageGuard({ requiredRoles, children }) {
   }
 
   if (!Array.isArray(requiredRoles) || requiredRoles.length === 0) {
+    return children;
+  }
+
+  if (hasAnyRole(RoleSets.Admin)) {
     return children;
   }
 

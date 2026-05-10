@@ -5,6 +5,7 @@ import DashIcon from "components/icons/DashIcon";
 import { useAuth } from "context/AuthContext";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
+import { RoleSets } from "constants/authorization";
 import { MdExpandMore } from "react-icons/md";
 // chakra imports
 
@@ -68,6 +69,11 @@ export function SidebarLinks(props) {
 
   const canAccessRoute = (route) => {
     const requiredRoles = Array.isArray(route.requiredRoles) ? route.requiredRoles : [];
+    // Admin app role can access all pages in the admin layout.
+    if (hasAnyRole(RoleSets.Admin)) {
+      return true;
+    }
+
     return requiredRoles.length === 0 ||
       hasAnyRole(requiredRoles);
   };
