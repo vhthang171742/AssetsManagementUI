@@ -129,6 +129,10 @@ export default function EntityDetailModal({ type, id, onClose, modalData = null 
     return null;
   };
 
+  const extraContent = typeof modalData?.renderExtraContent === "function"
+    ? modalData.renderExtraContent({ data, onClose })
+    : modalData?.renderExtraContent || null;
+
   const customFooterActions = typeof modalData?.footerActions === "function"
     ? modalData.footerActions({ onClose })
     : modalData?.footerActions || null;
@@ -157,7 +161,10 @@ export default function EntityDetailModal({ type, id, onClose, modalData = null 
       footer={footer}
       maxWidth="max-w-lg"
     >
-      {renderContent()}
+      <div className="space-y-6">
+        {renderContent()}
+        {extraContent}
+      </div>
     </Modal>
   );
 }

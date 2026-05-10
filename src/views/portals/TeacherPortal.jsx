@@ -536,7 +536,7 @@ export default function TeacherPortal() {
         showToast(t(K.TEACHER_ASSET_REMOVED_SUCCESS, "Asset removed from student."));
       } else if (action === "assign") {
         if (!selectedAssetId) {
-          showToast(t(K.TEACHER_SELECT_AVAILABLE_ASSET, "Select available asset"), true);
+          showToast(t(K.TEACHER_SELECT_AVAILABLE_ASSET, "Select room asset"), true);
           return false;
         }
 
@@ -555,7 +555,7 @@ export default function TeacherPortal() {
         }
 
         if (!selectedAssetId) {
-          showToast(t(K.TEACHER_SELECT_AVAILABLE_ASSET, "Select available asset"), true);
+          showToast(t(K.TEACHER_SELECT_AVAILABLE_ASSET, "Select room asset"), true);
           return false;
         }
 
@@ -759,13 +759,13 @@ export default function TeacherPortal() {
               {assetModalStudent?.studentCode || assetModalStudent?.name || t(K.TEACHER_STUDENT_LABEL, "Student")}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-300">
-              {t(K.TEACHER_SELECT_AVAILABLE_ASSET, "Select available asset in class room")}
+              {t(K.TEACHER_SELECT_AVAILABLE_ASSET, "Select a room asset for this student. Assets can be shared across students.")}
             </p>
           </div>
 
           {modalAssetOptions.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-300">
-              {t(K.TEACHER_NO_AVAILABLE_ASSETS_IN_ROOM, "No available assets found in this room.")}
+              {t(K.TEACHER_NO_AVAILABLE_ASSETS_IN_ROOM, "No room assets found for this class room.")}
             </p>
           ) : (
             <div className="space-y-2">

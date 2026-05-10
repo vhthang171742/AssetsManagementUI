@@ -139,6 +139,7 @@ export default function TrainingCalendarBoard({
   onForceReturn,
   renderLessonActions,
   renderStudentActions,
+  buildLessonAssetModalData,
   buildStudentAssetModalData,
   scheduleBadgeLabel,
 }) {
@@ -444,6 +445,15 @@ export default function TrainingCalendarBoard({
                                 modalData={{
                                   serialNumber: lesson.serialNumber || null,
                                   assetStatus: lesson.assetStatus || null,
+                                  ...(buildLessonAssetModalData
+                                    ? buildLessonAssetModalData({
+                                        item,
+                                        lesson,
+                                        lessonIndex: index,
+                                        lessonKey: `${item.id}-${index}`,
+                                        selectedDate: value,
+                                      })
+                                    : {}),
                                 }}
                               />
                             )}

@@ -5,11 +5,11 @@ import Card from "components/card";
 import EntityPill from "components/EntityPill";
 import Modal from "components/modal/Modal";
 import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
+import StudentAssignedAssetPill, { buildStudentAssignedAssetModalData } from "./components/StudentAssignedAssetPill";
 import PortalLayout from "layouts/portal";
 import {
   studentEquipmentAssignmentService,
   practiceSessionService,
-  practiceErrorLogService,
   classService,
   courseService,
 } from "services/api";
@@ -64,7 +64,6 @@ export default function StudentPortal() {
 
   const [assignments, setAssignments] = useState([]);
   const [sessions, setSessions] = useState([]);
-  const [issueForm, setIssueForm] = useState({ sessionID: "", studentDescription: "", errorType: "" });
   const [incidentCategories, setIncidentCategories] = useState([]);
   const [qrBusy, setQrBusy] = useState(false);
   const [myActiveCheckouts, setMyActiveCheckouts] = useState([]);
@@ -85,6 +84,14 @@ export default function StudentPortal() {
 
   const openSessions = useMemo(
     () => sessions.filter((session) => !session.endTime).slice(0, 6),
+    [sessions]
+  );
+
+  const openSessionByClassAsset = useMemo(
+    () => sessions.filter((session) => !session.endTime).reduce((acc, session) => {
+      acc.set(`${session.classID ?? ""}-${session.roomAssetID ?? ""}`, session);
+      return acc;
+    }, new Map()),
     [sessions]
   );
 
@@ -659,23 +666,25 @@ export default function StudentPortal() {
     );
   }, [getLessonQrState, qrBusy, scannerSupported, t]);
 
-  const handleReportIssue = async (event) => {
-    event.preventDefault();
-    try {
-      await practiceErrorLogService.create({
-        sessionID: Number(issueForm.sessionID),
-        errorTime: new Date().toISOString(),
-        errorType: issueForm.errorType || undefined,
-        studentDescription: issueForm.studentDescription,
-        instructorNotified: true,
-      });
-      setIssueForm({ sessionID: "", studentDescription: "", errorType: "" });
-      showToast(t(K.STUDENT_ISSUE_REPORTED, "Issue reported successfully."));
-      await loadData();
-    } catch (error) {
-      showToast(`${t(K.STUDENT_ISSUE_REPORT_FAILED, "Issue report failed")}: ${error.message}`, true);
+  const getSessionForAsset = useCallback((assignment, session) => {
+    if (session?.sessionID) {
+      return session;
     }
-  };
+
+    const classID = assignment?.classID ?? session?.classID ?? "";
+    const roomAssetID = assignment?.roomAssetID ?? session?.roomAssetID ?? "";
+    return openSessionByClassAsset.get(`${classID}-${roomAssetID}`) || null;
+  }, [openSessionByClassAsset]);
+
+  const buildAssignedAssetModalData = useCallback((assignment, session) => {
+    const resolvedSession = getSessionForAsset(assignment, session);
+    return buildStudentAssignedAssetModalData({
+      assignment,
+      session: resolvedSession,
+      incidentCategories,
+      userTimeZoneId,
+    });
+  }, [getSessionForAsset, incidentCategories, userTimeZoneId]);
 
   const handleEnroll = async (classId) => {
     try {
@@ -718,6 +727,23 @@ export default function StudentPortal() {
             detailsTitle={t("COMMON_DAILY_DETAILS", "Daily Details")}
             noEventsText={t(K.STUDENT_NO_EVENTS_ON_DATE, "No training events on selected date.")}
             renderLessonActions={renderLessonActions}
+            buildLessonAssetModalData={({ lesson }) => buildAssignedAssetModalData(
+              {
+                assignmentID: lesson.assignmentID || null,
+                classID: lesson.classID || null,
+                roomAssetID: lesson.roomAssetID || null,
+                serialNumber: lesson.serialNumber || null,
+                assetStatus: lesson.assetStatus || null,
+              },
+              lesson.sessionID
+                ? {
+                    sessionID: lesson.sessionID,
+                    classID: lesson.classID || null,
+                    roomAssetID: lesson.roomAssetID || null,
+                    startTime: lesson.startTime || null,
+                  }
+                : null
+            )}
           />
         </Card>
       </div>
@@ -856,57 +882,6 @@ export default function StudentPortal() {
         </Card>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-5">
-        <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_REPORT_ISSUE_TITLE, "Report an Issue")}</h2>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-            {t(K.STUDENT_REPORT_ISSUE_HINT, "Share any equipment issue during your current session.")}
-          </p>
-          <form className="mt-4 space-y-3" onSubmit={handleReportIssue}>
-            <select
-              required
-              value={issueForm.sessionID}
-              onChange={(e) => setIssueForm((prev) => ({ ...prev, sessionID: e.target.value }))}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
-            >
-              <option value="">{t(K.STUDENT_SELECT_SESSION, "Select session")}</option>
-              {openSessions.map((session) => (
-                <option key={session.sessionID} value={session.sessionID}>
-                  {t(K.STUDENT_SESSION_ROW, "Session")} #{session.sessionID} • {session.assetCode || `Asset #${session.roomAssetID}`}
-                </option>
-              ))}
-            </select>
-            <select
-              value={issueForm.errorType}
-              onChange={(e) => setIssueForm((prev) => ({ ...prev, errorType: e.target.value }))}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
-            >
-              <option value="">{t(K.INCIDENT_SELECT_CATEGORY, "Select incident category")}</option>
-              {incidentCategories.map((cat) => (
-                <option key={cat.itemCode} value={cat.itemCode}>{cat.label}</option>
-              ))}
-            </select>
-            <textarea
-              required
-              rows={4}
-              value={issueForm.studentDescription}
-              onChange={(e) =>
-                setIssueForm((prev) => ({ ...prev, studentDescription: e.target.value }))
-              }
-              placeholder={t(K.STUDENT_DESCRIBE_EVENT, "Describe what happened")}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
-            />
-            <button
-              type="submit"
-              disabled={loading || openSessions.length === 0}
-              className="w-full rounded-xl bg-navy-700 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-800 disabled:opacity-60"
-            >
-              {t(K.STUDENT_SUBMIT_ISSUE, "Submit Issue")}
-            </button>
-          </form>
-        </Card>
-      </div>
-
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card extra="p-6">
           <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_ACTIVE_QR_CHECKOUTS, "My Active QR Checkouts")}</h2>
@@ -921,14 +896,13 @@ export default function StudentPortal() {
               >
                 <div className="flex flex-wrap items-center gap-1 text-sm font-semibold text-navy-700 dark:text-white">
                   {item.assetID
-                    ? <EntityPill
-                        type="asset"
-                        id={item.assetID}
+                    ? <StudentAssignedAssetPill
+                        assetId={item.assetID}
                         label={item.serialNumber ? `SN ${item.serialNumber}` : (item.assetCode || `Asset #${item.roomAssetID}`)}
-                        modalData={{
-                          serialNumber: item.serialNumber || null,
-                          assetStatus: item.assetStatus || null,
-                        }}
+                        assignment={item}
+                        session={getSessionForAsset(item, null)}
+                        incidentCategories={incidentCategories}
+                        userTimeZoneId={userTimeZoneId}
                       />
                     : <span>Asset #{item.roomAssetID}</span>
                   }
@@ -960,16 +934,15 @@ export default function StudentPortal() {
                   <div>
                     <div className="flex flex-wrap items-center gap-1">
                       {(assignment?.assetID || session?.assetID)
-                        ? <EntityPill
-                            type="asset"
-                            id={assignment?.assetID || session?.assetID}
+                        ? <StudentAssignedAssetPill
+                            assetId={assignment?.assetID || session?.assetID}
                             label={assignment?.serialNumber
                               ? `SN ${assignment.serialNumber}`
                               : assignment?.assetCode || session?.assetCode || `Asset #${assignment?.roomAssetID ?? session?.roomAssetID}`}
-                            modalData={{
-                              serialNumber: assignment?.serialNumber || null,
-                              assetStatus: assignment?.assetStatus || null,
-                            }}
+                            assignment={assignment}
+                            session={getSessionForAsset(assignment, session)}
+                            incidentCategories={incidentCategories}
+                            userTimeZoneId={userTimeZoneId}
                           />
                         : <p className="text-sm font-semibold text-navy-700 dark:text-white">Asset #{assignment?.roomAssetID ?? session?.roomAssetID}</p>
                       }
