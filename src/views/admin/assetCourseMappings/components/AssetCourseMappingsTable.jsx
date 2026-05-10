@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { assetCourseMappingService, courseService, assetService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
+import { renderLookupEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
@@ -171,12 +172,28 @@ export default function AssetCourseMappingsTable() {
       accessor: (row) =>
         assets.find((a) => a.assetID === row.assetID)?.assetName || t(K.ADMIN_TABLE_NA, "N/A"),
       sortKey: "assetName",
+      render: (row) => renderLookupEntityPill({
+        type: "asset",
+        id: row.assetID,
+        items: assets,
+        idField: "assetID",
+        labelResolver: (asset) => asset?.assetCode || asset?.assetName || t(K.ADMIN_TABLE_NA, "N/A"),
+        fallbackLabel: t(K.ADMIN_TABLE_NA, "N/A"),
+      }),
     },
     {
       header: t(K.ADMIN_TABLE_COURSE, "Course"),
       accessor: (row) =>
         courses.find((c) => c.courseID === row.courseID)?.courseName || t(K.ADMIN_TABLE_NA, "N/A"),
       sortKey: "courseName",
+      render: (row) => renderLookupEntityPill({
+        type: "course",
+        id: row.courseID,
+        items: courses,
+        idField: "courseID",
+        labelResolver: (course) => course?.courseCode || course?.courseName || t(K.ADMIN_TABLE_NA, "N/A"),
+        fallbackLabel: t(K.ADMIN_TABLE_NA, "N/A"),
+      }),
     },
     {
       header: t(K.ADMIN_TABLE_REQUIRED, "Required"),

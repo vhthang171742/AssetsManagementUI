@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { equipmentUsageService, userService, roomService, productionLineService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
+import { renderEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
@@ -227,6 +228,19 @@ export default function EquipmentUsageTable() {
       accessor: (row) =>
         equipment.find((e) => e.roomAssetID === row.roomAssetID)?.assetName || t(K.ADMIN_TABLE_NA, "N/A"),
       sortKey: "assetName",
+      render: (row) => {
+        const item = equipment.find((e) => e.roomAssetID === row.roomAssetID);
+        const assetId = row.assetID || item?.assetID;
+        return renderEntityPill({
+          type: "asset",
+          id: assetId,
+          label: row.assetCode || item?.assetCode || row.assetName || item?.assetName || t(K.ADMIN_TABLE_NA, "N/A"),
+          fallbackLabel: t(K.ADMIN_TABLE_NA, "N/A"),
+          modalData: {
+            serialNumber: row.serialNumber || item?.serialNumber || null,
+          },
+        });
+      },
     },
     {
       header: t(K.ADMIN_TABLE_WORKER, "Worker"),
@@ -239,6 +253,15 @@ export default function EquipmentUsageTable() {
       accessor: (row) =>
         lines.find((l) => l.productionLineID === row.productionLineID)?.lineName || t(K.ADMIN_TABLE_NA, "N/A"),
       sortKey: "productionLineName",
+      render: (row) => {
+        const line = lines.find((l) => l.productionLineID === row.productionLineID);
+        return renderEntityPill({
+          type: "productionLine",
+          id: row.productionLineID,
+          label: line?.lineCode || line?.lineName || row.productionLineName || t(K.ADMIN_TABLE_NA, "N/A"),
+          fallbackLabel: t(K.ADMIN_TABLE_NA, "N/A"),
+        });
+      },
     },
     {
       header: t(K.ADMIN_TABLE_START_TIME, "Start Time"),

@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { roomService, departmentService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
+import { renderEntityPill, renderLookupEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete, MdInventory2, MdRemoveCircle } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { QRCodeSVG } from "qrcode.react";
@@ -260,8 +261,30 @@ export default function RoomsTable() {
                   setPage(1);
                 }}
                 columns={[
-                  { header: t(K.ADMIN_TABLE_ROOM_NAME, "Room Name"), accessor: "roomName", sortKey: "roomName" },
-                  { header: t(K.ADMIN_TABLE_DEPARTMENT, "Department"), accessor: "departmentID", sortKey: "departmentName", render: (row) => getDepartmentName(row.departmentID) },
+                  {
+                    header: t(K.ADMIN_TABLE_ROOM_NAME, "Room Name"),
+                    accessor: "roomName",
+                    sortKey: "roomName",
+                    render: (row) => renderEntityPill({
+                      type: "room",
+                      id: row.roomID,
+                      label: row.roomCode || row.roomName || t(K.ADMIN_TABLE_NA, "N/A"),
+                      fallbackLabel: t(K.ADMIN_TABLE_NA, "N/A"),
+                    }),
+                  },
+                  {
+                    header: t(K.ADMIN_TABLE_DEPARTMENT, "Department"),
+                    accessor: "departmentID",
+                    sortKey: "departmentName",
+                    render: (row) => renderLookupEntityPill({
+                      type: "department",
+                      id: row.departmentID,
+                      items: departments,
+                      idField: "departmentID",
+                      labelResolver: (dept) => dept?.departmentCode || dept?.departmentName || getDepartmentName(row.departmentID),
+                      fallbackLabel: t(K.ADMIN_TABLE_NA, "N/A"),
+                    }),
+                  },
                   { header: t(K.ADMIN_TABLE_DESCRIPTION, "Description"), accessor: "description", sortKey: "description" },
                   {
                     header: t(K.ADMIN_TABLE_ACTIONS, "Actions"),

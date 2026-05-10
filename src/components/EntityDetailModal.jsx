@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Modal from "components/modal/Modal";
 import assetService from "services/assetService";
-import { classService } from "services/api";
+import { classService, courseService, departmentService, productionLineService, roomService, userService } from "services/api";
 import { studentEquipmentAssignmentService } from "services/api";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
@@ -9,13 +9,15 @@ import { useAuth } from "context/AuthContext";
 import { RoleSets } from "constants/authorization";
 
 /**
- * EntityDetailModal - Read-only detail modal for Asset, Class, or Student entities.
- * Shows an "Edit" button only for Admin portal users.
+ * EntityDetailModal - Read-only detail modal for various entity types.
+ * Shows an "Edit" button for Admin portal users.
  *
- * @param {"asset"|"class"|"student"} type - The entity type
- * @param {string|number} id              - Entity primary ID
- * @param {function} onClose              - Close callback
- * @param {object} [modalData]            - Optional context data (serial/status)
+ * Supported types: asset, class, student, user, course, department, room, instructor, technician, worker, productionLine
+ *
+ * @param {string} type           - The entity type
+ * @param {string|number} id      - Entity primary ID
+ * @param {function} onClose      - Close callback
+ * @param {object} [modalData]    - Optional context data (serial/status/etc)
  */
 export default function EntityDetailModal({ type, id, onClose, modalData = null }) {
   const { t } = useLanguage();
@@ -37,7 +39,6 @@ export default function EntityDetailModal({ type, id, onClose, modalData = null 
         result = await classService.getById(id);
       } else if (type === "student") {
         // We fetch the assignment by student ID (studentID) to get student name/code
-        // The id here is studentID from the assignment
         const assignments = await studentEquipmentAssignmentService.getByStudent(id);
         if (assignments && assignments.length > 0) {
           result = {
@@ -48,6 +49,17 @@ export default function EntityDetailModal({ type, id, onClose, modalData = null 
         } else {
           result = { studentID: id };
         }
+      } else if (type === "course") {
+        result = await courseService.getById(id);
+      } else if (type === "department") {
+        result = await departmentService.getById(id);
+      } else if (type === "room") {
+        result = await roomService.getById(id);
+      } else if (type === "productionLine") {
+        result = await productionLineService.getById(id);
+      } else if (["user", "instructor", "technician", "worker"].includes(type)) {
+        // All user-based types can use userService
+        result = await userService.getById(id);
       }
       setData(result);
     } catch (err) {
@@ -61,22 +73,58 @@ export default function EntityDetailModal({ type, id, onClose, modalData = null 
     loadData();
   }, [loadData]);
 
-  const titleKey = type === "asset" ? K.PILL_ASSET_DETAILS : type === "class" ? K.PILL_CLASS_DETAILS : K.PILL_STUDENT_DETAILS;
-  const defaultTitle = type === "asset" ? "Asset details" : type === "class" ? "Class details" : "Student details";
+  const titleKey = {
+    asset: K.PILL_ASSET_DETAILS,
+    class: K.PILL_CLASS_DETAILS,
+    student: K.PILL_STUDENT_DETAILS,
+    user: K.PILL_USER_DETAILS,
+    course: K.PILL_COURSE_DETAILS,
+    department: K.PILL_DEPARTMENT_DETAILS,
+    room: K.PILL_ROOM_DETAILS,
+    instructor: K.PILL_INSTRUCTOR_DETAILS,
+    technician: K.PILL_TECHNICIAN_DETAILS,
+    worker: K.PILL_WORKER_DETAILS,
+    productionLine: K.PILL_DETAILS,
+  }[type] || K.PILL_DETAILS;
+
+  const defaultTitle = {
+    asset: "Asset details",
+    class: "Class details",
+    student: "Student details",
+    user: "User details",
+    course: "Course details",
+    department: "Department details",
+    room: "Room details",
+    instructor: "Instructor details",
+    technician: "Technician details",
+    worker: "Worker details",
+    productionLine: "Production line details",
+  }[type] || "Details";
 
   // Admin edit links (open admin portal in same tab)
   const getAdminEditPath = () => {
-    if (type === "asset") return `/admin/assets`;
-    if (type === "class") return `/admin/classes`;
-    return `/admin/studentEquipmentAssignments`;
+    const pathMap = {
+      asset: "/admin/assets",
+      class: "/admin/classes",
+      student: "/admin/studentEquipmentAssignments",
+      course: "/admin/courses",
+      department: "/admin/departments",
+      room: "/admin/rooms",
+      user: "/admin/users",
+      instructor: "/admin/instructors",
+      technician: "/admin/technicians",
+      worker: "/admin/workers",
+      productionLine: "/admin/production-lines",
+    };
+    return pathMap[type] || "/admin";
   };
 
   const renderField = (label, value) => {
     if (value == null || value === "") return null;
     return (
-      <div className="flex flex-col gap-0.5">
-        <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{String(value)}</span>
+      <div className="min-w-0 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-navy-800/60">
+        <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</span>
+        <span className="block break-all text-sm font-semibold leading-5 text-gray-800 dark:text-gray-200">{String(value)}</span>
       </div>
     );
   };
@@ -126,6 +174,60 @@ export default function EntityDetailModal({ type, id, onClose, modalData = null 
       );
     }
 
+    if (type === "course") {
+      return (
+        <div className="grid grid-cols-2 gap-4">
+          {renderField(t(K.PILL_FIELD_CODE, "Code"), data.courseCode)}
+          {renderField(t(K.PILL_FIELD_NAME, "Name"), data.courseName)}
+          {renderField(t(K.PILL_FIELD_DESCRIPTION, "Description"), data.description)}
+        </div>
+      );
+    }
+
+    if (type === "department") {
+      return (
+        <div className="grid grid-cols-2 gap-4">
+          {renderField(t(K.PILL_FIELD_CODE, "Code"), data.departmentCode)}
+          {renderField(t(K.PILL_FIELD_NAME, "Name"), data.departmentName)}
+          {renderField(t(K.PILL_FIELD_DESCRIPTION, "Description"), data.description)}
+        </div>
+      );
+    }
+
+    if (type === "room") {
+      return (
+        <div className="grid grid-cols-2 gap-4">
+          {renderField(t(K.PILL_FIELD_NAME, "Name"), data.roomName)}
+          {renderField(t(K.PILL_FIELD_CAPACITY, "Capacity"), data.capacity)}
+          {renderField(t(K.PILL_FIELD_BUILDING, "Building"), data.building)}
+        </div>
+      );
+    }
+
+    if (type === "productionLine") {
+      return (
+        <div className="grid grid-cols-2 gap-4">
+          {renderField(t(K.PILL_FIELD_CODE, "Code"), data.lineCode)}
+          {renderField(t(K.PILL_FIELD_NAME, "Name"), data.lineName)}
+          {renderField(t(K.PILL_FIELD_DEPARTMENT, "Department"), data.departmentName || data.department?.departmentName)}
+          {renderField(t(K.ADMIN_TABLE_ORDER_CODE, "Order Code"), data.orderCode)}
+          {renderField(t(K.PILL_FIELD_CAPACITY, "Capacity"), data.capacity)}
+          {renderField(t(K.PILL_FIELD_STATUS, "Status"), data.isActive == null ? null : (data.isActive ? t(K.ADMIN_TABLE_ACTIVE, "Active") : t(K.ADMIN_TABLE_INACTIVE, "Inactive")))}
+        </div>
+      );
+    }
+
+    if (["user", "instructor", "technician", "worker"].includes(type)) {
+      return (
+        <div className="grid grid-cols-2 gap-4">
+          {renderField(t(K.PILL_FIELD_EMAIL, "Email"), data.email)}
+          {renderField(t(K.PILL_FIELD_FULL_NAME, "Full name"), data.fullName)}
+          {renderField(t(K.PILL_FIELD_PHONE, "Phone"), data.phoneNumber)}
+          {renderField(t(K.PILL_FIELD_CODE, "Code"), data.code || data.employeeCode || data.instructorCode || data.technicianCode)}
+        </div>
+      );
+    }
+
     return null;
   };
 
@@ -137,9 +239,14 @@ export default function EntityDetailModal({ type, id, onClose, modalData = null 
     ? modalData.footerActions({ onClose })
     : modalData?.footerActions || null;
 
-  const adminEditAction = isAdmin ? (
+  // Only show Edit button if it navigates to a different page
+  const editPath = getAdminEditPath();
+  const currentPath = window.location.pathname;
+  const shouldShowEditButton = isAdmin && editPath !== currentPath;
+
+  const adminEditAction = shouldShowEditButton ? (
     <a
-      href={getAdminEditPath()}
+      href={editPath}
       className="inline-flex items-center gap-1 rounded-md bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600 transition-colors"
     >
       {t(K.PILL_EDIT, "Edit")}

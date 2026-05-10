@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { courseService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
+import { renderEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
@@ -154,6 +155,12 @@ export default function CoursesTable() {
       header: t(K.ADMIN_TABLE_COURSE_CODE, "Course Code"),
       accessor: "courseCode",
       sortKey: "courseCode",
+      render: (row) => renderEntityPill({
+        type: "course",
+        id: row.courseID,
+        label: row.courseCode || row.courseName || String(row.courseID),
+        fallbackLabel: t(K.ADMIN_TABLE_NA, "N/A"),
+      }),
     },
     {
       header: t(K.ADMIN_TABLE_DURATION_HOURS, "Duration (Hours)"),

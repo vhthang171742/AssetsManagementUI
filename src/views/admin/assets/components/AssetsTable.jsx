@@ -4,6 +4,7 @@ import { getData as getCountryData } from "country-list";
 import { assetService, assetCategoryService } from "services/api";
 import { dropdownService } from "services/dropdownService";
 import Table from "components/table/Table";
+import { renderEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Card from "components/card";
 import Modal from "components/modal/Modal";
@@ -277,7 +278,17 @@ export default function AssetsTable() {
             setPage(1);
           }}
           columns={[
-            { header: t(K.ADMIN_TABLE_CODE, 'Code'), accessor: 'assetCode', sortKey: "assetCode" },
+            {
+              header: t(K.ADMIN_TABLE_CODE, 'Code'),
+              accessor: 'assetCode',
+              sortKey: "assetCode",
+              render: (row) => renderEntityPill({
+                type: "asset",
+                id: row.assetID,
+                label: row.assetCode || row.assetName || String(row.assetID),
+                fallbackLabel: t(K.ADMIN_TABLE_NA, "N/A"),
+              }),
+            },
             { header: t(K.ADMIN_TABLE_NAME, 'Name'), accessor: 'assetName', sortKey: "assetName" },
             { header: t(K.ADMIN_TABLE_CATEGORY, 'Category'), accessor: 'categoryID', sortKey: "categoryName", render: (row) => getCategoryName(row.categoryID) },
             { header: t(K.ADMIN_TABLE_BRAND, 'Brand'), accessor: 'brand', sortKey: "brand" },

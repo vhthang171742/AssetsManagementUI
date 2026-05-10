@@ -1,8 +1,9 @@
 ﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { studentEquipmentAssignmentService, classService } from "services/api";
+import { studentEquipmentAssignmentService, classService, courseService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
+import TableEntityPill from "components/table/TableEntityPill";
 import { MdModeEditOutline, MdDelete, MdLogout } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
@@ -16,7 +17,10 @@ export default function StudentEquipmentAssignmentsTable() {
   const userTimeZoneId = currentUser?.timeZoneId || "";
   const [assignments, setAssignments] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [courses, setCourses] = useState([]);
   const [classes, setClasses] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [roomAssets, setRoomAssets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -38,7 +42,26 @@ export default function StudentEquipmentAssignmentsTable() {
 
   useEffect(() => {
     fetchClasses();
+    fetchCourses();
   }, []);
+
+  const fetchCourses = async () => {
+    try {
+      const data = await courseService.getAll();
+      setCourses(data || []);
+    } catch (error) {
+      console.error("Failed to fetch courses:", error);
+    }
+  };
+
+  const fetchClasses = async () => {
+    try {
+      const data = await classService.getAll();
+      setClasses(data || []);
+    } catch (error) {
+      console.error("Failed to fetch classes:", error);
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -47,6 +70,64 @@ export default function StudentEquipmentAssignmentsTable() {
 
     return () => clearTimeout(timer);
   }, [searchText]);
+
+  // Fetch class details and filter assets when classID changes
+  useEffect(() => {
+    if (showModal && formData.classID) {
+      fetchStudentsAndAssetsForClass(formData.classID);
+    } else {
+      setStudents([]);
+      setRoomAssets([]);
+    }
+  }, [showModal, formData.classID]);
+
+  const fetchStudentsAndAssetsForClass = async (classID) => {
+    try {
+      // Fetch the class details to get students and room info
+      const classDetails = await classService.getById(classID);
+      
+      // Extract students from the class if available
+      let studentsInClass = [];
+      const studentsList = classDetails?.students || classDetails?.Students || [];
+      
+      if (Array.isArray(studentsList) && studentsList.length > 0) {
+        studentsInClass = studentsList
+          .map(s => ({
+            studentID: s.studentID || s.StudentID,
+            studentCode: s.studentCode || s.StudentCode || s.code || "",
+            studentName:
+              s.studentName ||
+              s.StudentName ||
+              s.fullName ||
+              s.displayName ||
+              s.name ||
+              s.user?.fullName ||
+              s.User?.FullName ||
+              "-"
+          }))
+          .filter(s => s.studentID) // Only include students with valid IDs
+          .sort((a, b) => (a.studentCode || "").localeCompare(b.studentCode || ""));
+      }
+      setStudents(studentsInClass);
+
+      // Fetch available assets and filter by class room
+      const availableAssets = await studentEquipmentAssignmentService.getAvailableAssets();
+      const classRoomID = classDetails?.roomID;
+      
+      if (classRoomID && availableAssets) {
+        const filteredAssets = availableAssets.filter(
+          asset => asset.roomID === classRoomID
+        );
+        setRoomAssets(filteredAssets);
+      } else {
+        setRoomAssets([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch students and assets for class:", error);
+      setStudents([]);
+      setRoomAssets([]);
+    }
+  };
 
   useEffect(() => {
     fetchAssignments();
@@ -75,15 +156,6 @@ export default function StudentEquipmentAssignmentsTable() {
       toast.error(`${t(K.ADMIN_TABLE_FETCH_FAILED, "Failed to fetch")} ${t(K.ADMIN_TABLE_ASSIGNMENTS, "assignments")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchClasses = async () => {
-    try {
-      const data = await classService.getAll();
-      setClasses(data || []);
-    } catch (error) {
-      console.error("Failed to fetch classes:", error);
     }
   };
 
@@ -181,20 +253,31 @@ export default function StudentEquipmentAssignmentsTable() {
 
   const columns = [
     {
-      header: t(K.ADMIN_TABLE_STUDENT_ID, "Student ID"),
-      accessor: "studentID",
-      sortKey: "studentID",
+      header: t(K.ADMIN_TABLE_STUDENT_CODE, "Student Code"),
+      accessor: (row) => row.studentCode || row.studentID,
+      sortKey: "studentCode",
+      render: (row) => <TableEntityPill entityType="student" row={row} />,
     },
     {
-      header: t(K.ADMIN_TABLE_ASSET_ID, "Asset ID"),
-      accessor: "roomAssetID",
-      sortKey: "roomAssetID",
+      header: t(K.ADMIN_TABLE_ASSET_CODE, "Asset Code"),
+      accessor: (row) => row.assetCode || row.roomAssetID,
+      sortKey: "assetCode",
+      render: (row) => <TableEntityPill entityType="asset" row={row} />,
+    },
+    {
+      header: t(K.ADMIN_TABLE_SERIAL_NUMBER, "Serial Number"),
+      accessor: (row) => row.serialNumber || t(K.ADMIN_TABLE_NA, "N/A"),
     },
     {
       header: t(K.ADMIN_TABLE_CLASS, "Class"),
       accessor: (row) =>
         classes.find((c) => c.classID === row.classID)?.className || t(K.ADMIN_TABLE_NA, "N/A"),
       sortKey: "className",
+      render: (row) => {
+        const classData = classes.find((c) => c.classID === row.classID);
+        if (!classData) return <span className="text-gray-400">—</span>;
+        return <TableEntityPill entityType="class" row={classData} />;
+      },
     },
     {
       header: t(K.ADMIN_TABLE_ASSIGNED_DATE, "Assigned Date"),
@@ -242,6 +325,7 @@ export default function StudentEquipmentAssignmentsTable() {
               assignedDate: new Date().toISOString().split("T")[0],
               isActive: true,
             });
+            setStudents([]);
             setShowModal(true);
           }}
           className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
@@ -256,7 +340,7 @@ export default function StudentEquipmentAssignmentsTable() {
               setSearchText(e.target.value);
               setPage(1);
             }}
-            placeholder={t(K.ADMIN_TABLE_SEARCH_STUDENT_ID_ASSET_ID, "Search student ID, asset ID")}
+            placeholder={t(K.ADMIN_TABLE_SEARCH_STUDENT_CODE_ASSET_CODE, "Search student code, asset code")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <select
@@ -268,9 +352,15 @@ export default function StudentEquipmentAssignmentsTable() {
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_CLASSES, "Classes")}`}</option>
-            {classes.map((c) => (
-              <option key={c.classID} value={c.classID}>{c.className}</option>
-            ))}
+            {classes.map((c) => {
+              const course = courses.find(co => co.courseID === c.courseID);
+              const courseCode = course?.courseCode || "";
+              return (
+                <option key={c.classID} value={c.classID}>
+                  {courseCode} - {c.classCode} - {c.className}
+                </option>
+              );
+            })}
           </select>
           <select
             value={activeFilter}
@@ -334,38 +424,6 @@ export default function StudentEquipmentAssignmentsTable() {
         <form id="student-assignment-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              {t(K.ADMIN_TABLE_STUDENT_ID_REQUIRED, "Student ID *")}
-            </label>
-            <input
-              type="number"
-              name="studentID"
-              value={formData.studentID}
-              onChange={handleInputChange}
-              required
-              min="1"
-              className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder={t(K.ADMIN_TABLE_ENTER_STUDENT_ID, "Enter student ID")}
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              {t(K.ADMIN_TABLE_ROOM_ASSET_ID_REQUIRED, "Room Asset ID *")}
-            </label>
-            <input
-              type="number"
-              name="roomAssetID"
-              value={formData.roomAssetID}
-              onChange={handleInputChange}
-              required
-              min="1"
-              className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder={t(K.ADMIN_TABLE_ENTER_ROOM_ASSET_ID, "Enter room asset ID")}
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
               {t(K.ADMIN_TABLE_CLASS_REQUIRED, "Class *")}
             </label>
             <select
@@ -376,9 +434,55 @@ export default function StudentEquipmentAssignmentsTable() {
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
               <option value="">{t(K.ADMIN_TABLE_SELECT_A_CLASS, "Select a class")}</option>
-              {classes.map((classItem) => (
-                <option key={classItem.classID} value={classItem.classID}>
-                  {classItem.className}
+              {classes.map((classItem) => {
+                const course = courses.find(c => c.courseID === classItem.courseID);
+                const courseCode = course?.courseCode || "";
+                return (
+                  <option key={classItem.classID} value={classItem.classID}>
+                    {courseCode} - {classItem.classCode || ""} - {classItem.className}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
+              {t(K.ADMIN_TABLE_STUDENT_ID_REQUIRED, "Student *")}
+            </label>
+            <select
+              name="studentID"
+              value={formData.studentID}
+              onChange={handleInputChange}
+              disabled={!formData.classID}
+              required
+              className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:disabled:bg-gray-700 dark:disabled:text-gray-400"
+            >
+              <option value="">{formData.classID ? t(K.ADMIN_TABLE_SELECT_STUDENT, "Select a student") : "Select a class first"}</option>
+              {students.map((student) => (
+                <option key={student.studentID} value={student.studentID}>
+                  {student.studentCode} - {student.studentName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
+              {t(K.ADMIN_TABLE_ROOM_ASSET_ID_REQUIRED, "Room Asset *")}
+            </label>
+            <select
+              name="roomAssetID"
+              value={formData.roomAssetID}
+              onChange={handleInputChange}
+              disabled={!formData.classID}
+              required
+              className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:disabled:bg-gray-700 dark:disabled:text-gray-400"
+            >
+              <option value="">{formData.classID ? t(K.ADMIN_TABLE_SELECT_ROOM_ASSET, "Select a room asset") : "Select a class first"}</option>
+              {roomAssets.map((asset) => (
+                <option key={asset.roomAssetID} value={asset.roomAssetID}>
+                  {asset.assetCode} - {asset.serialNumber || "—"}
                 </option>
               ))}
             </select>

@@ -189,6 +189,22 @@ export const getPagedUsers = async (query = {}) => {
 };
 
 /**
+ * Get user by ID (Admin only)
+ * @param {number} userId - User ID
+ * @returns {Promise<Object>} User details
+ */
+export const getById = async (userId) => {
+  const users = await httpClient("/users");
+  const matched = (users || []).find((user) => Number(user?.userID) === Number(userId));
+  if (!matched) {
+    const error = new Error("Resource not found.");
+    error.statusCode = 404;
+    throw error;
+  }
+  return matched;
+};
+
+/**
  * Assign a role to a user (Admin only)
  * @param {number} userId - User ID
  * @param {string} role - Role name (Student, Worker, Instructor, Technician)
@@ -260,6 +276,7 @@ export default {
   getUserPhoto,
   getUserGroups,
   getCurrentUser,
+  getById,
   getAllUsers,
   assignRole,
   removeRole,

@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { departmentService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
+import { renderEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
@@ -177,7 +178,17 @@ export default function DepartmentsTable() {
             setPage(1);
           }}
           columns={[
-            { header: t(K.ADMIN_TABLE_CODE, "Code"), accessor: 'departmentCode', sortKey: "departmentCode" },
+            {
+              header: t(K.ADMIN_TABLE_CODE, "Code"),
+              accessor: 'departmentCode',
+              sortKey: "departmentCode",
+              render: (row) => renderEntityPill({
+                type: "department",
+                id: row.departmentID,
+                label: row.departmentCode || row.departmentName || String(row.departmentID),
+                fallbackLabel: t(K.ADMIN_TABLE_NA, "N/A"),
+              }),
+            },
             { header: t(K.ADMIN_TABLE_NAME, "Name"), accessor: 'departmentName', sortKey: "departmentName" },
             {
               header: t(K.ADMIN_TABLE_ACTIONS, "Actions"),

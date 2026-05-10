@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { productionLineService, departmentService, userService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
+import { renderEntityPill, renderLookupEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete, MdAdd } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
@@ -270,6 +271,12 @@ export default function ProductionLinesTable() {
       header: t(K.ADMIN_TABLE_LINE_CODE, "Line Code"),
       accessor: "lineCode",
       sortKey: "lineCode",
+      render: (row) => renderEntityPill({
+        type: "productionLine",
+        id: row.productionLineID,
+        label: row.lineCode || row.lineName || t(K.ADMIN_TABLE_NA, "N/A"),
+        fallbackLabel: t(K.ADMIN_TABLE_NA, "N/A"),
+      }),
     },
     {
       header: t(K.ADMIN_TABLE_DEPARTMENT, "Department"),
@@ -277,6 +284,14 @@ export default function ProductionLinesTable() {
         departments.find((d) => d.departmentID === row.departmentID)
           ?.departmentName || t(K.ADMIN_TABLE_NA, "N/A"),
       sortKey: "departmentName",
+      render: (row) => renderLookupEntityPill({
+        type: "department",
+        id: row.departmentID,
+        items: departments,
+        idField: "departmentID",
+        labelResolver: (dept) => dept?.departmentCode || dept?.departmentName || t(K.ADMIN_TABLE_NA, "N/A"),
+        fallbackLabel: t(K.ADMIN_TABLE_NA, "N/A"),
+      }),
     },
     {
       header: t(K.ADMIN_TABLE_ORDER_CODE, "Order Code"),

@@ -5,6 +5,7 @@ import { studentEquipmentAssignmentService } from "services/studentEquipmentAssi
 import { workerEquipmentService } from "services/workerEquipmentService";
 import Card from "components/card";
 import Table from "components/table/Table";
+import { renderEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete, MdAdd } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
@@ -212,7 +213,17 @@ export default function UsersTable() {
             }}
             columns={[
               { header: t(K.ADMIN_TABLE_FULL_NAME, "Full Name"), accessor: 'fullName', sortKey: "fullName" },
-              { header: t(K.ADMIN_TABLE_EMAIL, "Email"), accessor: 'email', sortKey: "email" },
+              {
+                header: t(K.ADMIN_TABLE_EMAIL, "Email"),
+                accessor: 'email',
+                sortKey: "email",
+                render: (row) => renderEntityPill({
+                  type: "user",
+                  id: row.userID,
+                  label: row.email || String(row.userID),
+                  fallbackLabel: t(K.ADMIN_TABLE_NA, "N/A"),
+                }),
+              },
               {
                 header: t(K.ADMIN_TABLE_ROLES, "Roles"),
                 render: (row) => (

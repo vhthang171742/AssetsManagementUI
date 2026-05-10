@@ -4,6 +4,7 @@ import { classService, courseService, roomService } from "services/api";
 import { getAllUsers } from "services/userService";
 import Card from "components/card";
 import Table from "components/table/Table";
+import { renderEntityPill, renderLookupEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
@@ -256,6 +257,7 @@ export default function ClassesTable() {
         .filter((user) => user.instructorRole?.isActive)
         .map((user) => ({
           id: user.instructorRole.instructorID,
+          userID: user.userID,
           name: user.fullName,
           email: user.email,
         }));
@@ -501,12 +503,26 @@ export default function ClassesTable() {
       header: t(K.ADMIN_TABLE_CLASS_CODE, "Class Code"),
       accessor: "classCode",
       sortKey: "classCode",
+      render: (row) => renderEntityPill({
+        type: "class",
+        id: row.classID,
+        label: row.classCode || row.className || String(row.classID),
+        fallbackLabel: t(K.ADMIN_TABLE_NA, "N/A"),
+      }),
     },
     {
       header: t(K.ADMIN_TABLE_COURSE, "Course"),
       accessor: (row) =>
         courses.find((c) => c.courseID === row.courseID)?.courseName || t(K.ADMIN_TABLE_NA, "N/A"),
       sortKey: "courseName",
+      render: (row) => renderLookupEntityPill({
+        type: "course",
+        id: row.courseID,
+        items: courses,
+        idField: "courseID",
+        labelResolver: (course) => course?.courseCode || row.courseName || course?.courseName || t(K.ADMIN_TABLE_NA, "N/A"),
+        fallbackLabel: t(K.ADMIN_TABLE_NA, "N/A"),
+      }),
     },
     {
       header: t(K.ADMIN_TABLE_INSTRUCTOR, "Instructor"),
@@ -519,11 +535,25 @@ export default function ClassesTable() {
         return instructor?.name || t(K.ADMIN_TABLE_NA, "N/A");
       },
       sortKey: "instructorName",
+      render: (row) => renderLookupEntityPill({
+        type: "instructor",
+        id: instructors.find((item) => item.id === row.instructorID)?.userID,
+        items: instructors,
+        idField: "id",
+        labelResolver: (instructor) => row.instructorName || instructor?.name || t(K.ADMIN_TABLE_NA, "N/A"),
+        fallbackLabel: t(K.ADMIN_TABLE_NA, "N/A"),
+      }),
     },
     {
       header: t(K.ADMIN_TABLE_ROOM, "Room"),
       accessor: (row) => row.roomName || t(K.ADMIN_TABLE_NA, "N/A"),
       sortKey: "roomName",
+      render: (row) => renderEntityPill({
+        type: "room",
+        id: row.roomID,
+        label: row.roomCode || row.roomName || t(K.ADMIN_TABLE_NA, "N/A"),
+        fallbackLabel: t(K.ADMIN_TABLE_NA, "N/A"),
+      }),
     },
     {
       header: t(K.ADMIN_TABLE_START_DATE, "Start Date"),

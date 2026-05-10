@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { maintenanceRecordService, assetService, userService } from "services/api";
 import { dropdownService } from "services/dropdownService";
 import Table from "components/table/Table";
+import { renderLookupEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Card from "components/card";
 import Modal from "components/modal/Modal";
@@ -342,7 +343,19 @@ export default function MaintenanceRecordsTable() {
             setPage(1);
           }}
           columns={[
-            { header: t(K.ADMIN_TABLE_ASSET, 'Asset'), accessor: 'assetID', sortKey: "assetName", render: (row) => getAssetName(row.assetID) },
+            {
+              header: t(K.ADMIN_TABLE_ASSET, 'Asset'),
+              accessor: 'assetID',
+              sortKey: "assetName",
+              render: (row) => renderLookupEntityPill({
+                type: "asset",
+                id: row.assetID,
+                items: assets,
+                idField: "assetID",
+                labelResolver: (asset) => asset?.assetCode || asset?.assetName || getAssetName(row.assetID),
+                fallbackLabel: t(K.ADMIN_TABLE_NA, 'N/A'),
+              }),
+            },
             { header: t(K.ADMIN_TABLE_TYPE, 'Type'), accessor: 'maintenanceTypeItemID', sortKey: "maintenanceType", render: (row) => getMaintenanceTypeName(row.maintenanceTypeItemID) },
             { header: t(K.ADMIN_TABLE_DATE, 'Date'), accessor: 'maintenanceDate', sortKey: "maintenanceDate", render: (row) => formatDateInTimeZone(row.maintenanceDate, userTimeZoneId) },
             { header: t(K.ADMIN_TABLE_TECHNICIAN, 'Technician'), accessor: 'technicianID', sortKey: "technicianName", render: (row) => getTechnicianName(row.technicianID) },
