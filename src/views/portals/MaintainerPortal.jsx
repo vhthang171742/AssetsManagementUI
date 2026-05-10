@@ -6,7 +6,6 @@ import EntityPill from "components/EntityPill";
 import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import PortalLayout from "layouts/portal";
 import { practiceErrorLogService } from "services/api";
-import assetService from "services/assetService";
 import { assetLifecycleService } from "services/assetLifecycleService";
 import { configurationService } from "services/configurationService";
 import { useLanguage } from "context/LanguageContext";
@@ -19,12 +18,8 @@ import {
 } from "services/dateTimeService";
 
 const STATUS_OPTIONS = [
-  { code: "OPERATIONAL", key: K.MAINTAINER_STATUS_OPERATIONAL, fallback: "Operational" },
-  { code: "PENDING", key: "MAINTAINER_STATUS_PENDING", fallback: "Pending Maintenance" },
-  { code: "MAINTENANCE", key: K.MAINTAINER_STATUS_MAINTENANCE, fallback: "Under Maintenance" },
-  { code: "BROKEN", key: K.MAINTAINER_STATUS_BROKEN, fallback: "Broken" },
-  { code: "LOANED", key: K.MAINTAINER_STATUS_LOANED, fallback: "Loaned" },
-  { code: "RETIRED", key: K.MAINTAINER_STATUS_RETIRED, fallback: "Retired" },
+  { code: "PENDING", key: "MAINTAINER_JOB_STATUS_PENDING", fallback: "Awaiting Technician" },
+  { code: "IN_PROGRESS", key: "MAINTAINER_JOB_STATUS_IN_PROGRESS", fallback: "In Progress" },
 ];
 
 const JOB_STATUS_COLORS = {
@@ -39,7 +34,6 @@ export default function TechnicianPortal() {
   const [loading, setLoading] = useState(false);
   const userTimeZoneId = currentUser?.timeZoneId || "";
 
-  const [assets, setAssets] = useState([]);
   const [issues, setIssues] = useState([]);
   const [openJobs, setOpenJobs] = useState([]);
   const [calendarDate, setCalendarDate] = useState(new Date());
@@ -77,13 +71,11 @@ export default function TechnicianPortal() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allAssets, allIssues, jobs] = await Promise.all([
-        assetService.getAllStatuses(),
+      const [allIssues, jobs] = await Promise.all([
         practiceErrorLogService.getAll(),
         assetLifecycleService.getOpenJobs().catch(() => []),
       ]);
 
-      setAssets(allAssets || []);
       setIssues(
         [...(allIssues || [])].sort(
           (a, b) => new Date(b.errorTime || 0) - new Date(a.errorTime || 0)
@@ -409,7 +401,7 @@ export default function TechnicianPortal() {
         <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.MAINTAINER_STATUS_DISTRIBUTION, "Status Distribution")}</h2>
         <div className="mt-4 flex flex-wrap gap-2">
           {STATUS_OPTIONS.map((option) => {
-            const count = assets.filter((asset) => asset.status === option.code).length;
+            const count = openJobs.filter((job) => job.jobStatus === option.code).length;
             return (
               <div
                 key={option.code}

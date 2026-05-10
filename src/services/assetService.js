@@ -19,7 +19,6 @@ export const assetService = {
     if (query.sortBy) params.set("sortBy", query.sortBy);
     if (query.sortDirection) params.set("sortDirection", query.sortDirection);
     if (query.categoryID != null && query.categoryID !== "") params.set("categoryID", String(query.categoryID));
-    if (query.status) params.set("status", query.status);
 
     const queryString = params.toString();
     return httpClient(`/assets/paged${queryString ? `?${queryString}` : ""}`);
@@ -46,12 +45,6 @@ export const assetService = {
    */
   getByCategory: (categoryId) =>
     httpClient(`/assets/by-category/${categoryId}`),
-
-  /**
-   * Get all assets for status management (maintainer/admin)
-   * @returns {Promise<Array>} List of assets with all statuses
-   */
-  getAllStatuses: () => httpClient("/assets/all-statuses"),
 
   /**
    * Get available room assets for training assignment
@@ -96,30 +89,6 @@ export const assetService = {
   delete: (id) =>
     httpClient(`/assets/${id}`, {
       method: "DELETE",
-    }),
-
-  /**
-   * Update asset quantity
-   * @param {number} id - Asset ID
-   * @param {number} quantityChange - Quantity change (positive or negative)
-   * @returns {Promise<object>} Updated asset
-   */
-  updateQuantity: (id, quantityChange) =>
-    httpClient(`/assets/${id}/quantity`, {
-      method: "PATCH",
-      body: JSON.stringify({ quantityChange }),
-    }),
-
-  /**
-   * Update asset operational status
-   * @param {number} id - Asset ID
-   * @param {string} statusCode - Equipment status code
-   * @returns {Promise<object>} Updated asset
-   */
-  updateStatus: (id, statusCode) =>
-    httpClient(`/assets/${id}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ statusCode }),
     }),
 
   /**

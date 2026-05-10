@@ -16,13 +16,11 @@ export default function AssetsTable() {
   const [totalCount, setTotalCount] = useState(0);
   const [categories, setCategories] = useState([]);
   const [units, setUnits] = useState([]);
-  const [statuses, setStatuses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -36,9 +34,7 @@ export default function AssetsTable() {
     model: "",
     specification: "",
     countryOfOrigin: "",
-    quantity: 0,
     unit: "",
-    status: "",
     unitPrice: "",
     purchaseDate: "",
     notes: "",
@@ -47,7 +43,6 @@ export default function AssetsTable() {
   useEffect(() => {
     fetchCategories();
     fetchUnits();
-    fetchStatuses();
   }, []);
 
   useEffect(() => {
@@ -59,7 +54,7 @@ export default function AssetsTable() {
 
   useEffect(() => {
     fetchAssets();
-  }, [page, pageSize, debouncedSearch, categoryFilter, statusFilter, sortBy, sortDirection]);
+  }, [page, pageSize, debouncedSearch, categoryFilter, sortBy, sortDirection]);
 
   const fetchAssets = async () => {
     try {
@@ -71,7 +66,6 @@ export default function AssetsTable() {
         sortBy,
         sortDirection,
         categoryID: categoryFilter ? Number(categoryFilter) : undefined,
-        status: statusFilter || undefined,
       });
       setAssets(data?.items || []);
       setTotalCount(data?.totalCount || 0);
@@ -105,20 +99,11 @@ export default function AssetsTable() {
     }
   };
 
-  const fetchStatuses = async () => {
-    try {
-      const data = await dropdownService.getEquipmentStatus();
-      setStatuses(data || []);
-    } catch (error) {
-      console.error("Failed to fetch statuses:", error);
-    }
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "quantity" || name === "unitPrice" ? parseFloat(value) || "" : value,
+      [name]: name === "unitPrice" ? parseFloat(value) || "" : value,
     }));
   };
 
@@ -142,9 +127,7 @@ export default function AssetsTable() {
         model: "",
         specification: "",
         countryOfOrigin: "",
-        quantity: 0,
         unit: "",
-        status: "",
         unitPrice: "",
         purchaseDate: "",
         notes: "",
@@ -158,7 +141,19 @@ export default function AssetsTable() {
   };
 
   const handleEdit = (asset) => {
-    setFormData(asset);
+    setFormData({
+      assetCode: asset.assetCode || "",
+      assetName: asset.assetName || "",
+      categoryID: asset.categoryID || "",
+      brand: asset.brand || "",
+      model: asset.model || "",
+      specification: asset.specification || "",
+      countryOfOrigin: asset.countryOfOrigin || "",
+      unit: asset.unit || "",
+      unitPrice: asset.unitPrice ?? "",
+      purchaseDate: asset.purchaseDate || "",
+      notes: asset.notes || "",
+    });
     setEditingId(asset.assetID);
     setShowModal(true);
   };
@@ -219,9 +214,7 @@ export default function AssetsTable() {
               model: "",
               specification: "",
               countryOfOrigin: "",
-              quantity: 0,
               unit: "",
-              status: "",
               unitPrice: "",
               purchaseDate: "",
               notes: "",
@@ -233,7 +226,7 @@ export default function AssetsTable() {
           {`${t(K.ADMIN_TABLE_ADD, "Add")} ${t(K.ADMIN_TABLE_ASSET, "Asset")}`}
         </button>
 
-        <div className="grid w-full gap-2 sm:grid-cols-3 md:max-w-3xl">
+        <div className="grid w-full gap-2 sm:grid-cols-2 md:max-w-2xl">
           <input
             type="text"
             value={searchText}
@@ -256,21 +249,6 @@ export default function AssetsTable() {
             {categories.map((cat) => (
               <option key={cat.categoryID} value={cat.categoryID}>
                 {cat.categoryName}
-              </option>
-            ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
-            {statuses.map((status) => (
-              <option key={status.itemCode} value={status.itemCode}>
-                {status.label}
               </option>
             ))}
           </select>
@@ -302,7 +280,6 @@ export default function AssetsTable() {
             { header: t(K.ADMIN_TABLE_CODE, 'Code'), accessor: 'assetCode', sortKey: "assetCode" },
             { header: t(K.ADMIN_TABLE_NAME, 'Name'), accessor: 'assetName', sortKey: "assetName" },
             { header: t(K.ADMIN_TABLE_CATEGORY, 'Category'), accessor: 'categoryID', sortKey: "categoryName", render: (row) => getCategoryName(row.categoryID) },
-            { header: t(K.ADMIN_TABLE_STATUS, 'Status'), accessor: 'status', sortKey: "status", render: (row) => row.status || t(K.ADMIN_TABLE_NA, 'N/A') },
             { header: t(K.ADMIN_TABLE_BRAND, 'Brand'), accessor: 'brand', sortKey: "brand" },
             { header: t(K.ADMIN_TABLE_QUANTITY, 'Quantity'), accessor: 'quantity', sortKey: "quantity" },
             { header: t(K.ADMIN_TABLE_UNIT_PRICE, 'Unit Price'), accessor: 'unitPrice', sortKey: "unitPrice", render: (row) => (row.unitPrice != null ? `$${parseFloat(row.unitPrice).toFixed(2)}` : '') },
@@ -433,15 +410,6 @@ export default function AssetsTable() {
                     </option>
                   ))}
                 </select>
-                <input
-                  type="number"
-                  name="quantity"
-                  placeholder={t(K.ADMIN_TABLE_QUANTITY, "Quantity")}
-                  value={formData.quantity}
-                  onChange={handleInputChange}
-                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                  required
-                />
                 <select
                   name="unit"
                   value={formData.unit}
@@ -453,19 +421,6 @@ export default function AssetsTable() {
                   {units.map((unit) => (
                     <option key={unit.itemCode} value={unit.itemCode}>
                       {unit.label}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                >
-                  <option value="">{t(K.ADMIN_TABLE_SELECT_STATUS_OPTIONAL, "Select Status (Optional)")}</option>
-                  {statuses.map((status) => (
-                    <option key={status.itemCode} value={status.itemCode}>
-                      {status.label}
                     </option>
                   ))}
                 </select>
