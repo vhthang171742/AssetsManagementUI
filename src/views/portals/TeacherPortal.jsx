@@ -12,9 +12,9 @@ import {
   practiceSessionService,
 } from "services/api";
 import assetService from "services/assetService";
-import { getCurrentUser } from "services/userService";
 import { configurationService } from "services/configurationService";
 import { useLanguage } from "context/LanguageContext";
+import { useAuth } from "context/AuthContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
 import {
   toDateKeyInTimeZone,
@@ -23,6 +23,7 @@ import {
 export default function TeacherPortal() {
   const { t, language } = useLanguage();
   const location = useLocation();
+  const { currentUser, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const [classes, setClasses] = useState([]);
@@ -360,7 +361,7 @@ export default function TeacherPortal() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const currentUser = await getCurrentUser();
+      // Use currentUser from AuthContext instead of fetching again
       const instructorId = currentUser?.instructorRole?.instructorID;
       setUserTimeZoneId(currentUser?.timeZoneId || "");
 
@@ -415,8 +416,10 @@ export default function TeacherPortal() {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (!authLoading && currentUser) {
+      loadData();
+    }
+  }, [currentUser?.userProfileID, language]);
 
   useEffect(() => {
     const PERMANENT_INCIDENT_CATEGORIES = [

@@ -27,8 +27,139 @@ const getDbRoleFlags = (currentUser) => ({
   ),
 });
 
-const expandRequiredRolesToDbRoles = (requiredRoles = []) => {
-  const supportedDbRoles = ["student", "instructor", "technician", "worker", "productionmanager"];
+const extractClaimRoles = (claims = {}) => {
+  const rawValues = [
+    claims?.roles,
+    claims?.role,
+    claims?.["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"],
+    claims?.["http://schemas.microsoft.com/identity/claims/roles"],
+  ];
+
+  return rawValues
+    .flatMap((value) => {
+      if (Array.isArray(value)) {
+        return value;
+      }
+
+      if (typeof value === "string") {
+        if (value.includes(",")) {
+          return value.split(",").map((item) => item.trim()).filter(Boolean);
+        }
+
+        return [value];
+      }
+
+      return [];
+    })
+    .filter(Boolean);
+};
+
+const decodeBase64Url = (value = "") => {
+  if (!value) {
+    return "";
+  }
+
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padding = (4 - (normalized.length % 4)) % 4;
+  const padded = normalized + "=".repeat(padding);
+
+  try {
+    return atob(padded);
+  } catch {
+    return "";
+  }
+};
+
+const parseJwtPayload = (token = "") => {
+  if (!token || token.split(".").length < 2) {
+    return null;
+  }
+
+  const payload = decodeBase64Url(token.split(".")[1]);
+  if (!payload) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(payload);
+  } catch {
+    return null;
+  }
+};
+
+const getCachedAccessTokenRoles = (account = null) => {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const clientId = process.env.REACT_APP_MSAL_CLIENT_ID;
+  if (!clientId) {
+    return [];
+  }
+
+  const homeAccountId = account?.homeAccountId || "";
+  const storageCandidates = [window.sessionStorage, window.localStorage];
+  const roles = new Set();
+
+  for (const storage of storageCandidates) {
+    if (!storage) {
+      continue;
+    }
+
+    const tokenKeysRaw = storage.getItem(`msal.token.keys.${clientId}`);
+    if (!tokenKeysRaw) {
+      continue;
+    }
+
+    let tokenKeys;
+    try {
+      tokenKeys = JSON.parse(tokenKeysRaw);
+    } catch {
+      continue;
+    }
+
+    const accessTokenKeys = Array.isArray(tokenKeys?.accessToken) ? tokenKeys.accessToken : [];
+
+    for (const tokenKey of accessTokenKeys) {
+      if (homeAccountId && !tokenKey.includes(homeAccountId)) {
+        continue;
+      }
+
+      const tokenEntryRaw = storage.getItem(tokenKey);
+      if (!tokenEntryRaw) {
+        continue;
+      }
+
+      let tokenEntry;
+      try {
+        tokenEntry = JSON.parse(tokenEntryRaw);
+      } catch {
+        continue;
+      }
+
+      const payload = parseJwtPayload(tokenEntry?.secret);
+      const claimRoles = extractClaimRoles(payload || {});
+      for (const role of claimRoles) {
+        roles.add(role);
+      }
+    }
+  }
+
+  return Array.from(roles);
+};
+
+const getAppRoleFlags = (account = null) => {
+  const idTokenRoles = extractClaimRoles(account?.idTokenClaims || {});
+  const accessTokenRoles = getCachedAccessTokenRoles(account);
+  const normalizedRoles = new Set([...idTokenRoles, ...accessTokenRoles].map(normalize));
+
+  return {
+    admin: normalizedRoles.has("admin"),
+  };
+};
+
+const expandRequiredRoles = (requiredRoles = []) => {
+  const supportedRoles = ["admin", "student", "instructor", "technician", "worker", "productionmanager"];
   const expanded = new Set();
   for (const role of requiredRoles) {
     const key = normalize(role);
@@ -36,7 +167,7 @@ const expandRequiredRolesToDbRoles = (requiredRoles = []) => {
       continue;
     }
 
-    if (supportedDbRoles.includes(key)) {
+    if (supportedRoles.includes(key)) {
       expanded.add(key);
       continue;
     }
@@ -47,7 +178,7 @@ const expandRequiredRolesToDbRoles = (requiredRoles = []) => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const { accounts, inProgress } = useMsal();
+  const { accounts, inProgress, instance } = useMsal();
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [userPhoto, setUserPhoto] = useState(null);
@@ -75,7 +206,7 @@ export const AuthProvider = ({ children }) => {
       setIsLoading(true);
       try {
         if (accounts.length > 0) {
-          const account = accounts[0];
+          const account = instance.getActiveAccount() || accounts[0];
         
         // Set basic user info from MSAL
         setUser({
@@ -132,7 +263,7 @@ export const AuthProvider = ({ children }) => {
     if (inProgress === "none") {
       fetchUserData();
     }
-  }, [accounts, inProgress]);
+  }, [accounts, inProgress, instance]);
 
   /**
    * Toggle dark mode and persist to localStorage
@@ -166,8 +297,10 @@ export const AuthProvider = ({ children }) => {
     }
 
     const dbFlags = getDbRoleFlags(currentUser);
-    const normalizedRequiredRoles = expandRequiredRolesToDbRoles(requiredRoles);
-    return normalizedRequiredRoles.some((role) => dbFlags[role]);
+    const activeAccount = instance.getActiveAccount() || accounts[0] || null;
+    const appRoleFlags = getAppRoleFlags(activeAccount);
+    const normalizedRequiredRoles = expandRequiredRoles(requiredRoles);
+    return normalizedRequiredRoles.some((role) => Boolean(dbFlags[role]) || Boolean(appRoleFlags[role]));
   };
 
   const hasAnyGroup = (requiredGroups = []) => {

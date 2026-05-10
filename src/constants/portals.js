@@ -1,4 +1,4 @@
-import { RoleSets } from "./authorization";
+import { DbRoles, RoleSets } from "./authorization";
 import { TranslationKeys as K } from "i18n/translationKeys";
 
 export const PortalIds = {
@@ -26,7 +26,7 @@ export const PortalConfigs = [
     translationKey: K.PORTAL_STUDENT_NAME,
     path: "/student",
     description: "View assigned assets, start/end attendance, and track usage history with training calendar.",
-    requiredRoles: RoleSets.TrainingUser,
+    requiredRoles: [DbRoles.Student],
     requiredGroups: ["students"],
   },
   {
@@ -53,7 +53,7 @@ export const PortalConfigs = [
     translationKey: K.PORTAL_WORKER_NAME,
     path: "/worker",
     description: "View your assigned equipment, log shift sessions and track usage history.",
-    requiredRoles: RoleSets.ProductionUser,
+    requiredRoles: [DbRoles.Worker],
     requiredGroups: ["workers"],
   },
   {

@@ -13,9 +13,9 @@ import {
   classService,
   courseService,
 } from "services/api";
-import { getCurrentUser } from "services/userService";
 import { configurationService } from "services/configurationService";
 import { useLanguage } from "context/LanguageContext";
+import { useAuth } from "context/AuthContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
 import {
   formatDateTimeInTimeZone,
@@ -60,6 +60,7 @@ const getMinutesInTimeZone = (value, timeZoneId, referenceDate) => {
 export default function StudentPortal() {
   const { t, language } = useLanguage();
   const location = useLocation();
+  const { currentUser, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const [assignments, setAssignments] = useState([]);
@@ -393,10 +394,9 @@ export default function StudentPortal() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [myAssignments, activeCheckouts, me, activeCourses] = await Promise.all([
+      const [myAssignments, activeCheckouts, activeCourses] = await Promise.all([
         studentEquipmentAssignmentService.getMine(),
         studentEquipmentAssignmentService.getMyActiveCheckouts(),
-        getCurrentUser(),
         courseService.getActive(),
       ]);
 
@@ -404,6 +404,8 @@ export default function StudentPortal() {
       setMyActiveCheckouts(activeCheckouts || []);
       setCourses(activeCourses || []);
 
+      // Use currentUser from AuthContext instead of fetching again
+      const me = currentUser;
       const studentId = me?.studentRole?.studentID;
       const classId = me?.studentRole?.classID;
       setUserTimeZoneId(me?.timeZoneId || "");
@@ -438,8 +440,10 @@ export default function StudentPortal() {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (!authLoading && currentUser) {
+      loadData();
+    }
+  }, [currentUser?.userProfileID, language]);
 
   useEffect(() => {
     const PERMANENT_INCIDENT_CATEGORIES = [

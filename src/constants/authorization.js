@@ -1,4 +1,5 @@
 export const DbRoles = {
+  Admin: "admin",
   Student: "student",
   Instructor: "instructor",
   Worker: "worker",
@@ -26,7 +27,7 @@ export const RoleSets = {
   AssignmentManager: [DbRoles.Instructor, DbRoles.Technician],
   MaintenanceUser: [DbRoles.Technician],
   MaintenanceManager: [DbRoles.Technician],
-  Admin: [DbRoles.Instructor, DbRoles.Technician, DbRoles.ProductionManager],
+  Admin: [DbRoles.Admin],
   AnyPortalRole: [
     DbRoles.Student,
     DbRoles.Instructor,
