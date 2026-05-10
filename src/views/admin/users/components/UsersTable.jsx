@@ -1,6 +1,8 @@
 ﻿import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { getPagedUsers, assignRole, removeRole, updateUserCode } from "services/userService";
+import { studentEquipmentAssignmentService } from "services/studentEquipmentAssignmentService";
+import { workerEquipmentService } from "services/workerEquipmentService";
 import Card from "components/card";
 import Table from "components/table/Table";
 import { MdModeEditOutline, MdDelete, MdAdd } from "react-icons/md";
@@ -30,6 +32,8 @@ export default function UsersTable() {
     role: "Student",
     roleCode: "",
   });
+  const [blockedStudentIds, setBlockedStudentIds] = useState(new Set());
+  const [blockedWorkerIds, setBlockedWorkerIds] = useState(new Set());
 
   useEffect(() => {
     fetchUsers();
@@ -45,15 +49,36 @@ export default function UsersTable() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const data = await getPagedUsers({
-        page,
-        pageSize,
-        search: debouncedSearch,
-        sortBy,
-        sortDirection,
-      });
+      const [data, activeStudentAssignments, activeWorkerAssignments] = await Promise.all([
+        getPagedUsers({
+          page,
+          pageSize,
+          search: debouncedSearch,
+          sortBy,
+          sortDirection,
+        }),
+        studentEquipmentAssignmentService.getActive(),
+        workerEquipmentService.getActive(),
+      ]);
+
       setUsers(data?.items || []);
       setTotalCount(data?.totalCount || 0);
+      setBlockedStudentIds(
+        new Set(
+          (activeStudentAssignments || [])
+            .filter((assignment) => assignment?.isActive !== false && !assignment?.unassignedDate)
+            .map((assignment) => assignment?.studentID)
+            .filter(Boolean)
+        )
+      );
+      setBlockedWorkerIds(
+        new Set(
+          (activeWorkerAssignments || [])
+            .filter((assignment) => assignment?.isActive !== false && !assignment?.unassignedDate)
+            .map((assignment) => assignment?.workerID)
+            .filter(Boolean)
+        )
+      );
 
       if (data?.totalPages && page > data.totalPages) {
         setPage(data.totalPages);
@@ -137,6 +162,18 @@ export default function UsersTable() {
     setShowCodeModal(true);
   };
 
+  const getRoleRevokeBlockReason = (user, role) => {
+    if (role === "Student" && user?.studentRole?.studentID && blockedStudentIds.has(user.studentRole.studentID)) {
+      return t(K.PORTAL_ACCESS_REVOKE_BLOCKED_ACTIVE_ASSET, "User has active asset assigned, please unassign before revoking.");
+    }
+
+    if (role === "Worker" && user?.workerRole?.workerID && blockedWorkerIds.has(user.workerRole.workerID)) {
+      return t(K.PORTAL_ACCESS_REVOKE_BLOCKED_ACTIVE_ASSET, "User has active asset assigned, please unassign before revoking.");
+    }
+
+    return null;
+  };
+
   return (
     <>
       <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
@@ -187,13 +224,19 @@ export default function UsersTable() {
                           className="inline-flex items-center gap-1 px-2 py-1 bg-brand-100 text-brand-700 text-xs rounded"
                         >
                           {role}
+                          {(() => {
+                            const revokeBlockReason = getRoleRevokeBlockReason(row, role);
+                            return (
                           <button
                             onClick={() => handleRemoveRole(row.userID, role)}
-                            className="hover:text-red-600"
-                            title={t(K.ADMIN_TABLE_REMOVE_ROLE, "Remove role")}
+                            className="hover:text-red-600 disabled:cursor-not-allowed disabled:text-gray-400"
+                            title={revokeBlockReason || t(K.ADMIN_TABLE_REMOVE_ROLE, "Remove role")}
+                            disabled={!!revokeBlockReason}
                           >
                             <MdDelete className="h-3 w-3" />
                           </button>
+                            );
+                          })()}
                         </span>
                       ))
                     ) : (

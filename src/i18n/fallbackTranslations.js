@@ -806,6 +806,10 @@ export const fallbackTranslations = {
     [K.PORTAL_ACCESS_REVOKE_FAILED]: "Revoke failed: {error}",
     [K.PORTAL_ACCESS_BULK_FAILED]: "Bulk operation failed: {error}",
     [K.PORTAL_ACCESS_FETCH_FAILED]: "Failed to fetch users: {error}",
+    [K.PORTAL_ACCESS_REVOKE_BLOCKED_ACTIVE_ASSET]: "User has active asset assigned, please unassign before revoking.",
+    [K.PORTAL_ACCESS_REVOKE_BLOCKED_ACTIVE_ASSET_WITH_PORTAL]: "User has active asset assigned, please unassign before revoking {portal} access.",
+    [K.PORTAL_ACCESS_REVOKE_BLOCKED_SELECTED_ACTIVE_ASSETS]: "Some selected users have active asset assignments. Please unassign before revoking portal access.",
+    [K.PORTAL_ACCESS_REVOKE_BLOCKED_SELECTED_TOOLTIP]: "Some selected users have active asset assignments and cannot be revoked until unassigned.",
 
     [K.CONFIG_CATEGORIES_HEADING]: "Categories",
     [K.CONFIG_ADD_CATEGORY]: "Add category",
@@ -1644,6 +1648,10 @@ export const fallbackTranslations = {
     [K.PORTAL_ACCESS_REVOKE_FAILED]: "Thu hồi thất bại: {error}",
     [K.PORTAL_ACCESS_BULK_FAILED]: "Thao tác hàng loạt thất bại: {error}",
     [K.PORTAL_ACCESS_FETCH_FAILED]: "Không thể tải danh sách người dùng: {error}",
+    [K.PORTAL_ACCESS_REVOKE_BLOCKED_ACTIVE_ASSET]: "Người dùng đang được gán tài sản, vui lòng hủy gán trước khi thu hồi quyền.",
+    [K.PORTAL_ACCESS_REVOKE_BLOCKED_ACTIVE_ASSET_WITH_PORTAL]: "Người dùng đang được gán tài sản, vui lòng hủy gán trước khi thu hồi quyền truy cập {portal}.",
+    [K.PORTAL_ACCESS_REVOKE_BLOCKED_SELECTED_ACTIVE_ASSETS]: "Một số người dùng đã chọn đang được gán tài sản. Vui lòng hủy gán trước khi thu hồi quyền truy cập cổng.",
+    [K.PORTAL_ACCESS_REVOKE_BLOCKED_SELECTED_TOOLTIP]: "Một số người dùng đã chọn đang được gán tài sản nên chưa thể thu hồi quyền cho đến khi hủy gán.",
 
     [K.CONFIG_CATEGORIES_HEADING]: "Danh mục",
     [K.CONFIG_ADD_CATEGORY]: "Thêm danh mục",

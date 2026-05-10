@@ -11,6 +11,12 @@ export const workerEquipmentService = {
    */
   getAll: () => httpClient("/worker-equipment"),
 
+  /**
+   * Get active worker equipment assignments
+   * @returns {Promise<Array>} List of active assignments
+   */
+  getActive: () => httpClient("/worker-equipment/active"),
+
   getMine: () => httpClient("/worker-equipment/me"),
 
   getPaged: (query = {}) => {

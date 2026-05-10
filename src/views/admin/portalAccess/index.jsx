@@ -6,6 +6,8 @@ import {
   assignRole,
   removeRole,
 } from "services/userService";
+import { studentEquipmentAssignmentService } from "services/studentEquipmentAssignmentService";
+import { workerEquipmentService } from "services/workerEquipmentService";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
 
@@ -39,6 +41,8 @@ export default function PortalAccessManagement() {
   const [selectedUsers, setSelectedUsers] = useState(new Set());
   const [selectedPortalId, setSelectedPortalId] = useState(PORTAL_ROLE_MAPPINGS[0].id);
   const [submitting, setSubmitting] = useState(false);
+  const [studentBlockedRevokeUserIds, setStudentBlockedRevokeUserIds] = useState(new Set());
+  const [workerBlockedRevokeUserIds, setWorkerBlockedRevokeUserIds] = useState(new Set());
 
   const selectedPortal = useMemo(
     () => PORTAL_ROLE_MAPPINGS.find((item) => item.id === selectedPortalId) || PORTAL_ROLE_MAPPINGS[0],
@@ -51,13 +55,41 @@ export default function PortalAccessManagement() {
     () => users.filter((user) => selectedUsers.has(user.userID)),
     [users, selectedUsers]
   );
+  const getRevokeBlockReason = (user, role) => {
+    const portalLabel =
+      role === "Student"
+        ? t(K.PORTAL_STUDENT_NAME, "Student Portal")
+        : t(K.PORTAL_WORKER_NAME, "Worker Portal");
+
+    if (role === "Student" && user?.studentRole?.studentID && studentBlockedRevokeUserIds.has(user.studentRole.studentID)) {
+      return t(K.PORTAL_ACCESS_REVOKE_BLOCKED_ACTIVE_ASSET_WITH_PORTAL, "User has active asset assigned, please unassign before revoking {portal} access.")
+        .replace("{portal}", portalLabel);
+    }
+
+    if (role === "Worker" && user?.workerRole?.workerID && workerBlockedRevokeUserIds.has(user.workerRole.workerID)) {
+      return t(K.PORTAL_ACCESS_REVOKE_BLOCKED_ACTIVE_ASSET_WITH_PORTAL, "User has active asset assigned, please unassign before revoking {portal} access.")
+        .replace("{portal}", portalLabel);
+    }
+
+    return null;
+  };
+
+  const canRevokeRole = (user, role) => hasActiveRole(user, role) && !getRevokeBlockReason(user, role);
+
   const eligibleGrantCount = useMemo(
     () => selectedUserList.filter((user) => !hasActiveRole(user, selectedPortal.role)).length,
     [selectedUserList, selectedPortal.role]
   );
   const eligibleRevokeCount = useMemo(
-    () => selectedUserList.filter((user) => hasActiveRole(user, selectedPortal.role)).length,
-    [selectedUserList, selectedPortal.role]
+    () => selectedUserList.filter((user) => canRevokeRole(user, selectedPortal.role)).length,
+    [selectedUserList, selectedPortal.role, studentBlockedRevokeUserIds, workerBlockedRevokeUserIds]
+  );
+  const blockedRevokeCount = useMemo(
+    () =>
+      selectedUserList.filter(
+        (user) => hasActiveRole(user, selectedPortal.role) && !!getRevokeBlockReason(user, selectedPortal.role)
+      ).length,
+    [selectedUserList, selectedPortal.role, studentBlockedRevokeUserIds, workerBlockedRevokeUserIds]
   );
 
   useEffect(() => {
@@ -67,8 +99,29 @@ export default function PortalAccessManagement() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const data = await getAllUsers();
+      const [data, activeStudentAssignments, activeWorkerAssignments] = await Promise.all([
+        getAllUsers(),
+        studentEquipmentAssignmentService.getActive(),
+        workerEquipmentService.getActive(),
+      ]);
+
       setUsers(data || []);
+      setStudentBlockedRevokeUserIds(
+        new Set(
+          (activeStudentAssignments || [])
+            .filter((assignment) => assignment?.isActive !== false && !assignment?.unassignedDate)
+            .map((assignment) => assignment?.studentID)
+            .filter(Boolean)
+        )
+      );
+      setWorkerBlockedRevokeUserIds(
+        new Set(
+          (activeWorkerAssignments || [])
+            .filter((assignment) => assignment?.isActive !== false && !assignment?.unassignedDate)
+            .map((assignment) => assignment?.workerID)
+            .filter(Boolean)
+        )
+      );
       setSelectedUsers(new Set());
     } catch (error) {
       console.error("Failed to fetch users:", error);
@@ -109,15 +162,26 @@ export default function PortalAccessManagement() {
     const portalLabel = t(selectedPortal.translationKey, selectedPortal.label);
 
     const usersToProcess = targetUsers.filter((user) => {
-      const active = hasActiveRole(user, selectedPortal.role);
-      return mode === "grant" ? !active : active;
+      if (mode === "grant") {
+        return !hasActiveRole(user, selectedPortal.role);
+      }
+
+      return canRevokeRole(user, selectedPortal.role);
     });
 
     if (usersToProcess.length === 0) {
+      const hasBlockedCandidates =
+        mode === "revoke" &&
+        targetUsers.some(
+          (user) => hasActiveRole(user, selectedPortal.role) && !!getRevokeBlockReason(user, selectedPortal.role)
+        );
+
       toast.error(
         mode === "grant"
           ? t(K.PORTAL_ACCESS_ALREADY_GRANTED, "All selected users already have {portal} access.").replace("{portal}", portalLabel)
-          : t(K.PORTAL_ACCESS_NONE_TO_REVOKE, "None of the selected users currently have {portal} access.").replace("{portal}", portalLabel)
+          : hasBlockedCandidates
+            ? t(K.PORTAL_ACCESS_REVOKE_BLOCKED_SELECTED_ACTIVE_ASSETS, "Some selected users have active asset assignments. Please unassign before revoking portal access.")
+            : t(K.PORTAL_ACCESS_NONE_TO_REVOKE, "None of the selected users currently have {portal} access.").replace("{portal}", portalLabel)
       );
       return;
     }
@@ -228,6 +292,11 @@ export default function PortalAccessManagement() {
             <button
               onClick={() => processBulk("revoke")}
               disabled={loading || submitting || selectedCount === 0 || eligibleRevokeCount === 0}
+              title={
+                blockedRevokeCount > 0
+                  ? t(K.PORTAL_ACCESS_REVOKE_BLOCKED_SELECTED_TOOLTIP, "Some selected users have active asset assignments and cannot be revoked until unassigned.")
+                  : ""
+              }
               className="rounded bg-red-500 px-4 py-2 text-sm text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t(K.PORTAL_ACCESS_REVOKE_SELECTED, "Revoke Selected ({count})").replace("{count}", eligibleRevokeCount)}
@@ -276,6 +345,8 @@ export default function PortalAccessManagement() {
                   const maintainerActive = hasActiveRole(user, "Technician");
                   const workerActive = hasActiveRole(user, "Worker");
                   const productionManagerActive = hasActiveRole(user, "ProductionManager");
+                  const studentRevokeBlockReason = getRevokeBlockReason(user, "Student");
+                  const workerRevokeBlockReason = getRevokeBlockReason(user, "Worker");
 
                   return (
                     <tr key={user.userID} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30">
@@ -294,7 +365,8 @@ export default function PortalAccessManagement() {
                           <button
                             className="rounded bg-red-100 px-2 py-1 text-xs text-red-700 hover:bg-red-200"
                             onClick={() => handleSingleRevoke(user, "Student", K.PORTAL_STUDENT_NAME, "Student Portal")}
-                            disabled={submitting}
+                            disabled={submitting || !!studentRevokeBlockReason}
+                            title={studentRevokeBlockReason || ""}
                           >
                             {t(K.PORTAL_ACCESS_REVOKE, "Revoke")}
                           </button>
@@ -351,7 +423,8 @@ export default function PortalAccessManagement() {
                           <button
                             className="rounded bg-red-100 px-2 py-1 text-xs text-red-700 hover:bg-red-200"
                             onClick={() => handleSingleRevoke(user, "Worker", K.PORTAL_WORKER_NAME, "Worker Portal")}
-                            disabled={submitting}
+                            disabled={submitting || !!workerRevokeBlockReason}
+                            title={workerRevokeBlockReason || ""}
                           >
                             {t(K.PORTAL_ACCESS_REVOKE, "Revoke")}
                           </button>
