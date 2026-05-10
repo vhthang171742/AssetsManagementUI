@@ -13,12 +13,16 @@ const PORTAL_ROLE_MAPPINGS = [
   { id: "student", translationKey: K.PORTAL_STUDENT_NAME, label: "Student Portal", role: "Student" },
   { id: "teacher", translationKey: K.PORTAL_TEACHER_NAME, label: "Teacher Portal", role: "Instructor" },
   { id: "maintainer", translationKey: K.PORTAL_MAINTAINER_NAME, label: "Technician Portal", role: "Technician" },
+  { id: "worker", translationKey: K.PORTAL_WORKER_NAME, label: "Worker Portal", role: "Worker" },
+  { id: "production-manager", translationKey: K.PORTAL_PRODUCTION_MANAGER_NAME, label: "Production Manager Portal", role: "ProductionManager" },
 ];
 
 const getRoleInfo = (user, role) => {
   if (role === "Student") return user.studentRole;
   if (role === "Instructor") return user.instructorRole;
   if (role === "Technician") return user.technicianRole;
+  if (role === "Worker") return user.workerRole;
+  if (role === "ProductionManager") return user.productionManagerRole;
   return null;
 };
 
@@ -250,16 +254,17 @@ export default function PortalAccessManagement() {
                   </th>
                   <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.ADMIN_TABLE_FULL_NAME, "Full Name")}</th>
                   <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.ADMIN_TABLE_EMAIL, "Email")}</th>
-                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.ADMIN_TABLE_DEPARTMENT, "Department")}</th>
                   <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.PORTAL_STUDENT_NAME, "Student Portal")}</th>
                   <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.PORTAL_TEACHER_NAME, "Teacher Portal")}</th>
                   <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.PORTAL_MAINTAINER_NAME, "Technician Portal")}</th>
+                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.PORTAL_WORKER_NAME, "Worker Portal")}</th>
+                  <th className="sticky top-0 z-10 bg-white p-3 text-left dark:bg-navy-800">{t(K.PORTAL_PRODUCTION_MANAGER_NAME, "Production Manager Portal")}</th>
                 </tr>
               </thead>
               <tbody>
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="p-4 text-center text-gray-500">
+                    <td colSpan={8} className="p-4 text-center text-gray-500">
                       {t(K.PORTAL_ACCESS_NO_USERS, "No users found")}
                     </td>
                   </tr>
@@ -269,6 +274,8 @@ export default function PortalAccessManagement() {
                   const studentActive = hasActiveRole(user, "Student");
                   const teacherActive = hasActiveRole(user, "Instructor");
                   const maintainerActive = hasActiveRole(user, "Technician");
+                  const workerActive = hasActiveRole(user, "Worker");
+                  const productionManagerActive = hasActiveRole(user, "ProductionManager");
 
                   return (
                     <tr key={user.userID} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30">
@@ -282,7 +289,6 @@ export default function PortalAccessManagement() {
                       </td>
                       <td className="p-3 dark:text-white">{user.fullName}</td>
                       <td className="p-3 dark:text-white">{user.email}</td>
-                      <td className="p-3 dark:text-white">{user.departmentName || "-"}</td>
                       <td className="p-3">
                         {studentActive ? (
                           <button
@@ -334,6 +340,44 @@ export default function PortalAccessManagement() {
                           <button
                             className="rounded bg-green-100 px-2 py-1 text-xs text-green-700 hover:bg-green-200"
                             onClick={() => handleSingleGrant(user, "Technician", K.PORTAL_MAINTAINER_NAME, "Technician Portal")}
+                            disabled={submitting}
+                          >
+                            {t(K.PORTAL_ACCESS_GRANT, "Grant")}
+                          </button>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {workerActive ? (
+                          <button
+                            className="rounded bg-red-100 px-2 py-1 text-xs text-red-700 hover:bg-red-200"
+                            onClick={() => handleSingleRevoke(user, "Worker", K.PORTAL_WORKER_NAME, "Worker Portal")}
+                            disabled={submitting}
+                          >
+                            {t(K.PORTAL_ACCESS_REVOKE, "Revoke")}
+                          </button>
+                        ) : (
+                          <button
+                            className="rounded bg-green-100 px-2 py-1 text-xs text-green-700 hover:bg-green-200"
+                            onClick={() => handleSingleGrant(user, "Worker", K.PORTAL_WORKER_NAME, "Worker Portal")}
+                            disabled={submitting}
+                          >
+                            {t(K.PORTAL_ACCESS_GRANT, "Grant")}
+                          </button>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {productionManagerActive ? (
+                          <button
+                            className="rounded bg-red-100 px-2 py-1 text-xs text-red-700 hover:bg-red-200"
+                            onClick={() => handleSingleRevoke(user, "ProductionManager", K.PORTAL_PRODUCTION_MANAGER_NAME, "Production Manager Portal")}
+                            disabled={submitting}
+                          >
+                            {t(K.PORTAL_ACCESS_REVOKE, "Revoke")}
+                          </button>
+                        ) : (
+                          <button
+                            className="rounded bg-green-100 px-2 py-1 text-xs text-green-700 hover:bg-green-200"
+                            onClick={() => handleSingleGrant(user, "ProductionManager", K.PORTAL_PRODUCTION_MANAGER_NAME, "Production Manager Portal")}
                             disabled={submitting}
                           >
                             {t(K.PORTAL_ACCESS_GRANT, "Grant")}

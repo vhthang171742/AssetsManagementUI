@@ -149,7 +149,7 @@ export default function UsersTable() {
               setSearchText(e.target.value);
               setPage(1);
             }}
-            placeholder={t(K.ADMIN_TABLE_SEARCH_NAME_EMAIL_DEPARTMENT, "Search name, email, department")}
+            placeholder={t(K.ADMIN_TABLE_SEARCH_NAME_EMAIL_DEPARTMENT, "Search name, email")}
             className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white md:w-72"
           />
         </div>
@@ -176,11 +176,6 @@ export default function UsersTable() {
             columns={[
               { header: t(K.ADMIN_TABLE_FULL_NAME, "Full Name"), accessor: 'fullName', sortKey: "fullName" },
               { header: t(K.ADMIN_TABLE_EMAIL, "Email"), accessor: 'email', sortKey: "email" },
-              { 
-                header: t(K.ADMIN_TABLE_DEPARTMENT, "Department"), 
-                sortKey: "departmentName",
-                render: (row) => row.departmentName || '-' 
-              },
               {
                 header: t(K.ADMIN_TABLE_ROLES, "Roles"),
                 render: (row) => (
@@ -362,6 +357,7 @@ export default function UsersTable() {
                 <option value="Worker">{t(K.ADMIN_TABLE_WORKER, "Worker")}</option>
                 <option value="Instructor">{t(K.ADMIN_TABLE_INSTRUCTOR, "Instructor")}</option>
                 <option value="Technician">{t(K.ADMIN_TABLE_TECHNICIAN, "Technician")}</option>
+                <option value="ProductionManager">{t(K.ADMIN_TABLE_PRODUCTION_MANAGER, "Production Manager")}</option>
               </select>
             </div>
 

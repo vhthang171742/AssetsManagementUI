@@ -76,6 +76,7 @@ export const fallbackTranslations = {
     [K.PORTAL_TEACHER_NAME]: "Teacher Portal",
     [K.PORTAL_MAINTAINER_NAME]: "Technician Portal",
     [K.PORTAL_WORKER_NAME]: "Worker Portal",
+    [K.PORTAL_PRODUCTION_MANAGER_NAME]: "Production Manager Portal",
 
     [K.WORKER_PORTAL_TITLE]: "Worker Portal",
     [K.WORKER_MY_PRODUCTION_LINE]: "My Production Line",
@@ -663,6 +664,7 @@ export const fallbackTranslations = {
     [K.ADMIN_TABLE_EDIT_ROLE_CODE_FOR]: "Edit {role} Code for {name}",
     [K.ADMIN_TABLE_STUDENT]: "Student",
     [K.ADMIN_TABLE_INSTRUCTOR]: "Instructor",
+    [K.ADMIN_TABLE_PRODUCTION_MANAGER]: "Production Manager",
     [K.ADMIN_TABLE_STUDENT_ID]: "Student ID",
     [K.ADMIN_TABLE_ASSET_ID]: "Asset ID",
     [K.ADMIN_TABLE_UNASSIGN]: "Unassign",
@@ -874,6 +876,7 @@ export const fallbackTranslations = {
     [K.PORTAL_TEACHER_NAME]: "Cổng giảng viên",
     [K.PORTAL_MAINTAINER_NAME]: "Cổng kỹ thuật viên",
     [K.PORTAL_WORKER_NAME]: "Cổng công nhân",
+    [K.PORTAL_PRODUCTION_MANAGER_NAME]: "Cổng quản lý sản xuất",
 
     [K.WORKER_PORTAL_TITLE]: "Cổng công nhân",
     [K.WORKER_MY_PRODUCTION_LINE]: "Dây chuyền của tôi",
@@ -1461,6 +1464,7 @@ export const fallbackTranslations = {
     [K.ADMIN_TABLE_EDIT_ROLE_CODE_FOR]: "Sửa mã {role} cho {name}",
     [K.ADMIN_TABLE_STUDENT]: "Học viên",
     [K.ADMIN_TABLE_INSTRUCTOR]: "Giảng viên",
+    [K.ADMIN_TABLE_PRODUCTION_MANAGER]: "Quản lý sản xuất",
     [K.ADMIN_TABLE_STUDENT_ID]: "Mã học viên",
     [K.ADMIN_TABLE_ASSET_ID]: "Mã tài sản",
     [K.ADMIN_TABLE_UNASSIGN]: "Hủy phân công",
