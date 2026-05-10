@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { handoverService, roomService, assetService, productionLineService } from "services/api";
 import { dropdownService } from "services/dropdownService";
@@ -202,7 +202,7 @@ export default function HandoversTable() {
       fetchHandovers();
     } catch (error) {
       console.error("Failed to save handover:", error);
-      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
+      const details = error.errors?.length ? "\n\u2022 " + error.errors.join("\n\u2022 ") : "";
       toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_HANDOVER, "handover")}: ${error.message}${details}`);
     }
   };
@@ -263,7 +263,7 @@ export default function HandoversTable() {
       fetchHandoverDetails(selectedHandoverId);
     } catch (error) {
       console.error("Failed to add detail:", error);
-      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
+      const details = error.errors?.length ? "\n\u2022 " + error.errors.join("\n\u2022 ") : "";
       toast.error(`${t(K.ADMIN_TABLE_FAILED_ADD_DETAIL, "Failed to add detail")}: ${error.message}${details}`);
     }
   };
@@ -425,6 +425,7 @@ export default function HandoversTable() {
               { header: t(K.ADMIN_TABLE_RECEIVED_BY, 'Received By'), accessor: 'receivedBy', sortKey: "receivedBy" },
               {
                 header: t(K.ADMIN_TABLE_ACTIONS, 'Actions'),
+                isActions: true,
                 render: (row) => (
                     <div className="flex items-center gap-2">
                       <button

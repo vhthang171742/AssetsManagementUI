@@ -280,6 +280,7 @@ export default function WorkingTimeAdminPage() {
     try {
       await workerCalendarService.updateGlobalConfig(globalConfig);
       toast.success(t(K.ADMIN_WORKING_TIME_GLOBAL_SAVED, "Global working time saved."));
+      await load();
     } catch (err) {
       toast.error(err?.message || t(K.ADMIN_WORKING_TIME_SAVE_FAILED, "Failed to save."));
     } finally {

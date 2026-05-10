@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { maintenanceScheduleService, assetService } from "services/api";
 import { dropdownService } from "services/dropdownService";
@@ -126,7 +126,7 @@ export default function MaintenanceSchedulesTable() {
       fetchSchedules();
     } catch (error) {
       console.error("Failed to save schedule:", error);
-      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
+      const details = error.errors?.length ? "\n\u2022 " + error.errors.join("\n\u2022 ") : "";
       toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_SCHEDULE, "schedule")}: ${error.message}${details}`);
     }
   };
@@ -284,9 +284,10 @@ export default function MaintenanceSchedulesTable() {
             { header: t(K.ADMIN_TABLE_FREQUENCY, 'Frequency'), accessor: 'frequency', sortKey: "frequency", render: (row) => t(K.ADMIN_TABLE_FREQUENCY_DAYS_HOURS, `${row.frequency} days/hours`).replace("{value}", row.frequency) },
             { header: t(K.ADMIN_TABLE_LAST_MAINTENANCE, 'Last Maintenance'), accessor: 'lastMaintenanceDate', sortKey: "lastMaintenanceDate", render: (row) => row.lastMaintenanceDate ? formatDateInTimeZone(row.lastMaintenanceDate, userTimeZoneId) : t(K.ADMIN_TABLE_NA, 'N/A') },
             { header: t(K.ADMIN_TABLE_NEXT_DUE, 'Next Due'), accessor: 'nextDueDate', sortKey: "nextDueDate", render: (row) => row.nextDueDate ? formatDateInTimeZone(row.nextDueDate, userTimeZoneId) : t(K.ADMIN_TABLE_NA, 'N/A') },
-            { header: t(K.ADMIN_TABLE_ACTIVE, 'Active'), accessor: 'isActive', sortKey: "isActive", render: (row) => row.isActive ? '✓' : '✗' },
+            { header: t(K.ADMIN_TABLE_ACTIVE, 'Active'), accessor: 'isActive', sortKey: "isActive", render: (row) => row.isActive ? '\u2713' : '\u2717' },
             {
               header: t(K.ADMIN_TABLE_ACTIONS, 'Actions'),
+              isActions: true,
               render: (row) => (
                 <div className="flex items-center gap-2">
                   <button

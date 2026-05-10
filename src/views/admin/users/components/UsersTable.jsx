@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { getPagedUsers, assignRole, removeRole, updateUserCode } from "services/userService";
 import { studentEquipmentAssignmentService } from "services/studentEquipmentAssignmentService";
@@ -337,6 +337,7 @@ export default function UsersTable() {
               },
               {
                 header: t(K.ADMIN_TABLE_ACTIONS, "Actions"),
+                isActions: true,
                 render: (row) => (
                   <div className="flex items-center gap-2">
                     <button

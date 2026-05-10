@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import { getData as getCountryData } from "country-list";
 import { assetService, assetCategoryService } from "services/api";
@@ -152,7 +152,7 @@ export default function AssetsTable() {
       fetchAssets();
     } catch (error) {
       console.error("Failed to save asset:", error);
-      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
+      const details = error.errors?.length ? "\n\u2022 " + error.errors.join("\n\u2022 ") : "";
       toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_ASSET, "asset")}: ${error.message}${details}`);
     }
   };
@@ -308,6 +308,7 @@ export default function AssetsTable() {
             { header: t(K.ADMIN_TABLE_UNIT_PRICE, 'Unit Price'), accessor: 'unitPrice', sortKey: "unitPrice", render: (row) => (row.unitPrice != null ? `$${parseFloat(row.unitPrice).toFixed(2)}` : '') },
             {
               header: t(K.ADMIN_TABLE_ACTIONS, 'Actions'),
+              isActions: true,
               render: (row) => (
                 <div className="flex items-center gap-2">
                   <button

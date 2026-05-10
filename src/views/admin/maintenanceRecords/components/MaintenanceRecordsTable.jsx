@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { maintenanceRecordService, assetService, userService } from "services/api";
 import { dropdownService } from "services/dropdownService";
@@ -176,7 +176,7 @@ export default function MaintenanceRecordsTable() {
       fetchRecords();
     } catch (error) {
       console.error("Failed to save record:", error);
-      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
+      const details = error.errors?.length ? "\n\u2022 " + error.errors.join("\n\u2022 ") : "";
       toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_RECORD, "record")}: ${error.message}${details}`);
     }
   };
@@ -349,6 +349,7 @@ export default function MaintenanceRecordsTable() {
             { header: t(K.ADMIN_TABLE_DURATION_MIN, 'Duration (min)'), accessor: 'repairDurationMinutes', sortKey: "repairDurationMinutes" },
             {
               header: t(K.ADMIN_TABLE_ACTIONS, 'Actions'),
+              isActions: true,
               render: (row) => (
                 <div className="flex items-center gap-2">
                   <button

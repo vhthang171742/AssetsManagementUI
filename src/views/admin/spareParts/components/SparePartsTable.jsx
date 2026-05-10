@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { sparePartService } from "services/api";
 import Table from "components/table/Table";
@@ -95,7 +95,7 @@ export default function SparePartsTable() {
       fetchParts();
     } catch (error) {
       console.error("Failed to save part:", error);
-      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
+      const details = error.errors?.length ? "\n\u2022 " + error.errors.join("\n\u2022 ") : "";
       toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_PART, "part")}: ${error.message}${details}`);
     }
   };
@@ -230,9 +230,10 @@ export default function SparePartsTable() {
             },
             { header: t(K.ADMIN_TABLE_REORDER_LEVEL, 'Reorder Level'), accessor: 'reorderLevel', sortKey: "reorderLevel" },
             { header: t(K.ADMIN_TABLE_UNIT_PRICE, 'Unit Price'), accessor: 'unitPrice', sortKey: "unitPrice", render: (row) => row.unitPrice != null ? `$${parseFloat(row.unitPrice).toFixed(2)}` : t(K.ADMIN_TABLE_NA, 'N/A') },
-            { header: t(K.ADMIN_TABLE_ACTIVE, 'Active'), accessor: 'isActive', sortKey: "isActive", render: (row) => row.isActive ? '✓' : '✗' },
+            { header: t(K.ADMIN_TABLE_ACTIVE, 'Active'), accessor: 'isActive', sortKey: "isActive", render: (row) => row.isActive ? '\u2713' : '\u2717' },
             {
               header: t(K.ADMIN_TABLE_ACTIONS, 'Actions'),
+              isActions: true,
               render: (row) => (
                 <div className="flex items-center gap-2">
                   <button

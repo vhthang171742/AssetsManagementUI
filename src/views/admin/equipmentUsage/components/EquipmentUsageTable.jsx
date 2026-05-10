@@ -258,6 +258,7 @@ export default function EquipmentUsageTable() {
     },
     {
       header: t(K.ADMIN_TABLE_ACTIONS, "Actions"),
+      isActions: true,
       cell: (row) => (
         <div className="flex gap-2">
           <button

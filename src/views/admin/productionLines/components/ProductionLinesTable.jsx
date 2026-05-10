@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { productionLineService, departmentService, userService } from "services/api";
 import Card from "components/card";
@@ -217,7 +217,7 @@ export default function ProductionLinesTable() {
       fetchProductionLines();
     } catch (error) {
       console.error("Failed to save production line:", error);
-      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
+      const details = error.errors?.length ? "\n\u2022 " + error.errors.join("\n\u2022 ") : "";
       toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_PRODUCTION_LINE, "production line")}: ${error.message}${details}`);
     }
   };
@@ -295,6 +295,7 @@ export default function ProductionLinesTable() {
     },
     {
       header: t(K.ADMIN_TABLE_ACTIONS, "Actions"),
+      isActions: true,
       render: (row) => (
         <div className="flex gap-2">
           <button

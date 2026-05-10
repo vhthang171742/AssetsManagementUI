@@ -32,6 +32,8 @@ export default function Table({
   sortDirection = "asc",
   onSortChange,
 }) {
+  const CHECKBOX_COL_WIDTH = "40px";
+
   const { t } = useLanguage();
   const [selected, setSelected] = useState(new Set());
   const [page, setPage] = useState(1);
@@ -133,14 +135,68 @@ export default function Table({
     onSortChange(key, nextDirection);
   };
 
+  const normalizeLabel = (value) =>
+    String(value || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+  const isActionsColumn = (col) => {
+    if (!col) return false;
+    if (col.isActions || col.type === "actions") return true;
+
+    const normalizedHeader = normalizeLabel(col.header);
+    return normalizedHeader.includes("action") || normalizedHeader.includes("hanh dong");
+  };
+
+  const renderCellContent = (row, col) => {
+    const rawValue = col.render
+      ? col.render(row)
+      : col.cell
+        ? col.cell(row)
+        : getCellValue(row, col);
+    const isPrimitive =
+      rawValue == null ||
+      typeof rawValue === "string" ||
+      typeof rawValue === "number" ||
+      typeof rawValue === "boolean";
+
+    if (!isPrimitive || isActionsColumn(col) || col.ellipsis === false) {
+      return rawValue;
+    }
+
+    const text = rawValue == null ? "" : String(rawValue);
+    return (
+      <div className="min-w-0 truncate" title={text}>
+        {text}
+      </div>
+    );
+  };
+
+  const getActionsColumnStyle = (col = null) => {
+    // Allow explicit width overrides when a specific table needs a fixed action width.
+    if (col?.width || col?.minWidth) {
+      return {
+        width: col.width,
+        minWidth: col.minWidth,
+      };
+    }
+
+    return {
+      width: "1%",
+      minWidth: "max-content",
+      whiteSpace: "nowrap",
+    };
+  };
+
   return (
     <div className="flex h-full min-h-0 w-full flex-col rounded border bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-      <div style={{ height }} className="min-h-0 flex-1 overflow-auto">
-        <table className="w-full border-collapse">
+      <div style={{ height }} className="min-h-0 flex-1 overflow-x-auto overflow-y-auto">
+        <table className="w-full table-auto border-collapse">
           <thead>
             <tr className="border-b dark:border-gray-700">
               {selectable && (
-                <th className="p-2 sticky top-0 bg-white dark:bg-gray-800 z-10 text-center" style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}>
+                <th className="p-2 sticky top-0 bg-white dark:bg-gray-800 z-10 text-center" style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH, maxWidth: CHECKBOX_COL_WIDTH }}>
                   <input type="checkbox" checked={allSelectedOnPage} onChange={toggleSelectAllOnPage} />
                 </th>
               )}
@@ -148,7 +204,12 @@ export default function Table({
                 <th
                   key={idx}
                   className={`text-left p-3 sticky top-0 bg-white dark:bg-gray-800 dark:text-white z-10 ${onSortChange && getSortKey(col) ? "cursor-pointer select-none" : ""}`}
-                  style={{ width: col.width }}
+                  style={isActionsColumn(col)
+                    ? getActionsColumnStyle(col)
+                    : {
+                      width: col.width,
+                      maxWidth: col.width ? col.width : 0,
+                    }}
                   onClick={() => handleSort(col)}
                 >
                   <span className="inline-flex items-center gap-1">
@@ -164,7 +225,7 @@ export default function Table({
                 </th>
               ))}
               {actions.length > 0 && (
-                <th className="text-left p-3 sticky top-0 bg-white dark:bg-gray-800 dark:text-white z-10" style={{ width: "140px" }}>
+                <th className="text-left p-3 sticky top-0 bg-white dark:bg-gray-800 dark:text-white z-10" style={getActionsColumnStyle()}>
                   {t(K.TABLE_ACTIONS, "Actions")}
                 </th>
               )}
@@ -176,7 +237,7 @@ export default function Table({
               return (
               <tr key={rowId} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                 {selectable && (
-                  <td className="p-2 text-center" style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}>
+                  <td className="p-2 text-center" style={{ width: CHECKBOX_COL_WIDTH, minWidth: CHECKBOX_COL_WIDTH, maxWidth: CHECKBOX_COL_WIDTH }}>
                     <input
                       type="checkbox"
                       checked={selected.has(rowId)}
@@ -185,13 +246,17 @@ export default function Table({
                   </td>
                 )}
                 {columns.map((col, cidx) => (
-                  <td key={cidx} className="p-3 align-top dark:text-white">
-                    {col.render ? col.render(row) : getCellValue(row, col)}
+                  <td
+                    key={cidx}
+                    className={`p-3 align-top dark:text-white ${isActionsColumn(col) ? "whitespace-nowrap" : "max-w-0"}`}
+                    style={isActionsColumn(col) ? getActionsColumnStyle(col) : undefined}
+                  >
+                    {renderCellContent(row, col)}
                   </td>
                 ))}
                 {actions.length > 0 && (
-                  <td className="p-3 align-top dark:text-white">
-                    <div className="flex flex-wrap items-center gap-2">
+                  <td className="p-3 align-top dark:text-white whitespace-nowrap" style={getActionsColumnStyle()}>
+                    <div className="flex flex-nowrap items-center gap-2">
                       {actions.map((action, aidx) => (
                         (() => {
                           const isDisabled =

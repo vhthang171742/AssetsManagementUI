@@ -46,18 +46,27 @@ export default function ConfigurationPanel() {
     setLoadingCategories(true);
     try {
       const data = await configurationService.getCategories();
-      setCategories(data || []);
-      // Auto-select first if nothing selected
-      if (!selectedCategory && data?.length > 0) {
-        setSelectedCategory(data[0]);
-      }
+      const nextCategories = data || [];
+      setCategories(nextCategories);
+
+      setSelectedCategory((prev) => {
+        if (!prev && nextCategories.length > 0) {
+          return nextCategories[0];
+        }
+
+        if (!prev) {
+          return null;
+        }
+
+        return nextCategories.find((cat) => cat.categoryID === prev.categoryID) || null;
+      });
     } catch (err) {
       console.error("Failed to fetch categories:", err);
       toast.error(t(K.CONFIG_FETCH_CATEGORIES_FAILED, "Failed to fetch categories: {error}").replace("{error}", err.message));
     } finally {
       setLoadingCategories(false);
     }
-  }, [selectedCategory]);
+  }, [t]);
 
   // ── Fetch items for selected category ─────────────────────────
   const fetchItems = useCallback(async () => {
@@ -150,9 +159,9 @@ export default function ConfigurationPanel() {
         toast.success(t(K.CONFIG_ITEM_CREATED, "Item created successfully"));
       }
       setShowItemModal(false);
-      fetchItems();
+      await Promise.all([fetchItems(), fetchCategories()]);
     } catch (err) {
-      const details = err.errors?.length ? "\n\u2022 " + err.errors.join("\n\u2022 ") : "";
+      const details = err.errors?.length ? "\n• " + err.errors.join("\n• ") : "";
       toast.error(t(K.CONFIG_SAVE_ITEM_FAILED, "Failed to save item: {error}").replace("{error}", `${err.message}${details}`));
     }
   };
@@ -162,7 +171,7 @@ export default function ConfigurationPanel() {
     try {
       await configurationService.deleteItem(itemId);
       toast.success(t(K.CONFIG_ITEM_DELETED, "Item deleted"));
-      fetchItems();
+      await Promise.all([fetchItems(), fetchCategories()]);
     } catch (err) {
       toast.error(t(K.CONFIG_DELETE_ITEM_FAILED, "Failed to delete item: {error}").replace("{error}", err.message));
     }

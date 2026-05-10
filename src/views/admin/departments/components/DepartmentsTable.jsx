@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { departmentService } from "services/api";
 import Card from "components/card";
@@ -88,7 +88,7 @@ export default function DepartmentsTable() {
       fetchDepartments();
     } catch (error) {
       console.error("Failed to save department:", error);
-      const details = error.errors?.length ? "\n• " + error.errors.join("\n• ") : "";
+      const details = error.errors?.length ? "\n\u2022 " + error.errors.join("\n\u2022 ") : "";
       toast.error(`${t(K.ADMIN_TABLE_SAVE_FAILED, "Failed to save")} ${t(K.ADMIN_TABLE_DEPARTMENT, "department")}: ${error.message}${details}`);
     }
   };
@@ -181,6 +181,7 @@ export default function DepartmentsTable() {
             { header: t(K.ADMIN_TABLE_NAME, "Name"), accessor: 'departmentName', sortKey: "departmentName" },
             {
               header: t(K.ADMIN_TABLE_ACTIONS, "Actions"),
+              isActions: true,
               render: (row) => (
                 <div className="flex items-center gap-2">
                   <button

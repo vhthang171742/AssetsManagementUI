@@ -680,6 +680,13 @@ export default function StudentPortal() {
     return openSessionByClassAsset.get(`${classID}-${roomAssetID}`) || null;
   }, [openSessionByClassAsset]);
 
+  const handleIssueReported = useCallback(async () => {
+    await loadData();
+    if (selectedCourseId) {
+      await loadCourseClasses(selectedCourseId);
+    }
+  }, [loadCourseClasses, loadData, selectedCourseId]);
+
   const buildAssignedAssetModalData = useCallback((assignment, session) => {
     const resolvedSession = getSessionForAsset(assignment, session);
     return buildStudentAssignedAssetModalData({
@@ -687,8 +694,9 @@ export default function StudentPortal() {
       session: resolvedSession,
       incidentCategories,
       userTimeZoneId,
+      onIssueReported: handleIssueReported,
     });
-  }, [getSessionForAsset, incidentCategories, userTimeZoneId]);
+  }, [getSessionForAsset, handleIssueReported, incidentCategories, userTimeZoneId]);
 
   const handleEnroll = async (classId) => {
     try {
@@ -907,6 +915,7 @@ export default function StudentPortal() {
                         session={getSessionForAsset(item, null)}
                         incidentCategories={incidentCategories}
                         userTimeZoneId={userTimeZoneId}
+                        onIssueReported={handleIssueReported}
                       />
                     : <span>Asset #{item.roomAssetID}</span>
                   }
@@ -947,6 +956,7 @@ export default function StudentPortal() {
                             session={getSessionForAsset(assignment, session)}
                             incidentCategories={incidentCategories}
                             userTimeZoneId={userTimeZoneId}
+                            onIssueReported={handleIssueReported}
                           />
                         : <p className="text-sm font-semibold text-navy-700 dark:text-white">Asset #{assignment?.roomAssetID ?? session?.roomAssetID}</p>
                       }
