@@ -97,6 +97,16 @@ export const classService = {
     }),
 
   /**
+   * Cancel current logged-in student's enrollment from a class
+   * @param {number} id - Class ID
+   * @returns {Promise<object>} Class after cancellation
+   */
+  cancelEnrollmentMe: (id) =>
+    httpClient(`/classes/${id}/cancel-enrollment-me`, {
+      method: "POST",
+    }),
+
+  /**
    * Delete a class
    * @param {number} id - Class ID
    * @returns {Promise<void>}

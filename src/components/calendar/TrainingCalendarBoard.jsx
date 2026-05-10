@@ -9,6 +9,8 @@ import {
   utcClockTimeToTimeZone,
 } from "services/dateTimeService";
 import EntityPill from "components/EntityPill";
+import { useLanguage } from "context/LanguageContext";
+import { TranslationKeys as K } from "i18n/translationKeys";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -21,10 +23,9 @@ const addDays = (date, n) => {
 };
 
 const formatDayLabel = (date, timeZoneId) =>
-  date.toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
+  date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
     year: "numeric",
     timeZone: timeZoneId || undefined,
   });
@@ -105,9 +106,9 @@ const lessonCountForDate = (item, date, timeZoneId) => {
 // ── type → visual config ─────────────────────────────────────────────────────
 
 const TYPE_CONFIG = {
-  assignment: { accent: "#16a34a", bg: "#f0fdf4", badge: "Assignment", icon: "✦" },
-  session:    { accent: "#d97706", bg: "#fffbeb", badge: "Session",    icon: "◉" },
-  issue:      { accent: "#dc2626", bg: "#fef2f2", badge: "Incident",   icon: "!" },
+  assignment: { accent: "#16a34a", bg: "#f0fdf4", icon: "✦" },
+  session:    { accent: "#d97706", bg: "#fffbeb", icon: "◉" },
+  issue:      { accent: "#dc2626", bg: "#fef2f2", icon: "!" },
 };
 
 const SCHEDULE_CONFIG = { accent: "#0891b2", bg: "#ecfeff" };
@@ -138,6 +139,7 @@ export default function TrainingCalendarBoard({
   renderLessonActions,
   scheduleBadgeLabel,
 }) {
+  const { t } = useLanguage();
   const [expandedLessons, setExpandedLessons] = useState({});
   // ── event map (point-in-time: sessions, assignments, issues) ───────────────
   const eventMap = useMemo(() => {
@@ -199,6 +201,15 @@ export default function TrainingCalendarBoard({
       [lessonKey]: !prev[lessonKey],
     }));
   }, []);
+
+  const eventBadgeByType = useMemo(
+    () => ({
+      assignment: t(K.CALENDAR_BADGE_ASSIGNMENT, "Assignment"),
+      session: t(K.CALENDAR_BADGE_SESSION, "Session"),
+      issue: t(K.CALENDAR_BADGE_INCIDENT, "Incident"),
+    }),
+    [t]
+  );
 
   return (
     <div className="tcb">
@@ -264,18 +275,18 @@ export default function TrainingCalendarBoard({
         <div className="tcb__right-header">
           <div className="tcb__right-header-text">
             <span className="tcb__right-label">
-              {detailsTitle || "Daily details"}
-              {isToday && <span className="tcb__today-badge">Today</span>}
+              {detailsTitle || t(K.COMMON_DAILY_DETAILS, "Daily Details")}
+              {isToday && <span className="tcb__today-badge">{t(K.CALENDAR_TODAY, "Today")}</span>}
             </span>
             <span className="tcb__right-date">
               {value ? formatDayLabel(value, timeZoneId) : ""}
             </span>
           </div>
           <div className="tcb__day-nav">
-            <button className="tcb__day-nav-btn" onClick={() => goDay(-1)} aria-label="Previous day">
+            <button className="tcb__day-nav-btn" onClick={() => goDay(-1)} aria-label={t(K.CALENDAR_PREVIOUS_DAY, "Previous day")}>
               <MdChevronLeft />
             </button>
-            <button className="tcb__day-nav-btn" onClick={() => goDay(1)} aria-label="Next day">
+            <button className="tcb__day-nav-btn" onClick={() => goDay(1)} aria-label={t(K.CALENDAR_NEXT_DAY, "Next day")}>
               <MdChevronRight />
             </button>
           </div>
@@ -286,7 +297,7 @@ export default function TrainingCalendarBoard({
           {!hasAnything ? (
             <div className="tcb__empty">
               <span className="tcb__empty-icon">📅</span>
-              <p>{noEventsText || "No events scheduled for this day."}</p>
+              <p>{noEventsText || t(K.CALENDAR_NO_EVENTS_FOR_DAY, "No events scheduled for this day.")}</p>
             </div>
           ) : (
             <>
@@ -301,7 +312,7 @@ export default function TrainingCalendarBoard({
                   <div className="tcb__event-body">
                     <div className="tcb__event-top">
                       <span className="tcb__event-badge" style={{ color: SCHEDULE_CONFIG.accent }}>
-                        {scheduleBadgeLabel || "Class"}
+                        {scheduleBadgeLabel || t(K.CALENDAR_BADGE_CLASS, "Class")}
                       </span>
                       {item.classCode ? (
                         <EntityPill type="class" id={item.id} label={item.classCode} />
@@ -342,7 +353,9 @@ export default function TrainingCalendarBoard({
                               )}
                               {lesson.students?.length ? (
                                 <span className="tcb__lesson-expand-hint">
-                                  {expandedLessons[`${item.id}-${index}`] ? "Hide students" : "Show students"}
+                                  {expandedLessons[`${item.id}-${index}`]
+                                    ? t(K.CALENDAR_HIDE_STUDENTS, "Hide students")
+                                    : t(K.CALENDAR_SHOW_STUDENTS, "Show students")}
                                 </span>
                               ) : null}
                             </button>
@@ -379,7 +392,7 @@ export default function TrainingCalendarBoard({
                                       className="tcb__student-action"
                                       onClick={() => onForceReturn(student.assignmentId)}
                                     >
-                                      Force Return
+                                      {t(K.TEACHER_FORCE_RETURN, "Force Return")}
                                     </button>
                                   ) : null}
                                 </div>
@@ -416,7 +429,7 @@ export default function TrainingCalendarBoard({
                     <div className="tcb__event-body">
                       <div className="tcb__event-top">
                         <span className="tcb__event-badge" style={{ color: cfg.accent }}>
-                          {cfg.icon} {cfg.badge}
+                          {cfg.icon} {eventBadgeByType[event.type] || event.type}
                         </span>
                         {event.time && (
                           <span className="tcb__pill tcb__pill--time">{event.time}</span>

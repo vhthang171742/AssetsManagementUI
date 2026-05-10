@@ -163,16 +163,16 @@ function ShiftCard({ group, index, colorClass, onChange, onRemove, t }) {
 function WindowsSettings({ config, onChange, t }) {
   const timezoneOptions = withCurrentTimeZone(config.timeZoneId);
   const fields = [
-    { key: "checkinWindowBeforeMinutes",  label: t(K.ADMIN_WORKING_TIME_CHECKIN_BEFORE,  "Check-in before (min)") },
-    { key: "checkinWindowAfterMinutes",   label: t(K.ADMIN_WORKING_TIME_CHECKIN_AFTER,   "Check-in after (min)") },
-    { key: "checkoutWindowBeforeMinutes", label: t(K.ADMIN_WORKING_TIME_CHECKOUT_BEFORE, "Check-out before (min)") },
-    { key: "checkoutWindowAfterMinutes",  label: t(K.ADMIN_WORKING_TIME_CHECKOUT_AFTER,  "Check-out after (min)") },
+    { key: "checkinWindowBeforeMinutes",  label: t(K.ADMIN_WORKING_TIME_CHECKIN_BEFORE,  "Start attendance before (min)") },
+    { key: "checkinWindowAfterMinutes",   label: t(K.ADMIN_WORKING_TIME_CHECKIN_AFTER,   "Start attendance after (min)") },
+    { key: "checkoutWindowBeforeMinutes", label: t(K.ADMIN_WORKING_TIME_CHECKOUT_BEFORE, "End attendance before (min)") },
+    { key: "checkoutWindowAfterMinutes",  label: t(K.ADMIN_WORKING_TIME_CHECKOUT_AFTER,  "End attendance after (min)") },
   ];
 
   return (
     <div className="rounded-lg border border-gray-200 p-4 dark:border-white/10">
       <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-        {t(K.ADMIN_WORKING_TIME_WINDOWS_TITLE, "Check-In / Check-Out Windows")}
+        {t(K.ADMIN_WORKING_TIME_WINDOWS_TITLE, "Start Attendance / End Attendance Windows")}
       </p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <label className="text-sm">

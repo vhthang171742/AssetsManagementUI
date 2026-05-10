@@ -25,7 +25,7 @@ export const PortalConfigs = [
     name: "Student Portal",
     translationKey: K.PORTAL_STUDENT_NAME,
     path: "/student",
-    description: "View assigned assets, check in/check out and track usage history with training calendar.",
+    description: "View assigned assets, start/end attendance, and track usage history with training calendar.",
     requiredRoles: RoleSets.TrainingUser,
     requiredGroups: ["students"],
   },

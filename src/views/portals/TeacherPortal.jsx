@@ -81,7 +81,7 @@ export default function TeacherPortal() {
     [recentIssues, sessionById, allowedAssignmentKeys]
   );
 
-  // Schedule items: one entry per class, drives the day-by-day calendar view
+  // Schedule items: one entry per scheduled lesson, drives the day-by-day calendar view
   const scheduleItems = useMemo(() => {
     const classAssignments = activeAssignments.reduce((acc, item) => {
       if (!acc[item.classID]) {
@@ -139,6 +139,13 @@ export default function TeacherPortal() {
       }));
 
       const classLessonMapByDate = sessionsByClassDate[String(item.classID)] || {};
+      const scheduleGroups = Array.isArray(item.scheduleGroups) && item.scheduleGroups.length > 0
+        ? item.scheduleGroups
+        : [{
+            daysMask: item.scheduleDaysMask || 0,
+            startTime: item.scheduleStartTime || "",
+            endTime: item.scheduleEndTime || "",
+          }];
 
       return {
         id: item.classID,
@@ -149,14 +156,12 @@ export default function TeacherPortal() {
         startDate: item.startDate,
         endDate: item.endDate,
         daysMask: item.scheduleDaysMask || 0,
-        lessons: [
-          {
-            startTime: item.scheduleStartTime || "",
-            endTime: item.scheduleEndTime || "",
-            summaryLabel: `${defaultStudents.filter((s) => s.attendanceStatus === "Valid").length}/${defaultStudents.length} attended`,
-            students: defaultStudents,
-          },
-        ],
+        lessons: scheduleGroups.map((group) => ({
+          startTime: group.startTime || "",
+          endTime: group.endTime || "",
+          summaryLabel: `${defaultStudents.filter((s) => s.attendanceStatus === "Valid").length}/${defaultStudents.length} attended`,
+          students: defaultStudents,
+        })),
         lessonsByDate: Object.keys(classLessonMapByDate).reduce((dateAcc, dateKey) => {
           const lessonGroups = classLessonMapByDate[dateKey] || {};
           dateAcc[dateKey] = Object.values(lessonGroups).map((group) => {

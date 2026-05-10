@@ -26,6 +26,7 @@ export default function ClassesTable() {
     startDate: "",
     endDate: "",
     maxStudents: "",
+    cancelEnrollmentBeforeStartDays: "0",
     roomID: "",
     scheduleGroups: [createEmptyScheduleGroup()],
     isActive: true,
@@ -333,6 +334,7 @@ export default function ClassesTable() {
         instructorID: parseInt(formData.instructorID),
         roomID: formData.roomID ? parseInt(formData.roomID) : null,
         maxStudents: parseInt(formData.maxStudents) || 2147483647,
+        cancelEnrollmentBeforeStartDays: Math.max(0, parseInt(formData.cancelEnrollmentBeforeStartDays, 10) || 0),
         startDate: formData.startDate || null,
         endDate: formData.endDate || null,
         scheduleGroups: validGroups.map((group) => ({
@@ -457,6 +459,7 @@ export default function ClassesTable() {
       endDate: classItem.endDate ? classItem.endDate.split("T")[0] : "",
       scheduleGroups: normalizedGroups,
       maxStudents: classItem.maxStudents,
+      cancelEnrollmentBeforeStartDays: String(classItem.cancelEnrollmentBeforeStartDays ?? 0),
       isActive: classItem.isActive,
     });
     setEditingId(classItem.classID);
@@ -900,6 +903,22 @@ export default function ClassesTable() {
               min="1"
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               placeholder={t(K.ADMIN_TABLE_ENTER_MAX_STUDENTS, "Enter max students")}
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
+              {t(K.ADMIN_TABLE_CANCEL_ENROLLMENT_WINDOW_DAYS, "Enrollment Cancellation Window (days before start)")}
+            </label>
+            <input
+              type="number"
+              name="cancelEnrollmentBeforeStartDays"
+              value={formData.cancelEnrollmentBeforeStartDays}
+              onChange={handleInputChange}
+              min="0"
+              max="365"
+              className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              placeholder={t(K.ADMIN_TABLE_ENTER_CANCEL_ENROLLMENT_WINDOW_DAYS, "Enter number of days")}
             />
           </div>
 

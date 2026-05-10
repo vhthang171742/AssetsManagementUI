@@ -171,10 +171,10 @@ export default function WorkerPortal() {
     try {
       if (mode === "checkout") {
         await workerCalendarService.checkoutByQr(cleaned);
-        toast.success(t(K.WORKER_QR_CHECKOUT_SUCCESS, "Attendance check-out successful."));
+        toast.success(t(K.WORKER_QR_CHECKOUT_SUCCESS, "Attendance ended successfully."));
       } else {
         await workerCalendarService.checkinByQr(cleaned);
-        toast.success(t(K.WORKER_QR_CHECKIN_SUCCESS, "Attendance check-in successful."));
+        toast.success(t(K.WORKER_QR_CHECKIN_SUCCESS, "Attendance started successfully."));
       }
       await Promise.all([loadData(), loadWorkingCalendar(calendarDate, true)]);
     } catch (err) {
@@ -313,7 +313,7 @@ export default function WorkerPortal() {
           checkinAtUtc: item.checkinAtUtc,
           checkoutAtUtc: item.checkoutAtUtc,
           assetLabel: item.checkinAtUtc
-            ? `${t(K.WORKER_QR_CHECKIN, "QR Check-In")}: ${formatDateTimeInTimeZone(parseApiDateTime(item.checkinAtUtc), userTimeZoneId)}`
+            ? `${t(K.WORKER_QR_CHECKIN, "Start attendance")}: ${formatDateTimeInTimeZone(parseApiDateTime(item.checkinAtUtc), userTimeZoneId)}`
             : null,
         };
 
@@ -374,10 +374,10 @@ export default function WorkerPortal() {
     return {
       action,
       isCurrentScannerTarget,
-      buttonLabel: `${t(K.WORKER_OPEN_CAMERA, "Open Camera")} (${action === "checkin" ? t(K.WORKER_QR_CHECKIN, "QR Check-In") : t(K.WORKER_QR_CHECKOUT, "QR Check-Out")})`,
+      buttonLabel: `${t(K.WORKER_OPEN_CAMERA, "Open Camera")} (${action === "checkin" ? t(K.WORKER_QR_CHECKIN, "Start attendance") : t(K.WORKER_QR_CHECKOUT, "End attendance")})`,
       helperText: action === "checkin"
-        ? t(K.WORKER_QR_SCAN_CHECKIN_HINT, "Scan QR code to check in this shift.")
-        : t(K.WORKER_QR_SCAN_CHECKOUT_HINT, "Scan QR code to check out this shift."),
+        ? t(K.WORKER_QR_SCAN_CHECKIN_HINT, "Scan QR code to start attendance for this shift.")
+        : t(K.WORKER_QR_SCAN_CHECKOUT_HINT, "Scan QR code to end attendance for this shift."),
     };
   }, [isScanning, scannerTarget, t, userTimeZoneId]);
 

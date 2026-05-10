@@ -74,7 +74,6 @@ export default function StudentPortal() {
   const [courses, setCourses] = useState([]);
   const [courseClasses, setCourseClasses] = useState([]);
   const [selectedCourseId, setSelectedCourseId] = useState("");
-  const [selectedClassId, setSelectedClassId] = useState("");
   const [myClassId, setMyClassId] = useState(null);
   const [myClassDetails, setMyClassDetails] = useState(null);
   const [calendarDate, setCalendarDate] = useState(new Date());
@@ -213,21 +212,28 @@ export default function StudentPortal() {
         const defaultCheckout = defaultAssetId
           ? activeCheckoutByAsset.get(`${item.classID ?? ""}-${defaultAssetId}`) || null
           : null;
+        const scheduleGroups = Array.isArray(item.scheduleGroups) && item.scheduleGroups.length > 0
+          ? item.scheduleGroups
+          : [{
+              daysMask: item.scheduleDaysMask || 0,
+              startTime: item.scheduleStartTime || "",
+              endTime: item.scheduleEndTime || "",
+            }];
 
-        const defaultLesson = {
+        const lessons = scheduleGroups.map((group) => ({
           classID: item.classID,
           assignmentID: assignment?.assignmentID || null,
           roomAssetID: defaultAssetId,
           assetID: assignment?.assetID || null,
           assetCode: assignment?.assetCode || null,
-          startTime: item.scheduleStartTime || "",
-          endTime: item.scheduleEndTime || "",
-          plannedStartTime: item.scheduleStartTime || "",
-          plannedEndTime: item.scheduleEndTime || "",
+          startTime: group.startTime || item.scheduleStartTime || "",
+          endTime: group.endTime || item.scheduleEndTime || "",
+          plannedStartTime: group.startTime || item.scheduleStartTime || "",
+          plannedEndTime: group.endTime || item.scheduleEndTime || "",
           assetLabel: assignment?.assetCode ? assignment.assetCode : (defaultAssetId ? `Asset #${defaultAssetId}` : "No assigned asset"),
           activeCheckout: defaultCheckout,
           attendanceStatus: latestStatusByClass[String(item.classID)]?.status || "Not-checked",
-        };
+        }));
 
         const lessonsByDate = Object.entries(sessionsByClassDate[String(item.classID)] || {}).reduce(
           (acc, [dateKey, lessons]) => {
@@ -263,13 +269,98 @@ export default function StudentPortal() {
           startDate: item.startDate,
           endDate: item.endDate,
           daysMask: item.scheduleDaysMask || 0,
-          lessons: [defaultLesson],
+          lessons,
           lessonsByDate,
         };
       });
   }, [courseClasses, myClassDetails, activeAssignments, myClassId, sessions, courses, userTimeZoneId, activeCheckoutByAsset]);
 
   const calendarEvents = useMemo(() => [], []);
+
+  const scheduleDayLabels = useMemo(() => ([
+    { bit: 1 << 1, label: t(K.ADMIN_TABLE_MON, "Mon") },
+    { bit: 1 << 2, label: t(K.ADMIN_TABLE_TUE, "Tue") },
+    { bit: 1 << 3, label: t(K.ADMIN_TABLE_WED, "Wed") },
+    { bit: 1 << 4, label: t(K.ADMIN_TABLE_THU, "Thu") },
+    { bit: 1 << 5, label: t(K.ADMIN_TABLE_FRI, "Fri") },
+    { bit: 1 << 6, label: t(K.ADMIN_TABLE_SAT, "Sat") },
+    { bit: 1 << 0, label: t(K.ADMIN_TABLE_SUN, "Sun") },
+  ]), [t]);
+
+  const formatDateLabel = useCallback((value) => {
+    if (!value) {
+      return "-";
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return "-";
+    }
+
+    const locale = language === "vi-VN" ? "vi-VN" : "en-GB";
+    return parsed.toLocaleDateString(locale, {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }, [language]);
+
+  const toShortTime = useCallback((value) => {
+    if (!value) {
+      return "--:--";
+    }
+
+    const [h, m] = String(value).split(":");
+    if (h == null || m == null) {
+      return String(value);
+    }
+
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  }, []);
+
+  const formatScheduleSummary = useCallback((item) => {
+    const groups = Array.isArray(item?.scheduleGroups) && item.scheduleGroups.length > 0
+      ? item.scheduleGroups
+      : [{
+          daysMask: item?.scheduleDaysMask || 0,
+          startTime: item?.scheduleStartTime || "",
+          endTime: item?.scheduleEndTime || "",
+        }];
+
+    const rows = groups
+      .filter((group) => Number(group.daysMask) > 0)
+      .map((group) => {
+        const dayText = scheduleDayLabels
+          .filter((day) => (Number(group.daysMask) & day.bit) !== 0)
+          .map((day) => day.label)
+          .join(", ");
+
+        return `${dayText} • ${toShortTime(group.startTime)} - ${toShortTime(group.endTime)}`;
+      });
+
+    return rows.length > 0 ? rows : ["-"];
+  }, [scheduleDayLabels, toShortTime]);
+
+  const isCancellationOpen = useCallback((item) => {
+    if (!item?.startDate) {
+      return true;
+    }
+
+    const classStart = new Date(item.startDate);
+    if (Number.isNaN(classStart.getTime())) {
+      return true;
+    }
+
+    const cutOffDays = Number(item.cancelEnrollmentBeforeStartDays ?? 0);
+    const cutOffDate = new Date(classStart);
+    cutOffDate.setHours(0, 0, 0, 0);
+    cutOffDate.setDate(cutOffDate.getDate() - Math.max(0, cutOffDays));
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return today <= cutOffDate;
+  }, []);
 
   const showToast = (text, error = false) => {
     if (error) toast.error(text);
@@ -389,25 +480,29 @@ export default function StudentPortal() {
     });
   }, [isScanning, scannerTarget]);
 
-  useEffect(() => {
-    if (!selectedCourseId) {
+  const loadCourseClasses = useCallback(async (courseIdValue) => {
+    if (!courseIdValue) {
       setCourseClasses([]);
-      setSelectedClassId("");
       return;
     }
 
-    const fetchCourseClasses = async () => {
-      try {
-        const data = await classService.getByCourse(Number(selectedCourseId));
-        setCourseClasses((data || []).filter((item) => item.isActive));
-      } catch (error) {
-        showToast(`${t(K.STUDENT_LOAD_COURSE_CLASSES_FAILED, "Failed to load classes for selected course")}: ${error.message}`, true);
-        setCourseClasses([]);
-      }
-    };
+    try {
+      const data = await classService.getByCourse(Number(courseIdValue));
+      setCourseClasses((data || []).filter((item) => item.isActive));
+    } catch (error) {
+      showToast(`${t(K.STUDENT_LOAD_COURSE_CLASSES_FAILED, "Failed to load classes for selected course")}: ${error.message}`, true);
+      setCourseClasses([]);
+    }
+  }, [t]);
 
-    fetchCourseClasses();
-  }, [selectedCourseId, t]);
+  useEffect(() => {
+    if (!selectedCourseId) {
+      setCourseClasses([]);
+      return;
+    }
+
+    loadCourseClasses(selectedCourseId);
+  }, [selectedCourseId, loadCourseClasses]);
 
   const stopScanner = () => {
     setIsScanning(false);
@@ -430,17 +525,17 @@ export default function StudentPortal() {
     try {
       if (action === "checkin") {
         await studentEquipmentAssignmentService.checkinByQr(qrCodeValue.trim());
-        showToast(t(K.STUDENT_QR_CHECKIN_SUCCESS, "Asset check-in successful."));
+        showToast(t(K.STUDENT_QR_CHECKIN_SUCCESS, "End attendance successful."));
       } else {
         await studentEquipmentAssignmentService.checkoutByQr(qrCodeValue.trim());
-        showToast(t(K.STUDENT_QR_CHECKOUT_SUCCESS, "Asset checkout successful."));
+        showToast(t(K.STUDENT_QR_CHECKOUT_SUCCESS, "Start attendance successful."));
       }
       await loadData();
     } catch (error) {
       showToast(
         `${t(
           action === "checkin" ? K.STUDENT_QR_CHECKIN_FAILED : K.STUDENT_QR_CHECKOUT_FAILED,
-          action === "checkin" ? "QR check-in failed" : "QR checkout failed"
+          action === "checkin" ? "End attendance failed" : "Start attendance failed"
         )}: ${error.message}`,
         true
       );
@@ -510,11 +605,11 @@ export default function StudentPortal() {
       action: canCheckin ? "checkin" : "checkout",
       isCurrentScannerTarget,
       buttonLabel: canCheckin
-        ? t(K.STUDENT_QR_CHECKIN_BUTTON, "QR Check-In")
+        ? t(K.STUDENT_QR_CHECKIN_BUTTON, "End Attendance")
         : t(K.STUDENT_START_CAMERA, "Start Camera"),
       helperText: canCheckin
-        ? t(K.STUDENT_QR_SCAN_CHECKIN_HINT, "Scan the asset QR to check in automatically.")
-        : t(K.STUDENT_QR_SCAN_CHECKOUT_HINT, "Scan the asset QR to check out automatically."),
+        ? t(K.STUDENT_QR_SCAN_CHECKIN_HINT, "Scan the asset QR to end attendance automatically.")
+        : t(K.STUDENT_QR_SCAN_CHECKOUT_HINT, "Scan the asset QR to start attendance automatically."),
     };
   }, [isScanning, scannerTarget, t, userTimeZoneId]);
 
@@ -566,20 +661,29 @@ export default function StudentPortal() {
     }
   };
 
-  const handleEnroll = async (event) => {
-    event.preventDefault();
-
-    if (!selectedClassId) {
-      showToast(t(K.STUDENT_SELECT_CLASS_TO_ENROLL, "Select a class to enroll."), true);
-      return;
-    }
-
+  const handleEnroll = async (classId) => {
     try {
-      await classService.enrollMe(Number(selectedClassId));
+      await classService.enrollMe(Number(classId));
       showToast(t(K.STUDENT_ENROLL_SUCCESS, "Enrollment completed."));
       await loadData();
+      if (selectedCourseId) {
+        await loadCourseClasses(selectedCourseId);
+      }
     } catch (error) {
       showToast(`${t(K.STUDENT_ENROLL_FAILED, "Enrollment failed")}: ${error.message}`, true);
+    }
+  };
+
+  const handleCancelEnrollment = async (classId) => {
+    try {
+      await classService.cancelEnrollmentMe(Number(classId));
+      showToast(t(K.STUDENT_CANCEL_ENROLLMENT_SUCCESS, "Enrollment canceled."));
+      await loadData();
+      if (selectedCourseId) {
+        await loadCourseClasses(selectedCourseId);
+      }
+    } catch (error) {
+      showToast(`${t(K.STUDENT_CANCEL_ENROLLMENT_FAILED, "Failed to cancel enrollment")}: ${error.message}`, true);
     }
   };
 
@@ -617,7 +721,7 @@ export default function StudentPortal() {
               )
               : t(K.STUDENT_NOT_ENROLLED, "You are not enrolled in any class yet.")}
           </div>
-          <form className="mt-4 space-y-3" onSubmit={handleEnroll}>
+          <div className="mt-4 space-y-3">
             <select
               required
               value={selectedCourseId}
@@ -631,27 +735,108 @@ export default function StudentPortal() {
                 </option>
               ))}
             </select>
-            <select
-              required
-              value={selectedClassId}
-              onChange={(e) => setSelectedClassId(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
-            >
-              <option value="">{t(K.STUDENT_SELECT_CLASS, "Select class")}</option>
-              {courseClasses.map((item) => (
-                <option key={item.classID} value={item.classID}>
-                  {item.className} ({item.classCode})
-                </option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              disabled={loading || !selectedClassId}
-              className="w-full rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
-            >
-              {t(K.STUDENT_ENROLL_BUTTON, "Enroll To Class")}
-            </button>
-          </form>
+
+            {!selectedCourseId && (
+              <p className="text-sm text-gray-500 dark:text-gray-300">
+                {t(K.STUDENT_SELECT_COURSE_TO_VIEW_CLASSES, "Select a course to view available classes.")}
+              </p>
+            )}
+
+            {selectedCourseId && courseClasses.length === 0 && (
+              <p className="text-sm text-gray-500 dark:text-gray-300">
+                {t(K.STUDENT_NO_CLASSES_FOR_COURSE, "No available classes for this course.")}
+              </p>
+            )}
+
+            {selectedCourseId && courseClasses.length > 0 && (
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                {courseClasses.map((item) => {
+                  const isMyClass = Number(item.classID) === Number(myClassId);
+                  const canCancel = isMyClass && isCancellationOpen(item);
+                  const disableEnroll = loading || Boolean(myClassId);
+                  const scheduleRows = formatScheduleSummary(item);
+                  const enrolledStudents = Number(item.enrolledStudents || 0);
+                  const maxStudents = Number(item.maxStudents || 0);
+                  const availableSlots = typeof item.availableSlots === "number"
+                    ? item.availableSlots
+                    : (maxStudents > 0 && maxStudents < 2147483647 ? Math.max(0, maxStudents - enrolledStudents) : null);
+
+                  return (
+                    <div
+                      key={item.classID}
+                      className={`rounded-xl border p-4 ${isMyClass ? "border-emerald-300 bg-emerald-50/40 dark:border-emerald-700 dark:bg-emerald-900/10" : "border-gray-200 bg-white dark:border-gray-700 dark:bg-navy-900"}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-bold text-navy-700 dark:text-white">{item.className || "-"}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-300">{t(K.STUDENT_CLASS_CODE, "Code")}: {item.classCode || "-"}</p>
+                        </div>
+                        {isMyClass && (
+                          <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
+                            {t(K.STUDENT_CURRENT_CLASS_BADGE, "Enrolled")}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-3 space-y-1 text-xs text-gray-600 dark:text-gray-300">
+                        <p><span className="font-semibold">{t(K.STUDENT_CLASS_TEACHER, "Teacher")}:</span> {item.instructorName || "-"}</p>
+                        <p><span className="font-semibold">{t(K.STUDENT_CLASS_ROOM, "Room")}:</span> {item.roomName || "-"}</p>
+                        <p><span className="font-semibold">{t(K.STUDENT_CLASS_DATE_RANGE, "Date")}:</span> {formatDateLabel(item.startDate)} - {formatDateLabel(item.endDate)}</p>
+                        <p>
+                          <span className="font-semibold">{t(K.STUDENT_CLASS_AVAILABLE_SLOTS, "Available slots")}:</span>{" "}
+                          {availableSlots == null
+                            ? t(K.STUDENT_CLASS_UNLIMITED_SLOTS, "Unlimited")
+                            : `${availableSlots}`}
+                          {maxStudents > 0 && maxStudents < 2147483647 ? ` / ${maxStudents}` : ""}
+                        </p>
+                        <div>
+                          <p className="font-semibold">{t(K.STUDENT_CLASS_SCHEDULE, "Schedule")}:</p>
+                          {scheduleRows.map((row, idx) => (
+                            <p key={`${item.classID}-schedule-${idx}`}>{row}</p>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        {isMyClass ? (
+                          canCancel ? (
+                            <button
+                              type="button"
+                              onClick={() => handleCancelEnrollment(item.classID)}
+                              disabled={loading}
+                              className="w-full rounded-xl border border-amber-500 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-60 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/20"
+                            >
+                              {t(K.STUDENT_WITHDRAW_ENROLLMENT_BUTTON, "Withdraw Enrollment")}
+                            </button>
+                          ) : (
+                            <p className="text-xs font-semibold text-amber-600 dark:text-amber-300">
+                              {t(K.STUDENT_ENROLLMENT_CANCELLATION_CLOSED, "Enrollment withdrawal window is closed for this class.")}
+                            </p>
+                          )
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleEnroll(item.classID)}
+                              disabled={disableEnroll}
+                              className="w-full rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
+                            >
+                              {t(K.STUDENT_ENROLL_BUTTON, "Enroll To Class")}
+                            </button>
+                            {myClassId && (
+                              <p className="mt-2 text-xs text-gray-500 dark:text-gray-300">
+                                {t(K.STUDENT_ONE_CLASS_ONLY_HINT, "You are already enrolled in a class. Withdraw first to enroll in another class.")}
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </Card>
       </div>
 
@@ -812,7 +997,7 @@ export default function StudentPortal() {
       <Modal
         isOpen={isScanning && Boolean(scannerTarget)}
         onClose={stopScanner}
-        title={t(K.STUDENT_QR_SECTION_TITLE, "QR Checkout / Check-In")}
+        title={t(K.STUDENT_QR_SECTION_TITLE, "Start Attendance / End Attendance")}
         maxWidth="max-w-xl"
         footer={(
           <button
@@ -827,8 +1012,8 @@ export default function StudentPortal() {
         <div className="space-y-3">
           <p className="text-sm text-gray-600 dark:text-gray-300">
             {scannerTarget?.action === "checkin"
-              ? t(K.STUDENT_QR_SCAN_CHECKIN_HINT, "Scan the asset QR to check in automatically.")
-              : t(K.STUDENT_QR_SCAN_CHECKOUT_HINT, "Scan the asset QR to check out automatically.")}
+              ? t(K.STUDENT_QR_SCAN_CHECKIN_HINT, "Scan the asset QR to end attendance automatically.")
+              : t(K.STUDENT_QR_SCAN_CHECKOUT_HINT, "Scan the asset QR to start attendance automatically.")}
           </p>
           <video
             ref={videoRef}
