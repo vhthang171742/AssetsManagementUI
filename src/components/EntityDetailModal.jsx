@@ -38,9 +38,20 @@ export default function EntityDetailModal({ type, id, onClose, modalData = null 
       } else if (type === "class") {
         result = await classService.getById(id);
       } else if (type === "student") {
-        // We fetch the assignment by student ID (studentID) to get student name/code
+        // Fetch all assignments for the student
         const assignments = await studentEquipmentAssignmentService.getByStudent(id);
-        if (assignments && assignments.length > 0) {
+        // Only use the current active assignment (UnassignedDate == null)
+        const activeAssignment = assignments && assignments.length > 0
+          ? assignments.find(a => !a.unassignedDate)
+          : null;
+        if (activeAssignment) {
+          result = {
+            studentCode: activeAssignment.studentCode,
+            fullName: activeAssignment.studentName,
+            studentID: activeAssignment.studentID,
+          };
+        } else if (assignments && assignments.length > 0) {
+          // fallback: show the most recent assignment if none are active
           result = {
             studentCode: assignments[0].studentCode,
             fullName: assignments[0].studentName,

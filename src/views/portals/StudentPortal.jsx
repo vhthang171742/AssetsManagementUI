@@ -109,6 +109,7 @@ export default function StudentPortal() {
     [myActiveCheckouts]
   );
 
+  // Only show active assignments
   const assignedAssetsWithSessions = useMemo(() => {
     const sessionKeyFor = (item) => `${item.roomAssetID ?? ""}-${item.classID ?? ""}`;
 
@@ -120,7 +121,9 @@ export default function StudentPortal() {
       return acc;
     }, new Map());
 
-    const assignmentItems = assignments.slice(0, 6).map((item) => ({
+    // Only include active assignments
+    const activeAssignments = assignments.filter((item) => item.isActive && (!('unassignedDate' in item) || !item.unassignedDate));
+    const assignmentItems = activeAssignments.slice(0, 6).map((item) => ({
       type: "assignment",
       key: `assignment-${item.assignmentID}`,
       assignment: item,
@@ -934,7 +937,7 @@ export default function StudentPortal() {
 
         <Card extra="p-6">
           <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_ASSETS_AND_SESSIONS, "My Assets & Sessions")}</h2>
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 space-y-3" style={{ maxHeight: 480, overflowY: 'auto' }}>
             {assignedAssetsWithSessions.length === 0 && (
               <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_NO_ASSETS_OR_SESSIONS, "No assigned assets or active sessions.")}</p>
             )}
