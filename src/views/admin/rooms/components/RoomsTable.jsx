@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { roomService, departmentService } from "services/api";
+import { dropdownService } from "services/dropdownService";
 import Card from "components/card";
 import Table from "components/table/Table";
 import { renderEntityPill, renderLookupEntityPill } from "components/table/entityPillHelpers";
@@ -11,7 +12,7 @@ import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
 
 export default function RoomsTable() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [rooms, setRooms] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [departments, setDepartments] = useState([]);
@@ -23,6 +24,7 @@ export default function RoomsTable() {
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [selectedQrAsset, setSelectedQrAsset] = useState(null);
   const [roomAssets, setRoomAssets] = useState([]);
+  const [conditionOptions, setConditionOptions] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
@@ -39,6 +41,28 @@ export default function RoomsTable() {
   useEffect(() => {
     fetchDepartments();
   }, []);
+
+  useEffect(() => {
+    const fetchConditionOptions = async () => {
+      try {
+        const data = await dropdownService.getAssetConditions(language);
+        setConditionOptions(data || []);
+      } catch (error) {
+        console.error("Failed to fetch condition options:", error);
+      }
+    };
+
+    fetchConditionOptions();
+  }, [language]);
+
+  const getConditionLabel = (code) => {
+    if (!code) {
+      return t(K.ADMIN_TABLE_NA, "N/A");
+    }
+
+    const match = (conditionOptions || []).find((item) => item.itemCode === code);
+    return match?.label || code;
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -453,7 +477,7 @@ export default function RoomsTable() {
                             <span className="font-mono text-xs">{t(K.ADMIN_TABLE_NA, "N/A")}</span>
                           )}
                         </td>
-                        <td className="p-2">{asset.condition || t(K.ADMIN_TABLE_NA, 'N/A')}</td>
+                        <td className="p-2">{getConditionLabel(asset.condition)}</td>
                         <td className="p-2">
                           <button
                             onClick={() =>

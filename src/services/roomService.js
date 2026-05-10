@@ -90,6 +90,20 @@ export const roomService = {
   getByDepartment: (departmentId) =>
     httpClient(`/rooms/department/${departmentId}`),
 
+
+  /**
+   * Update room asset metadata
+   * @param {number} roomId - Room ID
+   * @param {number} roomAssetId - Room Asset ID
+   * @param {object} data - Updated room asset data
+   * @returns {Promise<object>} Updated room asset
+   */
+  updateAsset: (roomId, roomAssetId, data) =>
+    httpClient(`/rooms/${roomId}/assets/${roomAssetId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
   /**
    * Delete multiple rooms
    * @param {Array<number>} ids - Array of room IDs to delete

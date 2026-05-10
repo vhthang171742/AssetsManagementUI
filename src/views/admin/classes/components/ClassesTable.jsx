@@ -1,11 +1,12 @@
 ﻿import React, { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
-import { classService, courseService, roomService } from "services/api";
+import { classService, courseService, roomService, studentEquipmentAssignmentService } from "services/api";
 import { getAllUsers } from "services/userService";
+import { configurationService } from "services/configurationService";
 import Card from "components/card";
 import Table from "components/table/Table";
 import { renderEntityPill, renderLookupEntityPill } from "components/table/entityPillHelpers";
-import { MdModeEditOutline, MdDelete } from "react-icons/md";
+import { MdModeEditOutline, MdDelete, MdInventory2 } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
@@ -14,7 +15,7 @@ import { formatDateInTimeZone } from "services/dateTimeService";
 import { utcClockTimeToTimeZone } from "services/dateTimeService";
 
 export default function ClassesTable() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { currentUser } = useAuth();
   const userTimeZoneId = currentUser?.timeZoneId || "";
   const createEmptyScheduleGroup = () => ({ daysMask: 0, startTime: "", endTime: "" });
@@ -40,7 +41,23 @@ export default function ClassesTable() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showAssetModal, setShowAssetModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [selectedClassId, setSelectedClassId] = useState(null);
+  const [classAssets, setClassAssets] = useState([]);
+  const [selectedAsset, setSelectedAsset] = useState(null);
+  const [assetAssignments, setAssetAssignments] = useState([]);
+  const [conditionOptions, setConditionOptions] = useState([]);
+  const [operationalStatusOptions, setOperationalStatusOptions] = useState([]);
+  const [editingAssetCondition, setEditingAssetCondition] = useState(false);
+  const [newCondition, setNewCondition] = useState("");
+  const [editingOperationalStatus, setEditingOperationalStatus] = useState(false);
+  const [newOperationalStatus, setNewOperationalStatus] = useState("");
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
+  const [classStudents, setClassStudents] = useState([]);
+  const [newStudentId, setNewStudentId] = useState("");
+  const [isChangingStudent, setIsChangingStudent] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [courseFilter, setCourseFilter] = useState("");
@@ -57,6 +74,51 @@ export default function ClassesTable() {
     fetchRooms();
   }, []);
 
+  useEffect(() => {
+    const loadConditions = async () => {
+      try {
+        const [conditions, operationalStatuses] = await Promise.all([
+          configurationService.getItems("AssetCondition", language),
+          configurationService.getItems("EquipmentStatus", language),
+        ]);
+        setConditionOptions(conditions || []);
+        setOperationalStatusOptions(operationalStatuses || []);
+      } catch (error) {
+        console.error("Failed to load status options:", error);
+      }
+    };
+    loadConditions();
+  }, [language]);
+
+  const conditionLabelByCode = useMemo(() => {
+    const map = new Map();
+    (conditionOptions || []).forEach((item) => {
+      map.set(String(item.itemCode || ""), item.label || item.itemCode || "");
+    });
+    return map;
+  }, [conditionOptions]);
+
+  const operationalStatusLabelByCode = useMemo(() => {
+    const map = new Map();
+    (operationalStatusOptions || []).forEach((item) => {
+      map.set(String(item.itemCode || ""), item.label || item.itemCode || "");
+    });
+    return map;
+  }, [operationalStatusOptions]);
+
+  const getConditionLabel = (code) => {
+    if (!code) {
+      return t(K.ADMIN_TABLE_NA, "N/A");
+    }
+    return conditionLabelByCode.get(String(code)) || code;
+  };
+
+  const getOperationalStatusLabel = (code) => {
+    if (!code) {
+      return t(K.ADMIN_TABLE_NA, "N/A");
+    }
+    return operationalStatusLabelByCode.get(String(code)) || code;
+  };
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchText.trim());
@@ -279,6 +341,157 @@ export default function ClassesTable() {
     }
   };
 
+
+  const fetchClassAssets = async (classId) => {
+    try {
+      const classItem = classes.find((c) => c.classID === classId);
+      if (!classItem || !classItem.roomID) {
+        setClassAssets([]);
+        return;
+      }
+
+      const data = await roomService.getAssets(classItem.roomID);
+      setClassAssets(data || []);
+      setSelectedAsset(null);
+      setAssetAssignments([]);
+    } catch (error) {
+      console.error("Failed to fetch class assets:", error);
+      setClassAssets([]);
+    }
+  };
+
+  const fetchAssetAssignments = async (roomAssetId) => {
+    try {
+      const assignments = await studentEquipmentAssignmentService.getByAsset(roomAssetId);
+      setAssetAssignments(assignments || []);
+    } catch (error) {
+      console.error("Failed to fetch asset assignments:", error);
+      setAssetAssignments([]);
+    }
+  };
+
+  const handleSelectAsset = (asset) => {
+    setSelectedAsset(asset);
+    setNewCondition(asset.condition || "");
+    setEditingAssetCondition(false);
+    setNewOperationalStatus(asset.operationalStatus || "");
+    setEditingOperationalStatus(false);
+    fetchAssetAssignments(asset.roomAssetID);
+  };
+
+  const handleUpdateAssetCondition = async (roomAssetId, condition) => {
+    try {
+      if (!selectedAsset?.roomID) {
+        toast.error(t(K.ADMIN_TABLE_ROOM, "Room") + " " + t(K.ADMIN_TABLE_NA, "N/A"));
+        return;
+      }
+
+      const updated = await roomService.updateAsset(selectedAsset.roomID, roomAssetId, {
+        serialNumber: selectedAsset.serialNumber || "",
+        condition,
+        operationalStatus: newOperationalStatus || selectedAsset.operationalStatus || null,
+        remarks: selectedAsset.remarks || null,
+      });
+      toast.success(t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "Condition updated successfully"));
+      setEditingAssetCondition(false);
+      setSelectedAsset(updated || selectedAsset);
+      setClassAssets((prev) => prev.map((asset) => (asset.roomAssetID === roomAssetId ? {
+        ...asset,
+        ...(updated || {}),
+        condition,
+        operationalStatus: (updated && updated.operationalStatus) ? updated.operationalStatus : (newOperationalStatus || asset.operationalStatus),
+      } : asset)));
+    } catch (error) {
+      console.error("Failed to update asset condition:", error);
+      toast.error(`${t(K.ADMIN_TABLE_UPDATE_FAILED, "Failed to update")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+    }
+  };
+
+  const handleUpdateOperationalStatus = async (roomAssetId, operationalStatus) => {
+    try {
+      if (!selectedAsset?.roomID) {
+        toast.error(t(K.ADMIN_TABLE_ROOM, "Room") + " " + t(K.ADMIN_TABLE_NA, "N/A"));
+        return;
+      }
+
+      const updated = await roomService.updateAsset(selectedAsset.roomID, roomAssetId, {
+        serialNumber: selectedAsset.serialNumber || "",
+        condition: newCondition || selectedAsset.condition || null,
+        operationalStatus,
+        remarks: selectedAsset.remarks || null,
+      });
+
+      toast.success(t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "Operational status updated successfully"));
+      setEditingOperationalStatus(false);
+      setSelectedAsset(updated || selectedAsset);
+      setClassAssets((prev) => prev.map((asset) => (asset.roomAssetID === roomAssetId ? {
+        ...asset,
+        ...(updated || {}),
+        operationalStatus,
+      } : asset)));
+    } catch (error) {
+      console.error("Failed to update operational status:", error);
+      toast.error(`${t(K.ADMIN_TABLE_UPDATE_FAILED, "Failed to update")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+    }
+  };
+
+  const openAssignmentModal = async (assignment) => {
+    setSelectedAssignment(assignment);
+    setNewStudentId(String(assignment?.studentID || ""));
+    setShowAssignmentModal(true);
+
+    try {
+      const classDetail = await classService.getById(assignment.classID);
+      const students = (classDetail?.students || [])
+        .filter((student) => student?.isActive !== false)
+        .sort((a, b) => String(a?.studentCode || "").localeCompare(String(b?.studentCode || "")));
+      setClassStudents(students);
+    } catch (error) {
+      console.error("Failed to load class students:", error);
+      setClassStudents([]);
+    }
+  };
+
+  const handleChangeAssignedStudent = async () => {
+    if (!selectedAssignment || !selectedAsset || !newStudentId) {
+      return;
+    }
+
+    const targetStudentId = Number(newStudentId);
+    if (targetStudentId === Number(selectedAssignment.studentID)) {
+      setShowAssignmentModal(false);
+      return;
+    }
+
+    setIsChangingStudent(true);
+    try {
+      await studentEquipmentAssignmentService.create({
+        studentID: targetStudentId,
+        classID: Number(selectedAssignment.classID),
+        roomAssetID: Number(selectedAsset.roomAssetID),
+        assignedDate: new Date().toISOString(),
+        isActive: true,
+      });
+      await studentEquipmentAssignmentService.unassign(selectedAssignment.assignmentID);
+
+      toast.success(t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully"));
+      await fetchAssetAssignments(selectedAsset.roomAssetID);
+      setShowAssignmentModal(false);
+      setSelectedAssignment(null);
+      setClassStudents([]);
+    } catch (error) {
+      console.error("Failed to change assigned student:", error);
+      toast.error(`${t(K.ADMIN_TABLE_UPDATE_FAILED, "Failed to update")}: ${error.message || t(K.ADMIN_TABLE_UNKNOWN_ERROR, "Unknown error")}`);
+    } finally {
+      setIsChangingStudent(false);
+    }
+  };
+
+  const openAssetModal = (classId) => {
+    setSelectedClassId(classId);
+    setShowAssetModal(true);
+    fetchClassAssets(classId);
+  };
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -569,6 +782,11 @@ export default function ClassesTable() {
   ];
 
   const actions = [
+    {
+      icon: <MdInventory2 className="h-4 w-4" />,
+      onClick: (row) => openAssetModal(row.classID),
+      label: t(K.ROUTE_ASSETS, "Assets"),
+    },
     {
       icon: <MdModeEditOutline className="h-4 w-4" />,
       onClick: (row) => handleEdit(row),
@@ -967,6 +1185,315 @@ export default function ClassesTable() {
 
         </form>
       </Modal>
+
+      {/* Class Assets Modal */}
+      {showAssetModal && (
+        <Modal
+          isOpen={showAssetModal}
+          onClose={() => {
+            setShowAssetModal(false);
+            setSelectedAsset(null);
+            setShowAssignmentModal(false);
+            setSelectedAssignment(null);
+            setClassStudents([]);
+          }}
+          title={t(K.ADMIN_TABLE_CLASS_ROOM_ASSETS, "Class Room Assets")}
+          maxWidth={"max-w-4xl"}
+          footer={
+            <>
+              <button
+                onClick={() => {
+                  setShowAssetModal(false);
+                  setSelectedAsset(null);
+                  setShowAssignmentModal(false);
+                  setSelectedAssignment(null);
+                  setClassStudents([]);
+                }}
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
+              >
+                {t(K.MODAL_CLOSE, "Close")}
+              </button>
+            </>
+          }
+        >
+          <div className="grid grid-cols-3 gap-4 min-h-96">
+            {/* Assets List */}
+            <div className="border-r dark:border-gray-700 pr-4">
+              <h4 className="font-semibold mb-3 text-sm dark:text-white">{t(K.ADMIN_TABLE_AVAILABLE_ASSETS, "Available Assets")}</h4>
+              {classAssets.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-300">
+                  {t(K.ADMIN_TABLE_NO_ASSETS_IN_ROOM, "No assets found in this class room.")}
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {classAssets.map((asset) => (
+                    <button
+                      key={asset.roomAssetID}
+                      onClick={() => handleSelectAsset(asset)}
+                      className={`w-full text-left p-3 rounded border transition-colors ${
+                        selectedAsset?.roomAssetID === asset.roomAssetID
+                          ? "border-brand-500 bg-brand-50 dark:bg-navy-800 dark:border-brand-400"
+                          : "border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800"
+                      }`}
+                    >
+                      <p className="font-semibold text-sm dark:text-white">{asset.assetName || asset.assetCode}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">SN: {asset.serialNumber}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Condition: {getConditionLabel(asset.condition)}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Operational: {getOperationalStatusLabel(asset.operationalStatus)}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Asset Details and Assignments */}
+            {selectedAsset ? (
+              <div className="col-span-2 pl-4">
+                {/* Asset Details */}
+                <div className="mb-4 pb-4 border-b dark:border-gray-700">
+                  <h4 className="font-semibold mb-2 dark:text-white">{t(K.ADMIN_TABLE_ASSET_DETAILS, "Asset Details")}</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400">Asset Code</p>
+                      <p className="font-medium dark:text-white">{selectedAsset.assetCode || t(K.ADMIN_TABLE_NA, "N/A")}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400">Serial Number</p>
+                      <p className="font-medium dark:text-white">{selectedAsset.serialNumber || t(K.ADMIN_TABLE_NA, "N/A")}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-gray-600 dark:text-gray-400 mb-1">Condition</p>
+                      {editingAssetCondition ? (
+                        <div className="flex gap-2 items-center">
+                          <select
+                            value={newCondition}
+                            onChange={(e) => setNewCondition(e.target.value)}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                          >
+                            <option value="">{t(K.ADMIN_TABLE_SELECT, "Select")}</option>
+                            {conditionOptions.map((opt) => (
+                              <option key={opt.itemID} value={opt.itemCode}>{opt.label || opt.itemCode}</option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => handleUpdateAssetCondition(selectedAsset.roomAssetID, newCondition)}
+                            className="px-2 py-1 bg-brand-500 text-white text-sm rounded hover:bg-brand-600"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingAssetCondition(false)}
+                            className="px-2 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400 dark:bg-gray-600 dark:text-white"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2 items-center">
+                          <p className="font-medium dark:text-white">{getConditionLabel(selectedAsset.condition)}</p>
+                          <button
+                            onClick={() => setEditingAssetCondition(true)}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300"
+                          >
+                            {t(K.ADMIN_TABLE_EDIT, "Edit")}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-gray-600 dark:text-gray-400 mb-1">Operational Status</p>
+                      {editingOperationalStatus ? (
+                        <div className="flex gap-2 items-center">
+                          <select
+                            value={newOperationalStatus}
+                            onChange={(e) => setNewOperationalStatus(e.target.value)}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                          >
+                            <option value="">{t(K.ADMIN_TABLE_SELECT, "Select")}</option>
+                            {operationalStatusOptions.map((opt) => (
+                              <option key={opt.itemID} value={opt.itemCode}>{opt.label || opt.itemCode}</option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => handleUpdateOperationalStatus(selectedAsset.roomAssetID, newOperationalStatus)}
+                            className="px-2 py-1 bg-brand-500 text-white text-sm rounded hover:bg-brand-600"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingOperationalStatus(false)}
+                            className="px-2 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400 dark:bg-gray-600 dark:text-white"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2 items-center">
+                          <p className="font-medium dark:text-white">{getOperationalStatusLabel(selectedAsset.operationalStatus)}</p>
+                          <button
+                            onClick={() => setEditingOperationalStatus(true)}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300"
+                          >
+                            {t(K.ADMIN_TABLE_EDIT, "Edit")}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Assignments */}
+                <div>
+                  <h4 className="font-semibold mb-2 dark:text-white">{t(K.ADMIN_TABLE_ASSIGNMENT_STATUS, "Assignment Status")}</h4>
+                  {assetAssignments.length === 0 ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-300">
+                      {t(K.ADMIN_TABLE_NO_ASSIGNMENTS, "No student assignments for this asset.")}
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      <div className="flex flex-wrap gap-2 pb-1">
+                        {assetAssignments.map((assignment) => (
+                          <button
+                            key={`pill-${assignment.assignmentID}`}
+                            type="button"
+                            onClick={() => openAssignmentModal(assignment)}
+                            className={`rounded-full border px-2 py-1 text-xs font-medium transition-colors ${
+                              assignment.isActive
+                                ? "border-green-200 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-300"
+                                : "border-gray-300 bg-gray-100 text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                            }`}
+                          >
+                            {(assignment.studentCode || t(K.ADMIN_TABLE_NA, "N/A"))} • {(assignment.studentName || t(K.ADMIN_TABLE_NA, "N/A"))}
+                          </button>
+                        ))}
+                      </div>
+                      {assetAssignments.map((assignment) => (
+                        <div
+                          key={assignment.assignmentID}
+                          className="p-3 rounded border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium dark:bg-blue-900 dark:text-blue-300">
+                              {assignment.studentCode}
+                            </div>
+                            <p className="font-medium text-sm dark:text-white">{assignment.studentName}</p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1 text-xs text-gray-600 dark:text-gray-400 mb-2">
+                            <div>Class: <span className="font-medium dark:text-white">{assignment.classCode || t(K.ADMIN_TABLE_NA, "N/A")}</span></div>
+                            <div>Status: <span className={`font-medium ${assignment.isActive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{assignment.isActive ? "Active" : "Inactive"}</span></div>
+                            <div>Assigned: <span className="font-medium dark:text-white">{assignment.assignedDate ? formatDateInTimeZone(assignment.assignedDate, userTimeZoneId) : t(K.ADMIN_TABLE_NA, "N/A")}</span></div>
+                            <div>Unassigned: <span className="font-medium dark:text-white">{assignment.unassignedDate ? formatDateInTimeZone(assignment.unassignedDate, userTimeZoneId) : t(K.ADMIN_TABLE_NA, "N/A")}</span></div>
+                          </div>
+                          {assignment.isCheckedOut && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">Checked Out: {assignment.checkedOutAt ? new Date(assignment.checkedOutAt).toLocaleString() : t(K.ADMIN_TABLE_NA, "N/A")}</p>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => openAssignmentModal(assignment)}
+                            className="rounded border border-brand-300 px-2 py-1 text-xs font-semibold text-brand-700 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-300"
+                          >
+                            {t(K.ADMIN_TABLE_VIEW_DETAILS, "View details")}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="col-span-2 flex items-center justify-center text-gray-400 dark:text-gray-600">
+                <p>{t(K.ADMIN_TABLE_SELECT_ASSET, "Select an asset to view details")}</p>
+              </div>
+            )}
+
+          </div>
+        </Modal>
+      )}
+
+      {showAssignmentModal && selectedAssignment && (
+        <Modal
+          isOpen={showAssignmentModal}
+          onClose={() => {
+            setShowAssignmentModal(false);
+            setSelectedAssignment(null);
+            setClassStudents([]);
+          }}
+          title={t(K.ADMIN_TABLE_ASSIGNMENT_DETAILS, "Assignment Details")}
+          maxWidth={"max-w-2xl"}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAssignmentModal(false);
+                  setSelectedAssignment(null);
+                  setClassStudents([]);
+                }}
+                className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                {t(K.MODAL_CLOSE, "Close")}
+              </button>
+              <button
+                type="button"
+                onClick={handleChangeAssignedStudent}
+                disabled={isChangingStudent || !newStudentId}
+                className="rounded bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
+              >
+                {isChangingStudent
+                  ? t(K.ADMIN_TABLE_UPDATING, "Updating...")
+                  : t(K.ADMIN_TABLE_UPDATE_STUDENT, "Change assigned student")}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <div className="rounded border border-gray-200 bg-gray-50 p-3 text-sm dark:border-gray-700 dark:bg-gray-900">
+              <p className="font-semibold text-navy-700 dark:text-white">{selectedAssignment.studentName || t(K.ADMIN_TABLE_NA, "N/A")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-300">{selectedAssignment.studentCode || t(K.ADMIN_TABLE_NA, "N/A")}</p>
+              <p className="mt-2 text-xs text-gray-600 dark:text-gray-300">
+                {t(K.ADMIN_TABLE_CLASS, "Class")}: <span className="font-medium">{selectedAssignment.classCode || t(K.ADMIN_TABLE_NA, "N/A")}</span>
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-300">
+                {t(K.ADMIN_TABLE_STATUS, "Status")}: <span className={`font-semibold ${selectedAssignment.isActive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                  {selectedAssignment.isActive ? t(K.ADMIN_TABLE_ACTIVE, "Active") : t(K.ADMIN_TABLE_INACTIVE, "Inactive")}
+                </span>
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-sm font-semibold text-navy-700 dark:text-white">{t(K.ADMIN_TABLE_STUDENTS, "Students")}</p>
+              <div className="mb-3 flex flex-wrap gap-2">
+                {classStudents.map((student) => (
+                  <button
+                    key={`student-pill-${student.studentID}`}
+                    type="button"
+                    onClick={() => setNewStudentId(String(student.studentID))}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                      String(student.studentID) === String(newStudentId)
+                        ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-navy-800 dark:text-brand-300"
+                        : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    {student.studentCode || t(K.ADMIN_TABLE_NA, "N/A")} • {student.studentName || t(K.ADMIN_TABLE_NA, "N/A")}
+                  </button>
+                ))}
+              </div>
+              <select
+                value={newStudentId}
+                onChange={(event) => setNewStudentId(event.target.value)}
+                className="block w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              >
+                <option value="">{t(K.ADMIN_TABLE_SELECT_STUDENT, "Select student")}</option>
+                {classStudents.map((student) => (
+                  <option key={`student-option-${student.studentID}`} value={student.studentID}>
+                    {student.studentCode || t(K.ADMIN_TABLE_NA, "N/A")} - {student.studentName || t(K.ADMIN_TABLE_NA, "N/A")}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </Modal>
+      )}
     </Card>
   );
 }
