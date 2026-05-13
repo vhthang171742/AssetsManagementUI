@@ -674,6 +674,25 @@
   background: #1f2937;
 }
 
+/* Schedule tile backgrounds in dark mode */
+.dark .tcb .react-calendar__tile.tcb__schedule-tile {
+  background: rgba(14, 116, 144, 0.2);
+}
+
+.dark .tcb .react-calendar__tile.tcb__schedule-tile.tcb__schedule-tile--past {
+  background: rgba(55, 65, 81, 0.4);
+}
+
+.dark .tcb .react-calendar__tile.tcb__schedule-tile:enabled:hover,
+.dark .tcb .react-calendar__tile.tcb__schedule-tile:enabled:focus {
+  background: rgba(14, 116, 144, 0.32);
+}
+
+.dark .tcb .react-calendar__tile.tcb__schedule-tile.tcb__schedule-tile--past:enabled:hover,
+.dark .tcb .react-calendar__tile.tcb__schedule-tile.tcb__schedule-tile--past:enabled:focus {
+  background: rgba(55, 65, 81, 0.55);
+}
+
 .dark .tcb .react-calendar__tile--active,
 .dark .tcb .react-calendar__tile--active:enabled:hover,
 .dark .tcb .react-calendar__tile--active:enabled:focus {
@@ -691,7 +710,7 @@
 }
 
 .dark .tcb .react-calendar__month-view__days__day--neighboringMonth {
-  color: #374151;
+  color: #4b5563;
 }
 
 .dark .tcb__tile-dot--lesson {
