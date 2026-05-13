@@ -29,6 +29,7 @@ export default function EntityDetailModal({ type, id, onClose, modalData = null 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [roomAssets, setRoomAssets] = useState([]);
+  const [roomAssetData, setRoomAssetData] = useState(null);
 
   const isAdmin = hasAnyRole(RoleSets.Admin);
   const reportableRoomAssetId = modalData?.enableRoomAssetIssueReport
@@ -41,7 +42,23 @@ export default function EntityDetailModal({ type, id, onClose, modalData = null 
     try {
       let result = null;
       if (type === "asset") {
-        result = await assetService.getById(id);
+        const fetchAsset = assetService.getById(id);
+        // If a specific room-asset unit is referenced, also fetch room assets to get
+        // per-unit condition and operational status
+        const raRoomId = modalData?.roomID ?? modalData?.roomId ?? null;
+        const raId = modalData?.roomAssetID ?? modalData?.roomAssetId ?? null;
+        if (raRoomId && raId) {
+          const [assetResult, roomAssetList] = await Promise.all([
+            fetchAsset,
+            roomService.getAssets(raRoomId),
+          ]);
+          result = assetResult;
+          const found = (roomAssetList || []).find((ra) => ra.roomAssetID === raId);
+          setRoomAssetData(found || null);
+        } else {
+          result = await fetchAsset;
+          setRoomAssetData(null);
+        }
       } else if (type === "class") {
         result = await classService.getById(id);
       } else if (type === "student") {
@@ -165,7 +182,7 @@ export default function EntityDetailModal({ type, id, onClose, modalData = null 
       return null;
     }
 
-    return <RoomAssetIssueReporter roomAssetId={reportableRoomAssetId} />;
+    return <RoomAssetIssueReporter roomAssetId={reportableRoomAssetId} descriptionRows={2} compact />;
   };
 
   const renderContent = () => {
@@ -174,28 +191,27 @@ export default function EntityDetailModal({ type, id, onClose, modalData = null 
     if (!data) return null;
 
     if (type === "asset") {
-      const roomId = modalData?.roomID ?? modalData?.roomId ?? data.roomID ?? null;
-      const roomLabel = modalData?.roomCode || modalData?.roomName || data.roomCode || data.roomName || null;
-      const serialNumber = modalData?.serialNumber || data.serialNumber;
+      const roomId = modalData?.roomID ?? modalData?.roomId ?? roomAssetData?.roomID ?? data.roomID ?? null;
+      const roomLabel = modalData?.roomCode || modalData?.roomName || roomAssetData?.roomName || data.roomCode || data.roomName || null;
+      const serialNumber = modalData?.serialNumber || roomAssetData?.serialNumber || data.serialNumber;
       const status = modalData?.assetStatus || data.assetStatus || data.status;
-      const condition = modalData?.condition || data.condition;
-      const operationalStatus = modalData?.operationalStatus || data.operationalStatus;
+      const condition = modalData?.condition || roomAssetData?.condition || data.condition;
+      const operationalStatus = modalData?.operationalStatus || roomAssetData?.operationalStatus || data.operationalStatus;
 
       return (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {renderField(t(K.PILL_FIELD_CODE, "Code"), data.assetCode)}
             {renderField(t(K.PILL_FIELD_NAME, "Name"), data.assetName)}
             {renderField(t(K.PILL_FIELD_CATEGORY, "Category"), data.categoryName || data.category?.categoryName)}
             {renderField(t(K.PILL_FIELD_BRAND, "Brand"), data.brand)}
             {renderField(t(K.PILL_FIELD_MODEL, "Model"), data.model)}
             {renderField(t(K.ADMIN_TABLE_SERIAL_NUMBER, "Serial Number"), serialNumber)}
-            {renderField(t(K.PILL_FIELD_STATUS, "Status"), status)}
             {renderField(t(K.PILL_FIELD_ROOM, "Room"), roomLabel
-              ? <RoomPill roomId={roomId} label={roomLabel} roomName={modalData?.roomName || data.roomName || roomLabel} roomCode={modalData?.roomCode || data.roomCode || null} />
+              ? <RoomPill roomId={roomId} label={roomLabel} roomName={modalData?.roomName || roomAssetData?.roomName || data.roomName || roomLabel} roomCode={modalData?.roomCode || data.roomCode || null} />
               : null, "md:col-span-2")}
             {renderField(t("COMMON_CONDITION", "Condition"), condition)}
-            {renderField(t("COMMON_OPERATIONAL_STATUS", "Operational status"), operationalStatus)}
+            {renderField(t("COMMON_OPERATIONAL_STATUS", "Operational Status"), operationalStatus)}
           </div>
           {renderRoomAssetIssueSection()}
         </div>
@@ -375,6 +391,7 @@ export default function EntityDetailModal({ type, id, onClose, modalData = null 
       title={t(titleKey, defaultTitle)}
       footer={footer}
       maxWidth={reportableRoomAssetId || type === "room" ? "max-w-2xl" : "max-w-lg"}
+      maxHeight={reportableRoomAssetId ? "max-h-[96vh]" : "max-h-[90vh]"}
     >
       <div className="space-y-6 overflow-x-hidden">
         {renderContent()}

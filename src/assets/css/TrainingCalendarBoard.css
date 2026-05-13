@@ -3,14 +3,16 @@
 /* Layout ------------------------------------------------------------------- */
 .tcb {
   display: grid;
-  grid-template-columns: minmax(320px, 0.95fr) minmax(320px, 1.05fr);
+  grid-template-columns: minmax(300px, 0.75fr) minmax(340px, 1.25fr);
   gap: 0;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
   background: #ffffff;
   overflow: hidden;
-  min-height: 560px;
+  flex: 1;
+  min-height: 500px;
   min-width: 0;
+  width: 100%;
 }
 
 /* -- Left pane ------------------------------------------------------------- */
@@ -20,6 +22,12 @@
   border-right: 1px solid #e5e7eb;
   min-width: 0;
   min-height: 0;
+}
+
+.tcb__footer {
+  margin-top: 12px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 8px;
 }
 
 .tcb__title {
@@ -228,6 +236,14 @@
   background: #0891b2;
 }
 
+.tcb__tile-dot--pending {
+  background: #d97706;
+}
+
+.tcb__tile-dot--in-progress {
+  background: #2563eb;
+}
+
 .tcb__tile-dot--incident {
   background: #dc2626;
 }
@@ -236,9 +252,8 @@
 .tcb__right {
   display: flex;
   flex-direction: column;
-  padding: 20px 16px 16px;
+  padding: 20px 20px 16px;
   background: #ffffff;
-  max-height: 600px;
   overflow: hidden;
   min-width: 0;
   min-height: 0;
@@ -628,6 +643,10 @@
   border-right-color: #374151;
 }
 
+.dark .tcb__footer {
+  border-top-color: #374151;
+}
+
 .dark .tcb__title,
 .dark .tcb__right-date,
 .dark .tcb .react-calendar__navigation__label,
@@ -677,6 +696,14 @@
 
 .dark .tcb__tile-dot--lesson {
   background: #0e7490;
+}
+
+.dark .tcb__tile-dot--pending {
+  background: #b45309;
+}
+
+.dark .tcb__tile-dot--in-progress {
+  background: #1d4ed8;
 }
 
 .dark .tcb__tile-dot--incident {
@@ -800,6 +827,8 @@
   .tcb {
     grid-template-columns: 1fr;
     min-height: 0;
+    flex: none;
+    height: auto;
   }
 
   .tcb__left {

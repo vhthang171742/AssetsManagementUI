@@ -8,6 +8,7 @@ export default function RoomAssetIssueReporter({
   roomAssetId,
   containerClassName = "rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-navy-900",
   descriptionRows = 4,
+  compact = false,
 }) {
   const { t, language } = useLanguage();
   const [categories, setCategories] = useState([]);
@@ -73,14 +74,16 @@ export default function RoomAssetIssueReporter({
   };
 
   return (
-    <div className={containerClassName}>
-      <div className="space-y-1">
+    <div className={compact ? `rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-navy-900` : containerClassName}>
+      <div className={compact ? "" : "space-y-1"}>
         <h4 className="text-sm font-semibold text-navy-700 dark:text-white">
           {t("ROOM_ASSET_REPORT_ISSUE_TITLE", "Report issue")}
         </h4>
-        <p className="text-xs text-gray-500 dark:text-gray-300">
-          {t("ROOM_ASSET_REPORT_ISSUE_HINT", "Create a maintenance issue for this room asset without requiring an active session.")}
-        </p>
+        {!compact && (
+          <p className="text-xs text-gray-500 dark:text-gray-300">
+            {t("ROOM_ASSET_REPORT_ISSUE_HINT", "Create a maintenance issue for this room asset without requiring an active session.")}
+          </p>
+        )}
       </div>
 
       <form className="mt-3 space-y-3" onSubmit={handleSubmit}>

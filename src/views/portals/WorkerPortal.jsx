@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
 import Card from "components/card";
+import Modal from "components/modal/Modal";
 import PortalLayout from "layouts/portal";
 import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import { workerEquipmentService, equipmentUsageService, workerCalendarService } from "services";
@@ -86,6 +87,12 @@ export default function WorkerPortal() {
   const [isScanning, setIsScanning] = useState(false);
   const [scannerSupported, setScannerSupported] = useState(true);
   const [scannerTarget, setScannerTarget] = useState(null);
+
+  // Modal visibility
+  const [showEquipmentModal, setShowEquipmentModal] = useState(false);
+  const [showActiveSessionModal, setShowActiveSessionModal] = useState(false);
+  const [showLogSessionModal, setShowLogSessionModal] = useState(false);
+  const [showUsageHistoryModal, setShowUsageHistoryModal] = useState(false);
 
   const videoRef = useRef(null);
   const scannerTimerRef = useRef(null);
@@ -449,34 +456,10 @@ export default function WorkerPortal() {
 
   return (
     <PortalLayout titleKey={K.PORTAL_WORKER_NAME} title="Worker Portal">
-      <div className="space-y-6">
+      <div className="flex flex-1 flex-col min-h-0 gap-5">
 
-        {/* ── Production Line Info ─────────────────────────────────────────── */}
-        <Card extra="p-5">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                {t(K.WORKER_MY_PRODUCTION_LINE, "My Production Line")}
-              </p>
-              <p className="mt-0.5 text-xl font-bold text-navy-700 dark:text-white">
-                {workerProfile?.workerRole?.productionLineName || t(K.WORKER_NO_LINE, "No production line assigned")}
-              </p>
-            </div>
-            {workerProfile?.workerRole?.employeeCode && (
-              <div className="rounded-lg bg-brand-50 px-4 py-2 dark:bg-brand-900/20">
-                <p className="text-xs text-brand-500 dark:text-brand-300">{t(K.WORKER_EMPLOYEE_CODE, "Employee Code")}</p>
-                <p className="font-semibold text-brand-700 dark:text-brand-200">{workerProfile.workerRole?.employeeCode}</p>
-              </div>
-            )}
-          </div>
-        </Card>
-
-        {/* ── Working Calendar + QR Attendance ────────────────────────────── */}
-        <Card extra="p-5">
-          <h3 className="mb-4 text-base font-bold text-navy-700 dark:text-white">
-            {t(K.WORKER_WORKING_CALENDAR, "Working Calendar")}
-          </h3>
-
+        {/* ── Working Calendar ─────────────────────────────────────────────── */}
+        <Card extra="p-3 flex-1 min-h-0">
           <TrainingCalendarBoard
             value={calendarDate}
             onChange={setCalendarDate}
@@ -489,231 +472,217 @@ export default function WorkerPortal() {
             noEventsText={t(K.WORKER_NO_WORK_EVENTS, "No working shifts on selected date.")}
             scheduleBadgeLabel={t(K.WORKER_SHIFT_LABEL, "Shift")}
             renderLessonActions={renderShiftActions}
+            footerContent={
+              <div className="pt-3 space-y-3">
+                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-white/10 dark:bg-navy-900">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      {t(K.WORKER_MY_PRODUCTION_LINE, "My Production Line")}
+                    </p>
+                    <p className="mt-0.5 text-base font-bold text-navy-700 dark:text-white truncate">
+                      {workerProfile?.workerRole?.productionLineName || t(K.WORKER_NO_LINE, "No production line assigned")}
+                    </p>
+                  </div>
+                  {workerProfile?.workerRole?.employeeCode && (
+                    <div className="rounded-lg bg-brand-50 px-3 py-1.5 dark:bg-brand-900/20">
+                      <p className="text-[10px] text-brand-500 dark:text-brand-300">{t(K.WORKER_EMPLOYEE_CODE, "Employee Code")}</p>
+                      <p className="text-sm font-semibold text-brand-700 dark:text-brand-200">{workerProfile.workerRole?.employeeCode}</p>
+                    </div>
+                  )}
+                </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEquipmentModal(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-navy-700 shadow-sm hover:bg-gray-50 dark:border-gray-700 dark:bg-navy-800 dark:text-white dark:hover:bg-navy-700"
+                >
+                  {activeAssignments.length > 0 && (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-[10px] font-bold text-white">{activeAssignments.length}</span>
+                  )}
+                  {t(K.WORKER_MY_EQUIPMENT, "My Equipment")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowActiveSessionModal(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-navy-700 shadow-sm hover:bg-gray-50 dark:border-gray-700 dark:bg-navy-800 dark:text-white dark:hover:bg-navy-700"
+                >
+                  {activeSession && (
+                    <span className="flex h-2 w-2 rounded-full bg-green-500" />
+                  )}
+                  {t(K.WORKER_ACTIVE_SESSION, "Active Session")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowLogSessionModal(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-navy-700 shadow-sm hover:bg-gray-50 dark:border-gray-700 dark:bg-navy-800 dark:text-white dark:hover:bg-navy-700"
+                >
+                  {t(K.WORKER_LOG_SESSION, "Log Session")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowUsageHistoryModal(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-navy-700 shadow-sm hover:bg-gray-50 dark:border-gray-700 dark:bg-navy-800 dark:text-white dark:hover:bg-navy-700"
+                >
+                  {recentLogs.length > 0 && (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-[10px] font-bold text-white">{recentLogs.length}</span>
+                  )}
+                  {t(K.WORKER_USAGE_HISTORY, "Usage History")}
+                </button>
+              </div>
+              </div>
+            }
           />
         </Card>
 
-        {/* ── My Equipment ─────────────────────────────────────────────────── */}
-        <Card extra="p-5">
-          <h3 className="mb-4 text-base font-bold text-navy-700 dark:text-white">
-            {t(K.WORKER_MY_EQUIPMENT, "My Equipment")}
-          </h3>
-          {activeAssignments.length === 0 ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500">
-              {t(K.WORKER_NO_EQUIPMENT, "No equipment currently assigned to you.")}
-            </p>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {activeAssignments.map((a) => (
-                <div
-                  key={a.assignmentID}
-                  className="rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-navy-800"
-                >
-                  <div className="mb-2 flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-semibold text-navy-700 dark:text-white">{a.assetName}</p>
-                      <p className="text-xs text-gray-400">{a.assetCode}</p>
-                    </div>
-                    <StatusBadge active={a.isActive} />
-                  </div>
-                  {a.serialNumber && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400">S/N: {a.serialNumber}</p>
-                  )}
-                  {a.assignedDate && (
-                    <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-                      {t(K.WORKER_ASSIGNED_SINCE, "Assigned since")}{" "}
-                      {formatDateInTimeZone(parseApiDateTime(a.assignedDate), userTimeZoneId)}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+      </div>
 
-        {/* ── Active Session ───────────────────────────────────────────────── */}
-        <Card extra="p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-base font-bold text-navy-700 dark:text-white">
-              {t(K.WORKER_ACTIVE_SESSION, "Active Session")}
-            </h3>
-            {activeSession && activeForm !== "end" && (
+      {/* ── My Equipment Modal ───────────────────────────────────────────────── */}
+      <Modal
+        isOpen={showEquipmentModal}
+        onClose={() => setShowEquipmentModal(false)}
+        title={t(K.WORKER_MY_EQUIPMENT, "My Equipment")}
+        maxWidth="max-w-2xl"
+      >
+        {activeAssignments.length === 0 ? (
+          <p className="text-sm text-gray-400 dark:text-gray-500">
+            {t(K.WORKER_NO_EQUIPMENT, "No equipment currently assigned to you.")}
+          </p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {activeAssignments.map((a) => (
+              <div
+                key={a.assignmentID}
+                className="rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-navy-800"
+              >
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-navy-700 dark:text-white">{a.assetName}</p>
+                    <p className="text-xs text-gray-400">{a.assetCode}</p>
+                  </div>
+                  <StatusBadge active={a.isActive} />
+                </div>
+                {a.serialNumber && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">S/N: {a.serialNumber}</p>
+                )}
+                {a.assignedDate && (
+                  <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                    {t(K.WORKER_ASSIGNED_SINCE, "Assigned since")}{" "}
+                    {formatDateInTimeZone(parseApiDateTime(a.assignedDate), userTimeZoneId)}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
+
+      {/* ── Active Session Modal ─────────────────────────────────────────────── */}
+      <Modal
+        isOpen={showActiveSessionModal}
+        onClose={() => { setShowActiveSessionModal(false); setActiveForm(null); }}
+        title={t(K.WORKER_ACTIVE_SESSION, "Active Session")}
+        maxWidth="max-w-xl"
+      >
+        {!activeSession ? (
+          <p className="text-sm text-gray-400 dark:text-gray-500">
+            {t(K.WORKER_NO_ACTIVE_SESSION, "No active session. Start a session below.")}
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-4">
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Equipment</p>
+                <p className="font-semibold text-navy-700 dark:text-white">{activeSession.assetName}</p>
+                <p className="text-xs text-gray-400">{activeSession.assetCode}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t(K.WORKER_START_TIME, "Start Time")}</p>
+                <p className="font-semibold text-navy-700 dark:text-white">
+                  {formatDateTimeInTimeZone(activeSessionStart, userTimeZoneId)}
+                </p>
+              </div>
+              {activeSessionStart && (
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t(K.WORKER_ELAPSED, "Elapsed")}</p>
+                  <p className="font-semibold text-green-600 dark:text-green-400">
+                    {formatElapsed(activeSessionStart)}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {activeForm !== "end" && (
               <button
+                type="button"
                 onClick={() => setActiveForm("end")}
                 className="rounded-lg bg-red-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700"
               >
                 {t(K.WORKER_END_SESSION, "End Session")}
               </button>
             )}
-          </div>
 
-          {!activeSession ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500">
-              {t(K.WORKER_NO_ACTIVE_SESSION, "No active session. Start a session below.")}
-            </p>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex flex-wrap gap-4">
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Equipment</p>
-                  <p className="font-semibold text-navy-700 dark:text-white">{activeSession.assetName}</p>
-                  <p className="text-xs text-gray-400">{activeSession.assetCode}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{t(K.WORKER_START_TIME, "Start Time")}</p>
-                  <p className="font-semibold text-navy-700 dark:text-white">
-                    {formatDateTimeInTimeZone(activeSessionStart, userTimeZoneId)}
-                  </p>
-                </div>
-                {activeSessionStart && (
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{t(K.WORKER_ELAPSED, "Elapsed")}</p>
-                    <p className="font-semibold text-green-600 dark:text-green-400">
-                      {formatElapsed(activeSessionStart)}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* End Session Form */}
-              {activeForm === "end" && (
-                <form onSubmit={handleEndSession} className="mt-4 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-navy-900">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                        {t(K.WORKER_END_TIME, "End Time")} *
-                      </label>
-                      <input
-                        type="datetime-local"
-                        required
-                        value={endForm.endTime}
-                        onChange={(e) => setEndForm((f) => ({ ...f, endTime: e.target.value }))}
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-navy-800 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                        {t(K.WORKER_RUNNING_MINUTES, "Running Minutes")}
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={endForm.runningMinutes}
-                        onChange={(e) => setEndForm((f) => ({ ...f, runningMinutes: e.target.value }))}
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-navy-800 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                        {t(K.WORKER_DOWNTIME_MINUTES, "Downtime Minutes")}
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={endForm.downtimeMinutes}
-                        onChange={(e) => setEndForm((f) => ({ ...f, downtimeMinutes: e.target.value }))}
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-navy-800 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                        {t(K.WORKER_STITCH_COUNT, "Stitch Count")}
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={endForm.stitchCount}
-                        onChange={(e) => setEndForm((f) => ({ ...f, stitchCount: e.target.value }))}
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-navy-800 dark:text-white"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                      {t(K.WORKER_NOTES, "Notes")}
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={endForm.notes}
-                      onChange={(e) => setEndForm((f) => ({ ...f, notes: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-navy-800 dark:text-white"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
-                    >
-                      {submitting ? "..." : t(K.WORKER_END_SESSION, "End Session")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveForm(null)}
-                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-white/10 dark:text-gray-300 dark:hover:bg-white/5"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
-          )}
-        </Card>
-
-        {/* ── Start New Session ────────────────────────────────────────────── */}
-        {!activeSession && (
-          <Card extra="p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-bold text-navy-700 dark:text-white">
-                {t(K.WORKER_LOG_SESSION, "Log Session")}
-              </h3>
-              {activeForm !== "start" && activeAssignments.length > 0 && (
-                <button
-                  onClick={() => setActiveForm("start")}
-                  className="rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600"
-                >
-                  {t(K.WORKER_START_SESSION, "Start Session")}
-                </button>
-              )}
-            </div>
-
-            {activeAssignments.length === 0 ? (
-              <p className="text-sm text-gray-400 dark:text-gray-500">
-                {t(K.WORKER_NO_EQUIPMENT, "No equipment currently assigned to you.")}
-              </p>
-            ) : activeForm === "start" ? (
-              <form onSubmit={handleStartSession} className="space-y-3">
+            {activeForm === "end" && (
+              <form onSubmit={handleEndSession} className="mt-2 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-navy-900">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                      {t(K.WORKER_SELECT_EQUIPMENT, "Select equipment")} *
-                    </label>
-                    <select
-                      required
-                      value={startForm.roomAssetID}
-                      onChange={(e) => setStartForm((f) => ({ ...f, roomAssetID: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-navy-800 dark:text-white"
-                    >
-                      <option value="">{t(K.WORKER_SELECT_EQUIPMENT, "Select equipment")}</option>
-                      {activeAssignments.map((a) => (
-                        <option key={a.assignmentID} value={a.roomAssetID}>
-                          {a.assetName} — {a.assetCode}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                      {t(K.WORKER_START_TIME, "Start Time")} *
+                      {t(K.WORKER_END_TIME, "End Time")} *
                     </label>
                     <input
                       type="datetime-local"
                       required
-                      value={startForm.startTime}
-                      onChange={(e) => setStartForm((f) => ({ ...f, startTime: e.target.value }))}
+                      value={endForm.endTime}
+                      onChange={(e) => setEndForm((f) => ({ ...f, endTime: e.target.value }))}
                       className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-navy-800 dark:text-white"
                     />
                   </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
+                      {t(K.WORKER_RUNNING_MINUTES, "Running Minutes")}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={endForm.runningMinutes}
+                      onChange={(e) => setEndForm((f) => ({ ...f, runningMinutes: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-navy-800 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
+                      {t(K.WORKER_DOWNTIME_MINUTES, "Downtime Minutes")}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={endForm.downtimeMinutes}
+                      onChange={(e) => setEndForm((f) => ({ ...f, downtimeMinutes: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-navy-800 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
+                      {t(K.WORKER_STITCH_COUNT, "Stitch Count")}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={endForm.stitchCount}
+                      onChange={(e) => setEndForm((f) => ({ ...f, stitchCount: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-navy-800 dark:text-white"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
+                    {t(K.WORKER_NOTES, "Notes")}
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={endForm.notes}
+                    onChange={(e) => setEndForm((f) => ({ ...f, notes: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-navy-800 dark:text-white"
+                  />
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -721,7 +690,7 @@ export default function WorkerPortal() {
                     disabled={submitting}
                     className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
                   >
-                    {submitting ? "..." : t(K.WORKER_START_SESSION, "Start Session")}
+                    {submitting ? "..." : t(K.WORKER_END_SESSION, "End Session")}
                   </button>
                   <button
                     type="button"
@@ -732,61 +701,141 @@ export default function WorkerPortal() {
                   </button>
                 </div>
               </form>
-            ) : (
-              <p className="text-sm text-gray-400 dark:text-gray-500">
-                Click <strong>Start Session</strong> to begin logging equipment usage.
-              </p>
             )}
-          </Card>
+          </div>
         )}
+      </Modal>
 
-        {/* ── Usage History ────────────────────────────────────────────────── */}
-        <Card extra="p-5">
-          <h3 className="mb-4 text-base font-bold text-navy-700 dark:text-white">
-            {t(K.WORKER_USAGE_HISTORY, "Usage History")}
-          </h3>
-          {recentLogs.length === 0 ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500">
-              {t(K.WORKER_NO_USAGE_HISTORY, "No usage history yet.")}
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 text-xs text-gray-500 dark:border-white/10 dark:text-gray-400">
-                    <th className="pb-2 pr-4 font-medium">Equipment</th>
-                    <th className="pb-2 pr-4 font-medium">{t(K.WORKER_START_TIME, "Start Time")}</th>
-                    <th className="pb-2 pr-4 font-medium">{t(K.WORKER_END_TIME, "End Time")}</th>
-                    <th className="pb-2 pr-4 font-medium">{t(K.WORKER_RUNNING_MINUTES, "Running Min")}</th>
-                    <th className="pb-2 font-medium">{t(K.WORKER_DOWNTIME_MINUTES, "Downtime Min")}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                  {recentLogs.map((log) => (
-                    <tr key={log.usageLogID} className="text-navy-700 dark:text-white">
-                      <td className="py-2 pr-4">
-                        <p className="font-medium">{log.assetName}</p>
-                        <p className="text-xs text-gray-400">{log.assetCode}</p>
-                      </td>
-                      <td className="py-2 pr-4 text-xs">
-                        {formatDateTimeInTimeZone(parseApiDateTime(log.startTime), userTimeZoneId)}
-                      </td>
-                      <td className="py-2 pr-4 text-xs">
-                        {log.endTime
-                          ? formatDateTimeInTimeZone(parseApiDateTime(log.endTime), userTimeZoneId)
-                          : <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">Active</span>}
-                      </td>
-                      <td className="py-2 pr-4 text-xs">{log.runningMinutes ?? "—"}</td>
-                      <td className="py-2 text-xs">{log.downtimeMinutes ?? "—"}</td>
-                    </tr>
+      {/* ── Log Session Modal ────────────────────────────────────────────────── */}
+      <Modal
+        isOpen={showLogSessionModal}
+        onClose={() => { setShowLogSessionModal(false); setActiveForm(null); }}
+        title={t(K.WORKER_LOG_SESSION, "Log Session")}
+        maxWidth="max-w-lg"
+      >
+        {activeSession ? (
+          <p className="text-sm text-gray-400 dark:text-gray-500">
+            {t(K.WORKER_NO_ACTIVE_SESSION, "A session is already active. End it before starting a new one.")}
+          </p>
+        ) : activeAssignments.length === 0 ? (
+          <p className="text-sm text-gray-400 dark:text-gray-500">
+            {t(K.WORKER_NO_EQUIPMENT, "No equipment currently assigned to you.")}
+          </p>
+        ) : activeForm === "start" ? (
+          <form onSubmit={handleStartSession} className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
+                  {t(K.WORKER_SELECT_EQUIPMENT, "Select equipment")} *
+                </label>
+                <select
+                  required
+                  value={startForm.roomAssetID}
+                  onChange={(e) => setStartForm((f) => ({ ...f, roomAssetID: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-navy-800 dark:text-white"
+                >
+                  <option value="">{t(K.WORKER_SELECT_EQUIPMENT, "Select equipment")}</option>
+                  {activeAssignments.map((a) => (
+                    <option key={a.assignmentID} value={a.roomAssetID}>
+                      {a.assetName} — {a.assetCode}
+                    </option>
                   ))}
-                </tbody>
-              </table>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
+                  {t(K.WORKER_START_TIME, "Start Time")} *
+                </label>
+                <input
+                  type="datetime-local"
+                  required
+                  value={startForm.startTime}
+                  onChange={(e) => setStartForm((f) => ({ ...f, startTime: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-navy-800 dark:text-white"
+                />
+              </div>
             </div>
-          )}
-        </Card>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
+              >
+                {submitting ? "..." : t(K.WORKER_START_SESSION, "Start Session")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveForm(null)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-white/10 dark:text-gray-300 dark:hover:bg-white/5"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              Click <strong>Start Session</strong> to begin logging equipment usage.
+            </p>
+            <button
+              type="button"
+              onClick={() => setActiveForm("start")}
+              className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+            >
+              {t(K.WORKER_START_SESSION, "Start Session")}
+            </button>
+          </div>
+        )}
+      </Modal>
 
-      </div>
+      {/* ── Usage History Modal ──────────────────────────────────────────────── */}
+      <Modal
+        isOpen={showUsageHistoryModal}
+        onClose={() => setShowUsageHistoryModal(false)}
+        title={t(K.WORKER_USAGE_HISTORY, "Usage History")}
+        maxWidth="max-w-3xl"
+      >
+        {recentLogs.length === 0 ? (
+          <p className="text-sm text-gray-400 dark:text-gray-500">
+            {t(K.WORKER_NO_USAGE_HISTORY, "No usage history yet.")}
+          </p>
+        ) : (
+          <div className="overflow-x-auto" style={{ maxHeight: 480, overflowY: "auto" }}>
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 text-xs text-gray-500 dark:border-white/10 dark:text-gray-400">
+                  <th className="pb-2 pr-4 font-medium">Equipment</th>
+                  <th className="pb-2 pr-4 font-medium">{t(K.WORKER_START_TIME, "Start Time")}</th>
+                  <th className="pb-2 pr-4 font-medium">{t(K.WORKER_END_TIME, "End Time")}</th>
+                  <th className="pb-2 pr-4 font-medium">{t(K.WORKER_RUNNING_MINUTES, "Running Min")}</th>
+                  <th className="pb-2 font-medium">{t(K.WORKER_DOWNTIME_MINUTES, "Downtime Min")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                {recentLogs.map((log) => (
+                  <tr key={log.usageLogID} className="text-navy-700 dark:text-white">
+                    <td className="py-2 pr-4">
+                      <p className="font-medium">{log.assetName}</p>
+                      <p className="text-xs text-gray-400">{log.assetCode}</p>
+                    </td>
+                    <td className="py-2 pr-4 text-xs">
+                      {formatDateTimeInTimeZone(parseApiDateTime(log.startTime), userTimeZoneId)}
+                    </td>
+                    <td className="py-2 pr-4 text-xs">
+                      {log.endTime
+                        ? formatDateTimeInTimeZone(parseApiDateTime(log.endTime), userTimeZoneId)
+                        : <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">Active</span>}
+                    </td>
+                    <td className="py-2 pr-4 text-xs">{log.runningMinutes ?? "—"}</td>
+                    <td className="py-2 text-xs">{log.downtimeMinutes ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Modal>
+
     </PortalLayout>
   );
 }

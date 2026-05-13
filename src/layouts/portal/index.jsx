@@ -16,12 +16,12 @@ export default function PortalLayout({ title, titleKey, children }) {
   }, [resolvedTitle, t]);
 
   return (
-    <div className="min-h-screen bg-lightPrimary dark:bg-navy-900">
+    <div className="flex min-h-screen flex-col bg-lightPrimary dark:bg-navy-900">
       <header
         className="fixed top-0 right-0 left-0 z-[60] w-full border-b border-gray-200 bg-lightPrimary/95 dark:border-white/10 dark:bg-navy-900/95"
         style={{ height: `${HEADER_HEIGHT}px` }}
       >
-        <div className="flex h-full w-full items-center px-3 sm:px-4 md:px-8">
+        <div className="flex h-full w-full items-center px-4">
           <div className="h-full w-full">
             <Navbar
               showSidebarToggle={false}
@@ -32,10 +32,10 @@ export default function PortalLayout({ title, titleKey, children }) {
         </div>
       </header>
       <div
-        className="mx-auto w-full px-3 pt-2 sm:px-4 md:px-8"
+        className="flex flex-1 flex-col px-4 pb-4"
         style={{ paddingTop: `calc(${HEADER_HEIGHT}px + 0.5rem)` }}
       >
-        <main className="mx-auto mt-2 w-full max-w-6xl pb-10">{children}</main>
+        <main className="flex flex-1 flex-col w-full mt-2">{children}</main>
       </div>
     </div>
   );

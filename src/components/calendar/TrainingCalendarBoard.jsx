@@ -143,6 +143,8 @@ export default function TrainingCalendarBoard({
   buildLessonAssetModalData,
   buildStudentAssetModalData,
   scheduleBadgeLabel,
+  renderEventCard,
+  footerContent,
 }) {
   const { t } = useLanguage();
   const [studentModalState, setStudentModalState] = useState(null);
@@ -329,20 +331,26 @@ export default function TrainingCalendarBoard({
               0
             );
             const dayEvents = key ? (eventMap.get(key) || []) : [];
-            const incidentCount = dayEvents.filter(ev => ev.type === "issue").length;
+            const incidentEvents = dayEvents.filter(ev => ev.type === "issue");
+            const pendingCount = incidentEvents.filter(ev => ev.statusGroup === "pending").length;
+            const inProgressCount = incidentEvents.filter(ev => ev.statusGroup === "in-progress").length;
+            const otherIncidentCount = incidentEvents.filter(ev => !ev.statusGroup || !["pending", "in-progress"].includes(ev.statusGroup)).length;
             const nonIncidentCount = dayEvents.filter(ev => ev.type !== "issue").length;
             const lessonCount = scheduleCount + nonIncidentCount;
 
-            if (lessonCount <= 0 && incidentCount <= 0) return null;
+            if (lessonCount <= 0 && incidentEvents.length <= 0) return null;
 
             return (
               <div className="tcb__tile-dots">
                 {lessonCount > 0 && <span className="tcb__tile-dot tcb__tile-dot--lesson">{lessonCount}</span>}
-                {incidentCount > 0 && <span className="tcb__tile-dot tcb__tile-dot--incident">{incidentCount}</span>}
+                {pendingCount > 0 && <span className="tcb__tile-dot tcb__tile-dot--pending">{pendingCount}</span>}
+                {inProgressCount > 0 && <span className="tcb__tile-dot tcb__tile-dot--in-progress">{inProgressCount}</span>}
+                {otherIncidentCount > 0 && <span className="tcb__tile-dot tcb__tile-dot--incident">{otherIncidentCount}</span>}
               </div>
             );
           }}
         />
+        {footerContent && <div className="tcb__footer">{footerContent}</div>}
       </div>
 
       {/* ── Right: day detail panel ────────────────────────────────────── */}
@@ -482,6 +490,10 @@ export default function TrainingCalendarBoard({
 
               {/* ── Point-in-time event cards (sessions, issues, etc.) ──── */}
               {sortedEvents.map((event, i) => {
+                if (renderEventCard) {
+                  const custom = renderEventCard(event, i);
+                  if (custom) return <React.Fragment key={`ev-${i}`}>{custom}</React.Fragment>;
+                }
                 const cfg = resolveConfig(event);
                 return (
                   <div

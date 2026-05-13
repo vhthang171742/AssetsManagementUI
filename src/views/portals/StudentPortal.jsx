@@ -77,6 +77,8 @@ export default function StudentPortal() {
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [myClassId, setMyClassId] = useState(null);
   const [myClassDetails, setMyClassDetails] = useState(null);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [showAssetsModal, setShowAssetsModal] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [userTimeZoneId, setUserTimeZoneId] = useState("");
 
@@ -732,8 +734,8 @@ export default function StudentPortal() {
   return (
     <PortalLayout title="Student Portal" titleKey={K.STUDENT_PORTAL_TITLE}>
 
-      <div className="grid grid-cols-1 gap-5">
-        <Card extra="p-6">
+      <div className="flex flex-1 flex-col min-h-0 gap-5">
+        <Card extra="p-3 flex-1 min-h-0">
           <TrainingCalendarBoard
             value={calendarDate}
             onChange={setCalendarDate}
@@ -761,12 +763,34 @@ export default function StudentPortal() {
                   }
                 : null
             )}
+            footerContent={
+              <div className="grid grid-cols-2 gap-2 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAttendanceModal(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-navy-700 shadow-sm hover:bg-gray-50 dark:border-gray-700 dark:bg-navy-800 dark:text-white dark:hover:bg-navy-700"
+                >
+                  {myActiveCheckouts.length > 0 && (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-[10px] font-bold text-white">{myActiveCheckouts.length}</span>
+                  )}
+                  {t(K.STUDENT_ACTIVE_QR_CHECKOUTS, "My Ongoing Attendance")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAssetsModal(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-navy-700 shadow-sm hover:bg-gray-50 dark:border-gray-700 dark:bg-navy-800 dark:text-white dark:hover:bg-navy-700"
+                >
+                  {assignedAssetsWithSessions.length > 0 && (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-[10px] font-bold text-white">{assignedAssetsWithSessions.length}</span>
+                  )}
+                  {t(K.STUDENT_ASSETS_AND_SESSIONS, "My Assets & Sessions")}
+                </button>
+              </div>
+            }
           />
         </Card>
-      </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-5">
-        <Card extra="p-6">
+        <Card extra="p-6 shrink-0">
           <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_ENROLL_CLASS_TITLE, "Find Class And Enroll")}</h2>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
             {t(K.STUDENT_ENROLL_CLASS_HINT, "Pick a course, browse classes, and enroll into a class.")}
@@ -902,126 +926,132 @@ export default function StudentPortal() {
         </Card>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_ACTIVE_QR_CHECKOUTS, "My Active QR Checkouts")}</h2>
-          <div className="mt-4 space-y-3">
-            {myActiveCheckouts.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_NO_ACTIVE_QR_CHECKOUTS, "No active QR checkouts.")}</p>
-            )}
-            {myActiveCheckouts.map((item) => (
-              <div
-                key={item.assignmentID}
-                className="rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-700 dark:bg-navy-900"
-              >
-                <div className="flex flex-wrap items-center gap-1 text-sm font-semibold text-navy-700 dark:text-white">
-                  {item.assetID
-                    ? <StudentAssignedAssetPill
-                        assetId={item.assetID}
-                        label={item.serialNumber ? `SN ${item.serialNumber}` : (item.assetCode || `Asset #${item.roomAssetID}`)}
-                        assignment={item}
-                        session={getSessionForAsset(item, null)}
-                        incidentCategories={incidentCategories}
-                        userTimeZoneId={userTimeZoneId}
-                        onIssueReported={handleIssueReported}
-                      />
-                    : <span>Asset #{item.roomAssetID}</span>
-                  }
-                  {item.classCode
-                    ? <EntityPill type="class" id={item.classID} label={item.classCode} />
-                    : <span>Class #{item.classID}</span>
-                  }
-                </div>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-                  {t(K.STUDENT_QR_CHECKOUT_INFO, "Checked out at")} {formatDateTimeInTimeZone(item.assignedDate, userTimeZoneId)}
-                </p>
+      <Modal
+        isOpen={showAttendanceModal}
+        onClose={() => setShowAttendanceModal(false)}
+        title={t(K.STUDENT_ACTIVE_QR_CHECKOUTS, "My Ongoing Attendance")}
+        maxWidth="max-w-xl"
+      >
+        <div className="space-y-3">
+          {myActiveCheckouts.length === 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_NO_ACTIVE_QR_CHECKOUTS, "No active QR checkouts.")}</p>
+          )}
+          {myActiveCheckouts.map((item) => (
+            <div
+              key={item.assignmentID}
+              className="rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-700 dark:bg-navy-900"
+            >
+              <div className="flex flex-wrap items-center gap-1 text-sm font-semibold text-navy-700 dark:text-white">
+                {item.assetID
+                  ? <StudentAssignedAssetPill
+                      assetId={item.assetID}
+                      label={item.serialNumber ? `SN ${item.serialNumber}` : (item.assetCode || `Asset #${item.roomAssetID}`)}
+                      assignment={item}
+                      session={getSessionForAsset(item, null)}
+                      incidentCategories={incidentCategories}
+                      userTimeZoneId={userTimeZoneId}
+                      onIssueReported={handleIssueReported}
+                    />
+                  : <span>Asset #{item.roomAssetID}</span>
+                }
+                {item.classCode
+                  ? <EntityPill type="class" id={item.classID} label={item.classCode} />
+                  : <span>Class #{item.classID}</span>
+                }
               </div>
-            ))}
-          </div>
-        </Card>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
+                {t(K.STUDENT_QR_CHECKOUT_INFO, "Checked out at")} {formatDateTimeInTimeZone(item.assignedDate, userTimeZoneId)}
+              </p>
+            </div>
+          ))}
+        </div>
+      </Modal>
 
-        <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.STUDENT_ASSETS_AND_SESSIONS, "My Assets & Sessions")}</h2>
-          <div className="mt-4 space-y-3" style={{ maxHeight: 480, overflowY: 'auto' }}>
-            {assignedAssetsWithSessions.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_NO_ASSETS_OR_SESSIONS, "No assigned assets or active sessions.")}</p>
-            )}
-            {assignedAssetsWithSessions.map(({ key, assignment, session, type }) => (
-              <div
-                key={key}
-                className="rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-700 dark:bg-navy-900"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-1">
-                      {(assignment?.assetID || session?.assetID)
-                        ? <StudentAssignedAssetPill
-                            assetId={assignment?.assetID || session?.assetID}
-                            label={assignment?.serialNumber
-                              ? `SN ${assignment.serialNumber}`
-                              : assignment?.assetCode || session?.assetCode || `Asset #${assignment?.roomAssetID ?? session?.roomAssetID}`}
-                            assignment={assignment}
-                            session={getSessionForAsset(assignment, session)}
-                            incidentCategories={incidentCategories}
-                            userTimeZoneId={userTimeZoneId}
-                            onIssueReported={handleIssueReported}
-                          />
-                        : <p className="text-sm font-semibold text-navy-700 dark:text-white">Asset #{assignment?.roomAssetID ?? session?.roomAssetID}</p>
-                      }
-                      {(assignment?.classCode || session?.classCode)
-                        ? <EntityPill type="class" id={assignment?.classID ?? session?.classID} label={assignment?.classCode || session?.classCode} />
-                        : <p className="text-sm font-semibold text-navy-700 dark:text-white">Class #{assignment?.classID ?? session?.classID}</p>
-                      }
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-                      {assignment?.assignedDate && (
-                        <>
-                          {" • "}{t(K.STUDENT_ASSIGNED_INFO, "Assigned")} {formatDateTimeInTimeZone(assignment.assignedDate, userTimeZoneId)}
-                        </>
-                      )}
-                    </p>
-                    {session ? (
-                      <>
-                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-300">
-                          {t(K.STUDENT_SESSION_ROW, "Session")} #{session.sessionID} • {t(K.STUDENT_SESSION_INFO, "Start")} {formatDateTimeInTimeZone(session.startTime, userTimeZoneId)}
-                        </p>
-                        {session.attendanceStatus && (
-                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-                            {t(K.STUDENT_ATTENDANCE_STATUS, "Attendance")}: {session.attendanceStatus}
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      assignment && (
-                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-300">
-                          {t(K.STUDENT_NO_OPEN_SESSION, "No active session on this asset.")}
-                        </p>
-                      )
-                    )}
+      <Modal
+        isOpen={showAssetsModal}
+        onClose={() => setShowAssetsModal(false)}
+        title={t(K.STUDENT_ASSETS_AND_SESSIONS, "My Assets & Sessions")}
+        maxWidth="max-w-2xl"
+      >
+        <div className="space-y-3" style={{ maxHeight: 480, overflowY: 'auto' }}>
+          {assignedAssetsWithSessions.length === 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-300">{t(K.STUDENT_NO_ASSETS_OR_SESSIONS, "No assigned assets or active sessions.")}</p>
+          )}
+          {assignedAssetsWithSessions.map(({ key, assignment, session, type }) => (
+            <div
+              key={key}
+              className="rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-700 dark:bg-navy-900"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {(assignment?.assetID || session?.assetID)
+                      ? <StudentAssignedAssetPill
+                          assetId={assignment?.assetID || session?.assetID}
+                          label={assignment?.serialNumber
+                            ? `SN ${assignment.serialNumber}`
+                            : assignment?.assetCode || session?.assetCode || `Asset #${assignment?.roomAssetID ?? session?.roomAssetID}`}
+                          assignment={assignment}
+                          session={getSessionForAsset(assignment, session)}
+                          incidentCategories={incidentCategories}
+                          userTimeZoneId={userTimeZoneId}
+                          onIssueReported={handleIssueReported}
+                        />
+                      : <p className="text-sm font-semibold text-navy-700 dark:text-white">Asset #{assignment?.roomAssetID ?? session?.roomAssetID}</p>
+                    }
+                    {(assignment?.classCode || session?.classCode)
+                      ? <EntityPill type="class" id={assignment?.classID ?? session?.classID} label={assignment?.classCode || session?.classCode} />
+                      : <p className="text-sm font-semibold text-navy-700 dark:text-white">Class #{assignment?.classID ?? session?.classID}</p>
+                    }
                   </div>
-                  <span
-                    className={`rounded-full px-2 py-1 text-[10px] font-bold ${
-                      session
-                        ? "bg-sky-100 text-sky-700"
-                        : assignment?.isActive
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    {session
-                      ? t(K.STUDENT_SESSION_OPEN, "Session Open")
-                      : assignment?.isActive
-                      ? t(K.STUDENT_ACTIVE, "Active")
-                      : type === "session"
-                      ? t(K.STUDENT_SESSION_OPEN, "Session Open")
-                      : t(K.STUDENT_UNASSIGNED, "Unassigned")}
-                  </span>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
+                    {assignment?.assignedDate && (
+                      <>
+                        {" • "}{t(K.STUDENT_ASSIGNED_INFO, "Assigned")} {formatDateTimeInTimeZone(assignment.assignedDate, userTimeZoneId)}
+                      </>
+                    )}
+                  </p>
+                  {session ? (
+                    <>
+                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-300">
+                        {t(K.STUDENT_SESSION_ROW, "Session")} #{session.sessionID} • {t(K.STUDENT_SESSION_INFO, "Start")} {formatDateTimeInTimeZone(session.startTime, userTimeZoneId)}
+                      </p>
+                      {session.attendanceStatus && (
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
+                          {t(K.STUDENT_ATTENDANCE_STATUS, "Attendance")}: {session.attendanceStatus}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    assignment && (
+                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-300">
+                        {t(K.STUDENT_NO_OPEN_SESSION, "No active session on this asset.")}
+                      </p>
+                    )
+                  )}
                 </div>
+                <span
+                  className={`rounded-full px-2 py-1 text-[10px] font-bold ${
+                    session
+                      ? "bg-sky-100 text-sky-700"
+                      : assignment?.isActive
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-gray-200 text-gray-700"
+                  }`}
+                >
+                  {session
+                    ? t(K.STUDENT_SESSION_OPEN, "Session Open")
+                    : assignment?.isActive
+                    ? t(K.STUDENT_ACTIVE, "Active")
+                    : type === "session"
+                    ? t(K.STUDENT_SESSION_OPEN, "Session Open")
+                    : t(K.STUDENT_UNASSIGNED, "Unassigned")}
+                </span>
               </div>
-            ))}
-          </div>
-        </Card>
-      </div>
+            </div>
+          ))}
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isScanning && Boolean(scannerTarget)}

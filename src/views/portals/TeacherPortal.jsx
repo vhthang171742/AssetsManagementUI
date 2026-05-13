@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useLocation } from "react-router-dom";
-import Card from "components/card";
 import Modal from "components/modal/Modal";
 import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import PortalLayout from "layouts/portal";
@@ -12,7 +11,6 @@ import {
   practiceSessionService,
 } from "services/api";
 import assetService from "services/assetService";
-import { configurationService } from "services/configurationService";
 import { useLanguage } from "context/LanguageContext";
 import { useAuth } from "context/AuthContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
@@ -32,19 +30,13 @@ export default function TeacherPortal() {
   const [activeAssignments, setActiveAssignments] = useState([]);
   const [recentIssues, setRecentIssues] = useState([]);
   const [calendarDate, setCalendarDate] = useState(new Date());
-  const [incidentCategories, setIncidentCategories] = useState([]);
+
   const [userTimeZoneId, setUserTimeZoneId] = useState("");
   const [assetActionBusyByRow, setAssetActionBusyByRow] = useState({});
   const [assetModalOpen, setAssetModalOpen] = useState(false);
   const [assetModalStudent, setAssetModalStudent] = useState(null);
   const [assetModalAction, setAssetModalAction] = useState("assign");
   const [assetModalSelection, setAssetModalSelection] = useState("");
-
-  const [issueForm, setIssueForm] = useState({
-    sessionID: "",
-    studentDescription: "",
-    errorType: "",
-  });
 
   const normalizeAssignment = useCallback((item = {}) => ({
     ...item,
@@ -422,32 +414,6 @@ export default function TeacherPortal() {
   }, [currentUser?.userProfileID, language]);
 
   useEffect(() => {
-    const PERMANENT_INCIDENT_CATEGORIES = [
-      { itemCode: "HARDWARE_FAILURE", label: "Hardware Failure" },
-      { itemCode: "SOFTWARE_ISSUE", label: "Software Issue" },
-      { itemCode: "NETWORK_ISSUE", label: "Network / Connectivity" },
-      { itemCode: "POWER_ISSUE", label: "Power Issue" },
-      { itemCode: "OTHER", label: "Other" },
-    ];
-
-    configurationService.getItems("ErrorType", language).then((items) => {
-      const configItems = (items || []).map((item) => ({
-        itemCode: item.itemCode,
-        label: item.label || item.itemCode,
-      }));
-      const merged = [...PERMANENT_INCIDENT_CATEGORIES];
-      configItems.forEach((ci) => {
-        if (!merged.find((m) => m.itemCode === ci.itemCode)) {
-          merged.push(ci);
-        }
-      });
-      setIncidentCategories(merged);
-    }).catch(() => {
-      setIncidentCategories(PERMANENT_INCIDENT_CATEGORIES);
-    });
-  }, [language]);
-
-  useEffect(() => {
     const params = new URLSearchParams(location.search);
     const dateParam = params.get("date");
     if (!dateParam) {
@@ -629,6 +595,8 @@ export default function TeacherPortal() {
     const isBusy = Boolean(assetActionBusyByRow[rowKey]);
 
     return {
+      enableRoomAssetIssueReport: Boolean(student.roomAssetID),
+      roomAssetID: student.roomAssetID || null,
       footerActions: ({ onClose }) => (
         <>
           <button
@@ -689,42 +657,22 @@ export default function TeacherPortal() {
     };
   }, [assetActionBusyByRow, openAssetModal, t]);
 
-  const handleIssueReport = async (event) => {
-    event.preventDefault();
-    try {
-      await practiceErrorLogService.create({
-        sessionID: Number(issueForm.sessionID),
-        errorTime: new Date().toISOString(),
-        errorType: issueForm.errorType || undefined,
-        studentDescription: issueForm.studentDescription,
-        instructorNotified: true,
-      });
-      setIssueForm({ sessionID: "", studentDescription: "", errorType: "" });
-      showToast(t(K.TEACHER_ISSUE_REPORTED, "Issue reported successfully."));
-      await loadData();
-    } catch (error) {
-      showToast(`${t(K.TEACHER_ISSUE_REPORT_FAILED, "Issue report failed")}: ${error.message}`, true);
-    }
-  };
-
   return (
     <PortalLayout title="Teacher Portal" titleKey={K.TEACHER_PORTAL_TITLE}>
-      <div className="grid grid-cols-1 gap-5">
-        <Card extra="p-6">
-          <TrainingCalendarBoard
-            value={calendarDate}
-            onChange={setCalendarDate}
-            scheduleItems={scheduleItems}
-            events={calendarEvents}
-            timeZoneId={userTimeZoneId}
-            onForceReturn={handleForceReturn}
-            renderStudentActions={renderStudentActions}
-            buildStudentAssetModalData={buildStudentAssetModalData}
-            title={t(K.TEACHER_TRAINING_CALENDAR, "Training Calendar")}
-            detailsTitle={t("COMMON_DAILY_DETAILS", "Daily Details")}
-            noEventsText={t(K.TEACHER_NO_EVENTS_ON_DATE, "No training events on selected date.")}
-          />
-        </Card>
+      <div className="flex flex-1 flex-col min-h-0">
+        <TrainingCalendarBoard
+          value={calendarDate}
+          onChange={setCalendarDate}
+          scheduleItems={scheduleItems}
+          events={calendarEvents}
+          timeZoneId={userTimeZoneId}
+          onForceReturn={handleForceReturn}
+          renderStudentActions={renderStudentActions}
+          buildStudentAssetModalData={buildStudentAssetModalData}
+          title={t(K.TEACHER_TRAINING_CALENDAR, "Training Calendar")}
+          detailsTitle={t("COMMON_DAILY_DETAILS", "Daily Details")}
+          noEventsText={t(K.TEACHER_NO_EVENTS_ON_DATE, "No training events on selected date.")}
+        />
       </div>
 
       <Modal
@@ -808,53 +756,6 @@ export default function TeacherPortal() {
       </Modal>
 
       {/* message removed — now using react-hot-toast */}
-
-      <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <Card extra="p-6">
-          <h2 className="text-lg font-bold text-navy-700 dark:text-white">{t(K.TEACHER_REPORT_ISSUE_TITLE, "Report Asset Issue")}</h2>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-300">
-            {t(K.TEACHER_REPORT_ISSUE_HINT, "Submit quick issue reports for ongoing sessions.")}
-          </p>
-          <form className="mt-4 space-y-3" onSubmit={handleIssueReport}>
-            <input
-              type="number"
-              min="1"
-              required
-              value={issueForm.sessionID}
-              onChange={(e) => setIssueForm((prev) => ({ ...prev, sessionID: e.target.value }))}
-              placeholder={t(K.TEACHER_SESSION_ID, "Practice Session ID")}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
-            />
-            <select
-              value={issueForm.errorType}
-              onChange={(e) => setIssueForm((prev) => ({ ...prev, errorType: e.target.value }))}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
-            >
-              <option value="">{t(K.INCIDENT_SELECT_CATEGORY, "Select incident category")}</option>
-              {incidentCategories.map((cat) => (
-                <option key={cat.itemCode} value={cat.itemCode}>{cat.label}</option>
-              ))}
-            </select>
-            <textarea
-              required
-              rows={4}
-              value={issueForm.studentDescription}
-              onChange={(e) =>
-                setIssueForm((prev) => ({ ...prev, studentDescription: e.target.value }))
-              }
-              placeholder={t(K.TEACHER_DESCRIBE_ISSUE_IMPACT, "Describe the issue and impact")}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-navy-900"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-navy-700 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-800 disabled:opacity-60"
-            >
-              {t(K.TEACHER_SEND_ISSUE_REPORT, "Send Issue Report")}
-            </button>
-          </form>
-        </Card>
-      </div>
 
       
     </PortalLayout>
