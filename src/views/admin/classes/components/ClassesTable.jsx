@@ -8,6 +8,7 @@ import Table from "components/table/Table";
 import { renderEntityPill, renderLookupEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete, MdInventory2 } from "react-icons/md";
 import Modal from "components/modal/Modal";
+import RoomAssetIssueReporter from "components/roomAsset/RoomAssetIssueReporter";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
 import { useAuth } from "context/AuthContext";
@@ -1531,6 +1532,9 @@ export default function ClassesTable() {
                     );
                   })()}
                 </div>
+
+                {/* Incident Report */}
+                <RoomAssetIssueReporter roomAssetId={selectedAsset.roomAssetID} />
               </div>
             ) : (
               <div className="col-span-2 flex items-center justify-center text-gray-400 dark:text-gray-600">

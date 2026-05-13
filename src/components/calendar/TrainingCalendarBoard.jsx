@@ -4,6 +4,7 @@ import { MdChevronLeft, MdChevronRight } from "react-icons/md";
 import "react-calendar/dist/Calendar.css";
 import "assets/css/TrainingCalendarBoard.css";
 import Modal from "components/modal/Modal";
+import RoomPill from "components/RoomPill";
 import {
   formatTimeInTimeZone,
   toDateKeyInTimeZone,
@@ -397,7 +398,11 @@ export default function TrainingCalendarBoard({
                     {item.courseName && item.name && item.courseName !== item.name && (
                       <p className="tcb__event-subtitle">{item.name}</p>
                     )}
-                    {item.room && <p className="tcb__event-subtitle">{item.room}</p>}
+                    {item.room && (
+                      <div className="tcb__event-subtitle">
+                        <RoomPill roomId={item.roomID || null} label={item.room} roomName={item.room} />
+                      </div>
+                    )}
 
                     <div className="tcb__lesson-list">
                       {(item.dailyLessons || []).map((lesson, index) => (

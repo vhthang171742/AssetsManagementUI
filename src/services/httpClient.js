@@ -192,7 +192,14 @@ export const httpClient = async (endpoint, options = {}) => {
   }
 
   try {
-    const response = await fetch(url, { ...defaultOptions, ...options });
+    const response = await fetch(url, {
+      ...defaultOptions,
+      ...options,
+      headers: {
+        ...defaultOptions.headers,
+        ...(options.headers || {}),
+      },
+    });
 
     // Handle 204 No Content responses (e.g., DELETE)
     if (response.status === 204) {

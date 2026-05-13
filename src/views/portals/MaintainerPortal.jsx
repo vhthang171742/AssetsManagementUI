@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { useLocation } from "react-router-dom";
 import Card from "components/card";
 import EntityPill from "components/EntityPill";
+import RoomPill from "components/RoomPill";
 import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import PortalLayout from "layouts/portal";
 import { practiceErrorLogService } from "services/api";
@@ -73,7 +74,7 @@ export default function TechnicianPortal() {
     try {
       const [allIssues, jobs] = await Promise.all([
         practiceErrorLogService.getAll(),
-        assetLifecycleService.getOpenJobs().catch(() => []),
+        assetLifecycleService.getOpenJobs(),
       ]);
 
       setIssues(
@@ -281,7 +282,7 @@ export default function TechnicianPortal() {
                   {job.roomName && (
                     <div>
                       <span className="font-semibold">{t(K.MAINTAINER_ROOM_LABEL, "Room")}:</span>{" "}
-                      {job.roomName}
+                      <RoomPill roomId={job.roomID || null} label={job.roomName} roomName={job.roomName} />
                     </div>
                   )}
                   {job.reporterName && (

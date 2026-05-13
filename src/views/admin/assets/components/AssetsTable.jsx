@@ -8,6 +8,7 @@ import { renderEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete, MdInfoOutline } from "react-icons/md";
 import Card from "components/card";
 import Modal from "components/modal/Modal";
+import EntityPill from "components/EntityPill";
 import { useLanguage } from "context/LanguageContext";
 import { useAuth } from "context/AuthContext";
 import { formatDateInTimeZone } from "services/dateTimeService";
@@ -942,11 +943,37 @@ export default function AssetsTable() {
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <p className="text-gray-600 dark:text-gray-400">Asset Code</p>
-                      <p className="font-medium dark:text-white">{selectedAsset.assetCode || t(K.ADMIN_TABLE_NA, "N/A")}</p>
+                      <div className="font-medium dark:text-white">
+                        {selectedAsset.assetID ? (
+                          <EntityPill
+                            type="asset"
+                            id={selectedAsset.assetID}
+                            label={selectedAsset.assetCode || t(K.ADMIN_TABLE_NA, "N/A")}
+                          />
+                        ) : (selectedAsset.assetCode || t(K.ADMIN_TABLE_NA, "N/A"))}
+                      </div>
                     </div>
                     <div>
                       <p className="text-gray-600 dark:text-gray-400">Serial Number</p>
-                      <p className="font-medium dark:text-white">{selectedAsset.serialNumber || t(K.ADMIN_TABLE_NA, "N/A")}</p>
+                      <div className="font-medium dark:text-white">
+                        {selectedAsset.assetID ? (
+                          <EntityPill
+                            type="asset"
+                            id={selectedAsset.assetID}
+                            label={selectedAsset.serialNumber || t(K.ADMIN_TABLE_NA, "N/A")}
+                            modalData={{
+                              serialNumber: selectedAsset.serialNumber || null,
+                              assetStatus: selectedAsset.assetStatus || selectedAsset.status || null,
+                              roomAssetID: selectedAsset.roomAssetID || null,
+                              roomID: selectedAsset.roomID || null,
+                              roomName: selectedAsset.roomName || getRoomName(selectedAsset.roomID),
+                              condition: selectedAsset.condition || null,
+                              operationalStatus: selectedAsset.operationalStatus || null,
+                              enableRoomAssetIssueReport: true,
+                            }}
+                          />
+                        ) : (selectedAsset.serialNumber || t(K.ADMIN_TABLE_NA, "N/A"))}
+                      </div>
                     </div>
                     <div className="col-span-2">
                       <p className="text-gray-600 dark:text-gray-400 mb-1">Room</p>

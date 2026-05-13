@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import Card from "components/card";
 import EntityPill from "components/EntityPill";
 import Modal from "components/modal/Modal";
+import RoomPill from "components/RoomPill";
 import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import StudentAssignedAssetPill, { buildStudentAssignedAssetModalData } from "./components/StudentAssignedAssetPill";
 import PortalLayout from "layouts/portal";
@@ -284,6 +285,7 @@ export default function StudentPortal() {
           classCode: item.classCode || null,
           name: item.className,
           courseName: item.courseName || courseNameById[item.courseID] || item.className,
+          roomID: item.roomID || null,
           room: item.roomName || "",
           startDate: item.startDate,
           endDate: item.endDate,
@@ -837,7 +839,10 @@ export default function StudentPortal() {
 
                       <div className="mt-3 space-y-1 text-xs text-gray-600 dark:text-gray-300">
                         <p><span className="font-semibold">{t(K.STUDENT_CLASS_TEACHER, "Teacher")}:</span> {item.instructorName || "-"}</p>
-                        <p><span className="font-semibold">{t(K.STUDENT_CLASS_ROOM, "Room")}:</span> {item.roomName || "-"}</p>
+                        <p>
+                          <span className="font-semibold">{t(K.STUDENT_CLASS_ROOM, "Room")}:</span>{" "}
+                          <RoomPill roomId={item.roomID || null} label={item.roomName || "-"} roomName={item.roomName || null} />
+                        </p>
                         <p><span className="font-semibold">{t(K.STUDENT_CLASS_DATE_RANGE, "Date")}:</span> {formatDateLabel(item.startDate)} - {formatDateLabel(item.endDate)}</p>
                         <p>
                           <span className="font-semibold">{t(K.STUDENT_CLASS_AVAILABLE_SLOTS, "Available slots")}:</span>{" "}

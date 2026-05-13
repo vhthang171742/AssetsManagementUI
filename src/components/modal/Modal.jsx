@@ -21,7 +21,7 @@ export default function Modal({ isOpen, onClose, title, children, footer, maxWid
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1 dark:text-white min-h-0">{children}</div>
+        <div className="p-6 overflow-y-auto overflow-x-hidden flex-1 dark:text-white min-h-0">{children}</div>
 
         <div className="px-6 py-4 border-t dark:border-gray-700 flex justify-end gap-2 flex-shrink-0">{footer}</div>
       </div>

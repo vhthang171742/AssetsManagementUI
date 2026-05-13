@@ -6,6 +6,16 @@ import { httpClient } from "./httpClient";
 
 export const assetLifecycleService = {
   /**
+   * Report an issue for a room asset without requiring an active session.
+   */
+  reportRoomAssetIssue: (roomAssetId, data) =>
+    httpClient(`/asset-lifecycle/room-assets/${roomAssetId}/report-issue`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
+
+  /**
    * Get all open maintenance jobs (for technician queue)
    */
   getOpenJobs: () => httpClient("/asset-lifecycle/jobs"),

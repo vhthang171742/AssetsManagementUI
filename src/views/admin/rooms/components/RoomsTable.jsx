@@ -7,6 +7,7 @@ import Table from "components/table/Table";
 import { renderEntityPill, renderLookupEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete, MdInventory2, MdRemoveCircle, MdInfoOutline } from "react-icons/md";
 import Modal from "components/modal/Modal";
+import RoomAssetIssueReporter from "components/roomAsset/RoomAssetIssueReporter";
 import { QRCodeSVG } from "qrcode.react";
 import { useLanguage } from "context/LanguageContext";
 import { useAuth } from "context/AuthContext";
@@ -927,6 +928,12 @@ export default function RoomsTable() {
                     </div>
                   )}
                 </div>
+
+                <RoomAssetIssueReporter
+                  roomAssetId={selectedAsset?.roomAssetID}
+                  containerClassName="col-span-2 rounded border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900"
+                  descriptionRows={3}
+                />
               </div>
             </div>
 
