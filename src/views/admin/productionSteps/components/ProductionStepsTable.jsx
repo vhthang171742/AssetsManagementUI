@@ -363,8 +363,26 @@ export default function ProductionStepsTable() {
         title={editingId
           ? `${t(K.ADMIN_TABLE_UPDATE, "Update")} ${t(K.ADMIN_TABLE_PRODUCTION_STEP, "Production Step")}`
           : `${t(K.ADMIN_TABLE_CREATE_NEW, "Create New")} ${t(K.ADMIN_TABLE_PRODUCTION_STEP, "Production Step")}`}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => { setShowModal(false); setEditingId(null); setFormData(createDefaultFormData()); setFormLineFilter(""); }}
+              className="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              {t(K.ADMIN_TABLE_CANCEL, "Cancel")}
+            </button>
+            <button
+              type="submit"
+              form="productionStepForm"
+              className="rounded bg-brand-500 px-4 py-2 text-sm text-white hover:bg-brand-600"
+            >
+              {editingId ? t(K.ADMIN_TABLE_UPDATE, "Update") : t(K.ADMIN_TABLE_CREATE, "Create")}
+            </button>
+          </>
+        }
       >
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form id="productionStepForm" onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Cascading line→order selector */}
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
@@ -520,21 +538,6 @@ export default function ProductionStepsTable() {
             </label>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => { setShowModal(false); setEditingId(null); setFormData(createDefaultFormData()); setFormLineFilter(""); }}
-              className="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-            >
-              {t(K.ADMIN_TABLE_CANCEL, "Cancel")}
-            </button>
-            <button
-              type="submit"
-              className="rounded bg-brand-500 px-4 py-2 text-sm text-white hover:bg-brand-600"
-            >
-              {editingId ? t(K.ADMIN_TABLE_UPDATE, "Update") : t(K.ADMIN_TABLE_CREATE, "Create")}
-            </button>
-          </div>
         </form>
       </Modal>
     </Card>

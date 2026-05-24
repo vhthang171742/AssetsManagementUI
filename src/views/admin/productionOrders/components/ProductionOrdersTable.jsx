@@ -333,8 +333,26 @@ export default function ProductionOrdersTable() {
         title={editingId
           ? `${t(K.ADMIN_TABLE_UPDATE, "Update")} ${t(K.ADMIN_TABLE_PRODUCTION_ORDER, "Production Order")}`
           : `${t(K.ADMIN_TABLE_CREATE_NEW, "Create New")} ${t(K.ADMIN_TABLE_PRODUCTION_ORDER, "Production Order")}`}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => { setShowModal(false); setEditingId(null); setFormData(createDefaultFormData()); }}
+              className="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              {t(K.ADMIN_TABLE_CANCEL, "Cancel")}
+            </button>
+            <button
+              type="submit"
+              form="productionOrderForm"
+              className="rounded bg-brand-500 px-4 py-2 text-sm text-white hover:bg-brand-600"
+            >
+              {editingId ? t(K.ADMIN_TABLE_UPDATE, "Update") : t(K.ADMIN_TABLE_CREATE, "Create")}
+            </button>
+          </>
+        }
       >
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form id="productionOrderForm" onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
               {`${t(K.ADMIN_TABLE_PRODUCTION_LINE, "Production Line")} *`}
@@ -529,22 +547,6 @@ export default function ProductionOrdersTable() {
             <label htmlFor="orderIsActive" className="text-sm font-medium text-navy-700 dark:text-white">
               {t(K.ADMIN_TABLE_ACTIVE, "Active")}
             </label>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => { setShowModal(false); setEditingId(null); setFormData(createDefaultFormData()); }}
-              className="rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-            >
-              {t(K.ADMIN_TABLE_CANCEL, "Cancel")}
-            </button>
-            <button
-              type="submit"
-              className="rounded bg-brand-500 px-4 py-2 text-sm text-white hover:bg-brand-600"
-            >
-              {editingId ? t(K.ADMIN_TABLE_UPDATE, "Update") : t(K.ADMIN_TABLE_CREATE, "Create")}
-            </button>
           </div>
         </form>
       </Modal>
