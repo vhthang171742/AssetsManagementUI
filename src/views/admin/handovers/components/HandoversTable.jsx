@@ -21,6 +21,8 @@ export default function HandoversTable() {
   const [assets, setAssets] = useState([]);
   const [productionLines, setProductionLines] = useState([]);
   const [conditions, setConditions] = useState([]);
+  const [availableItems, setAvailableItems] = useState([]);
+  const [newSerialText, setNewSerialText] = useState("");
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -35,7 +37,7 @@ export default function HandoversTable() {
   const [sortBy, setSortBy] = useState("handoverDate");
   const [sortDirection, setSortDirection] = useState("desc");
   const [formData, setFormData] = useState({
-    roomID: "",
+    targetSelection: "",
     handoverDate: "",
     deliveredBy: "",
     receivedBy: "",
@@ -71,13 +73,16 @@ export default function HandoversTable() {
   const fetchHandovers = async () => {
     try {
       setLoading(true);
+      const [filterType, filterIdRaw] = roomFilter ? roomFilter.split(":") : [null, null];
+      const filterId = filterIdRaw ? Number(filterIdRaw) : undefined;
       const data = await handoverService.getPaged({
         page,
         pageSize,
         search: debouncedSearch,
         sortBy,
         sortDirection,
-        roomID: roomFilter ? Number(roomFilter) : undefined,
+        roomID: filterType === "room" ? filterId : undefined,
+        productionLineID: filterType === "line" ? filterId : undefined,
       });
       setHandovers(data?.items || []);
       setTotalCount(data?.totalCount || 0);
@@ -146,17 +151,33 @@ export default function HandoversTable() {
     }));
   };
 
-  const handleDetailInputChange = (e) => {
+  const handleDetailInputChange = async (e) => {
     const { name, value } = e.target;
     setDetailFormData((prev) => ({
       ...prev,
       [name]: value,
+      ...(name === "assetID" ? { serialNumber: "" } : {}),
     }));
+
+    if (name === "assetID" && value) {
+      try {
+        const items = await assetService.getRoomAssets(Number(value));
+        setAvailableItems(items || []);
+      } catch (err) {
+        console.error("Failed to load asset items:", err);
+        setAvailableItems([]);
+      }
+      setNewSerialText("");
+    } else if (name === "assetID") {
+      setAvailableItems([]);
+      setNewSerialText("");
+    }
   };
 
   const handleStageAssetItem = () => {
     const assetId = Number(detailFormData.assetID);
-    const serial = detailFormData.serialNumber.trim();
+    const isNew = detailFormData.serialNumber === "__new__";
+    const serial = (isNew ? newSerialText : detailFormData.serialNumber).trim();
 
     if (!assetId || !serial) {
       toast.error(t(K.ADMIN_TABLE_ASSET_AND_SERIAL_REQUIRED, "Asset and serial number are required"));
@@ -173,7 +194,11 @@ export default function HandoversTable() {
     }
 
     setStagedItems((prev) => [...prev, { assetID: assetId, serialNumber: serial }]);
-    setDetailFormData((prev) => ({ ...prev, serialNumber: "" }));
+    if (isNew) {
+      setNewSerialText("");
+    } else {
+      setDetailFormData((prev) => ({ ...prev, serialNumber: "" }));
+    }
   };
 
   const handleRemoveStagedItem = (index) => {
@@ -183,17 +208,33 @@ export default function HandoversTable() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      if (!formData.targetSelection) {
+        toast.error(t(K.ADMIN_TABLE_TARGET_REQUIRED, "Please select a target"));
+        return;
+      }
+
+      const [targetType, targetIdRaw] = formData.targetSelection.split(":");
+      const targetId = Number(targetIdRaw);
+      const payload = {
+        roomID: targetType === "room" ? targetId : null,
+        productionLineID: targetType === "line" ? targetId : null,
+        handoverDate: formData.handoverDate,
+        deliveredBy: formData.deliveredBy,
+        receivedBy: formData.receivedBy,
+        notes: formData.notes,
+      };
+
       if (editingId) {
-        await handoverService.update(editingId, formData);
+        await handoverService.update(editingId, payload);
         toast.success(`${t(K.ADMIN_TABLE_HANDOVER, "Handover")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
-        await handoverService.create(formData);
+        await handoverService.create(payload);
         toast.success(`${t(K.ADMIN_TABLE_HANDOVER, "Handover")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
       setEditingId(null);
       setFormData({
-        roomID: "",
+        targetSelection: "",
         handoverDate: "",
         deliveredBy: "",
         receivedBy: "",
@@ -259,6 +300,8 @@ export default function HandoversTable() {
         conditionAtHandover: "",
         remarks: "",
       });
+      setAvailableItems([]);
+      setNewSerialText("");
       setStagedItems([]);
       fetchHandoverDetails(selectedHandoverId);
     } catch (error) {
@@ -273,8 +316,15 @@ export default function HandoversTable() {
     const dateObj = new Date(handover.handoverDate);
     const formattedDate = dateObj.toISOString().slice(0, 16);
 
+    let targetSelection = "";
+    if (handover.roomID) {
+      targetSelection = `room:${handover.roomID}`;
+    } else if (handover.productionLineID) {
+      targetSelection = `line:${handover.productionLineID}`;
+    }
+
     setFormData({
-      roomID: handover.roomID,
+      targetSelection,
       handoverDate: formattedDate,
       deliveredBy: handover.deliveredBy || "",
       receivedBy: handover.receivedBy || "",
@@ -330,15 +380,27 @@ export default function HandoversTable() {
       targetSelection: "",
       conditionAtHandover: "",
       remarks: "",
-    });
-    setStagedItems([]);
+    });    setAvailableItems([]);    setNewSerialText("");    setStagedItems([]);
     fetchHandoverDetails(handoverId);
     setShowDetailsModal(true);
   };
 
-  const getRoomName = (roomID) => {
-    const room = rooms.find((r) => r.roomID === roomID);
-    return room ? room.roomName : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
+  const getTargetName = (row) => {
+    if (row.roomID) {
+      const room = rooms.find((r) => r.roomID === row.roomID);
+      return room ? room.roomName : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
+    }
+    if (row.productionLineID) {
+      const line = productionLines.find((l) => l.productionLineID === row.productionLineID);
+      return line ? line.lineName : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
+    }
+    return t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
+  };
+
+  const getTargetType = (row) => {
+    if (row.roomID) return t(K.ROUTE_ROOMS, "Room");
+    if (row.productionLineID) return t(K.ROUTE_PRODUCTION_LINES, "Line");
+    return "";
   };
 
   const getAssetName = (assetID) => {
@@ -358,7 +420,7 @@ export default function HandoversTable() {
             onClick={() => {
               setEditingId(null);
               setFormData({
-                roomID: "",
+                targetSelection: "",
                 handoverDate: "",
                 deliveredBy: "",
                 receivedBy: "",
@@ -389,10 +451,17 @@ export default function HandoversTable() {
               }}
               className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             >
-              <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ROUTE_ROOMS, "Rooms")}`}</option>
-              {rooms.map((r) => (
-                <option key={r.roomID} value={r.roomID}>{r.roomName}</option>
-              ))}
+              <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_TARGET_LOCATION, "Targets")}`}</option>
+              <optgroup label={t(K.ROUTE_ROOMS, "Rooms")}>
+                {rooms.map((r) => (
+                  <option key={`room-${r.roomID}`} value={`room:${r.roomID}`}>{r.roomName}</option>
+                ))}
+              </optgroup>
+              <optgroup label={t(K.ROUTE_PRODUCTION_LINES, "Production Lines")}>
+                {productionLines.map((l) => (
+                  <option key={`line-${l.productionLineID}`} value={`line:${l.productionLineID}`}>{l.lineName}</option>
+                ))}
+              </optgroup>
             </select>
           </div>
         </div>
@@ -419,7 +488,17 @@ export default function HandoversTable() {
               setPage(1);
             }}
             columns={[
-              { header: t(K.ADMIN_TABLE_ROOM, 'Room'), accessor: 'roomID', sortKey: "roomName", render: (row) => getRoomName(row.roomID) },
+              {
+                header: t(K.ADMIN_TABLE_TARGET_LOCATION, 'Target'),
+                accessor: 'roomID',
+                sortKey: "roomName",
+                render: (row) => (
+                  <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{getTargetType(row)}</div>
+                    <div>{getTargetName(row)}</div>
+                  </div>
+                )
+              },
               { header: t(K.ADMIN_TABLE_HANDOVER_DATE, 'Handover Date'), accessor: 'handoverDate', sortKey: "handoverDate", render: (row) => formatDate(row.handoverDate) },
               { header: t(K.ADMIN_TABLE_DELIVERED_BY, 'Delivered By'), accessor: 'deliveredBy', sortKey: "deliveredBy" },
               { header: t(K.ADMIN_TABLE_RECEIVED_BY, 'Received By'), accessor: 'receivedBy', sortKey: "receivedBy" },
@@ -488,20 +567,29 @@ export default function HandoversTable() {
         >
           <form id="handoverForm" onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2 dark:text-white">{t(K.ADMIN_TABLE_ROOM, "Room")}</label>
+              <label className="block text-sm font-medium mb-2 dark:text-white">{t(K.ADMIN_TABLE_TARGET_LOCATION, "Target")}</label>
               <select
-                name="roomID"
-                value={formData.roomID}
+                name="targetSelection"
+                value={formData.targetSelection}
                 onChange={handleInputChange}
                 className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 required
               >
-                <option value="">{t(K.ADMIN_TABLE_SELECT_ROOM, "Select Room")}</option>
-                {rooms.map((room) => (
-                  <option key={room.roomID} value={room.roomID}>
-                    {room.roomName}
-                  </option>
-                ))}
+                <option value="">{t(K.ADMIN_TABLE_SELECT_TARGET_LOCATION, "Select target")}</option>
+                <optgroup label={t(K.ROUTE_ROOMS, "Rooms")}>
+                  {rooms.map((room) => (
+                    <option key={`room-${room.roomID}`} value={`room:${room.roomID}`}>
+                      {room.roomName}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label={t(K.ROUTE_PRODUCTION_LINES, "Production Lines")}>
+                  {productionLines.map((line) => (
+                    <option key={`line-${line.productionLineID}`} value={`line:${line.productionLineID}`}>
+                      {line.lineName} ({line.lineCode})
+                    </option>
+                  ))}
+                </optgroup>
               </select>
             </div>
             <div className="mb-4">
@@ -597,23 +685,54 @@ export default function HandoversTable() {
                 </div>
                 <div className="col-span-1">
                   <label className="block text-sm font-medium mb-1 dark:text-white">{t(K.ADMIN_TABLE_SERIAL_NUMBER, "Serial Number")}</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      name="serialNumber"
-                      value={detailFormData.serialNumber}
-                      onChange={handleDetailInputChange}
-                      className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:placeholder-gray-300"
-                      placeholder={t(K.ADMIN_TABLE_SERIAL_NUMBER_EXAMPLE, "e.g., SN-12345")}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleStageAssetItem}
-                      className="inline-flex items-center gap-1 rounded bg-brand-500 px-3 py-2 text-white hover:bg-brand-600"
-                    >
-                      <MdAdd className="h-4 w-4" />
-                      {t(K.ADMIN_TABLE_ADD_ITEM, "Add")}
-                    </button>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex gap-2">
+                      {availableItems.length > 0 ? (
+                        <select
+                          name="serialNumber"
+                          value={detailFormData.serialNumber}
+                          onChange={handleDetailInputChange}
+                          className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                        >
+                          <option value="">{t(K.ADMIN_TABLE_SELECT_SERIAL_NUMBER, "Select serial number")}</option>
+                          {availableItems
+                            .filter((item) => !stagedItems.some((s) => s.serialNumber.toLowerCase() === item.serialNumber.toLowerCase()))
+                            .map((item) => (
+                              <option key={item.roomAssetID} value={item.serialNumber}>
+                                {item.serialNumber}{item.roomName ? ` — ${item.roomName}` : ""}
+                              </option>
+                            ))}
+                          <option value="__new__">＋ {t(K.ADMIN_TABLE_NEW_SERIAL_NUMBER, "New serial number...")}</option>
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          name="serialNumber"
+                          value={detailFormData.serialNumber}
+                          onChange={handleDetailInputChange}
+                          className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:placeholder-gray-300"
+                          placeholder={t(K.ADMIN_TABLE_SERIAL_NUMBER_EXAMPLE, "e.g., SN-12345")}
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleStageAssetItem}
+                        className="inline-flex items-center gap-1 rounded bg-brand-500 px-3 py-2 text-white hover:bg-brand-600"
+                      >
+                        <MdAdd className="h-4 w-4" />
+                        {t(K.ADMIN_TABLE_ADD_ITEM, "Add")}
+                      </button>
+                    </div>
+                    {detailFormData.serialNumber === "__new__" && (
+                      <input
+                        type="text"
+                        value={newSerialText}
+                        onChange={(e) => setNewSerialText(e.target.value)}
+                        className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:placeholder-gray-300"
+                        placeholder={t(K.ADMIN_TABLE_SERIAL_NUMBER_EXAMPLE, "e.g., SN-12345")}
+                        autoFocus
+                      />
+                    )}
                   </div>
                 </div>
                 <div className="col-span-2">

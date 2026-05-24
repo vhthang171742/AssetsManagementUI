@@ -503,10 +503,12 @@ export default function ProductionLinesTable() {
                 name="lineCode"
                 value={formData.lineCode}
                 onChange={handleInputChange}
-                required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder={t(K.ADMIN_TABLE_ENTER_LINE_CODE, "Enter line code")}
+                placeholder={!editingId ? t(K.ADMIN_TABLE_LEAVE_EMPTY_AUTO_GENERATION, "Leave empty for auto-generation") : t(K.ADMIN_TABLE_ENTER_LINE_CODE, "Enter line code")}
               />
+              {!editingId && (
+                <p className="mt-1 text-xs text-gray-500">{t(K.ADMIN_TABLE_AUTO_CODE_EXAMPLE, "If empty, code will be auto-generated (e.g., LINE-00001)")}</p>
+              )}
             </div>
 
             <div>

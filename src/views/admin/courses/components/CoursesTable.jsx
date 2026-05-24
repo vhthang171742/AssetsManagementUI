@@ -295,17 +295,19 @@ export default function CoursesTable() {
 
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              {`${t(K.ADMIN_TABLE_COURSE_CODE, "Course Code")} *`}
+              {t(K.ADMIN_TABLE_COURSE_CODE, "Course Code")}
             </label>
             <input
               type="text"
               name="courseCode"
               value={formData.courseCode}
               onChange={handleInputChange}
-              required
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder={t(K.ADMIN_TABLE_ENTER_COURSE_CODE_EXAMPLE, "Enter course code (e.g., CS101)")}
+              placeholder={!editingId ? t(K.ADMIN_TABLE_LEAVE_EMPTY_AUTO_GENERATION, "Leave empty for auto-generation") : t(K.ADMIN_TABLE_ENTER_COURSE_CODE_EXAMPLE, "Enter course code (e.g., CS101)")}
             />
+            {!editingId && (
+              <p className="mt-1 text-xs text-gray-500">{t(K.ADMIN_TABLE_AUTO_CODE_EXAMPLE, "If empty, code will be auto-generated (e.g., CRS-000001)")}</p>
+            )}
           </div>
 
           <div>

@@ -19,6 +19,7 @@ export const handoverService = {
     if (query.sortBy) params.set("sortBy", query.sortBy);
     if (query.sortDirection) params.set("sortDirection", query.sortDirection);
     if (query.roomID != null && query.roomID !== "") params.set("roomID", String(query.roomID));
+    if (query.productionLineID != null && query.productionLineID !== "") params.set("productionLineID", String(query.productionLineID));
 
     const queryString = params.toString();
     return httpClient(`/handovers/paged${queryString ? `?${queryString}` : ""}`);

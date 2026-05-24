@@ -13,6 +13,8 @@ import Configuration from "views/admin/configuration";
 import Users from "views/admin/users";
 import PortalAccess from "views/admin/portalAccess";
 import ProductionLines from "views/admin/productionLines";
+import ProductionOrders from "views/admin/productionOrders";
+import ProductionSteps from "views/admin/productionSteps";
 import WorkerEquipment from "views/admin/workerEquipment";
 import EquipmentUsage from "views/admin/equipmentUsage";
 import WorkingTime from "views/admin/workingTime";
@@ -45,6 +47,8 @@ import {
   MdPeople,
   MdFactory,
   MdPerson2,
+  MdListAlt,
+  MdPlaylistAddCheck,
   MdDataUsage,
   MdSchedule,
   MdSchool,
@@ -147,6 +151,24 @@ const routes = [
     path: "production-lines",
     icon: <MdFactory className="h-6 w-6" />,
     component: <ProductionLines />,
+    requiredRoles: RoleSets.ProductionUser,
+  },
+  {
+    name: "Production Orders",
+    translationKey: K.ROUTE_PRODUCTION_ORDERS,
+    layout: "/admin",
+    path: "production-orders",
+    icon: <MdListAlt className="h-6 w-6" />,
+    component: <ProductionOrders />,
+    requiredRoles: RoleSets.ProductionUser,
+  },
+  {
+    name: "Production Steps",
+    translationKey: K.ROUTE_PRODUCTION_STEPS,
+    layout: "/admin",
+    path: "production-steps",
+    icon: <MdPlaylistAddCheck className="h-6 w-6" />,
+    component: <ProductionSteps />,
     requiredRoles: RoleSets.ProductionUser,
   },
   {

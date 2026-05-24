@@ -250,12 +250,14 @@ export default function DepartmentsTable() {
               <input
                 type="text"
                 name="departmentCode"
-                placeholder={t(K.ADMIN_TABLE_DEPARTMENT_CODE, "Department Code")}
+                placeholder={!editingId ? t(K.ADMIN_TABLE_LEAVE_EMPTY_AUTO_GENERATION, "Leave empty for auto-generation") : t(K.ADMIN_TABLE_DEPARTMENT_CODE, "Department Code")}
                 value={formData.departmentCode}
                 onChange={handleInputChange}
                 className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                required
               />
+              {!editingId && (
+                <p className="mt-1 text-xs text-gray-500">{t(K.ADMIN_TABLE_AUTO_CODE_EXAMPLE, "If empty, code will be auto-generated (e.g., DEPT-00001)")}</p>
+              )}
             </div>
             <div className="mb-4">
               <label className="block text-sm font-medium mb-2 dark:text-white">{t(K.ADMIN_TABLE_DEPARTMENT_NAME, "Department Name")}</label>

@@ -101,6 +101,13 @@ export const assetService = {
       method: "DELETE",
       body: JSON.stringify({ ids }),
     }),
+
+  /**
+   * Get all physical RoomAsset items for a given asset type
+   * @param {number} assetId - Asset ID
+   * @returns {Promise<Array>} List of RoomAsset records (serial numbers)
+   */
+  getRoomAssets: (assetId) => httpClient(`/assets/${assetId}/room-assets`),
 };
 
 export default assetService;

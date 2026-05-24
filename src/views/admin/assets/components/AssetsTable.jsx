@@ -747,15 +747,19 @@ export default function AssetsTable() {
           >
             <form id="assetForm" onSubmit={handleSubmit}>
               <div className="grid grid-cols-2 gap-4 mb-4">
-                <input
-                  type="text"
-                  name="assetCode"
-                  placeholder={t(K.ADMIN_TABLE_ASSET_CODE, "Asset Code")}
-                  value={formData.assetCode}
-                  onChange={handleInputChange}
-                  className="col-span-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                  required
-                />
+                <div className="col-span-1">
+                  <input
+                    type="text"
+                    name="assetCode"
+                    placeholder={!editingId ? t(K.ADMIN_TABLE_LEAVE_EMPTY_AUTO_GENERATION, "Leave empty for auto-generation") : t(K.ADMIN_TABLE_ASSET_CODE, "Asset Code")}
+                    value={formData.assetCode}
+                    onChange={handleInputChange}
+                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+                  />
+                  {!editingId && (
+                    <p className="mt-1 text-xs text-gray-500">{t(K.ADMIN_TABLE_AUTO_CODE_EXAMPLE, "If empty, code will be auto-generated (e.g., AST-000001)")}</p>
+                  )}
+                </div>
                 <input
                   type="text"
                   name="assetName"

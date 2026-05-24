@@ -23,6 +23,8 @@ export { handoverService } from "./handoverService";
 export { dropdownService } from "./dropdownService";
 export { configurationService } from "./configurationService";
 export { productionLineService } from "./productionLineService";
+export { productionOrderService } from "./productionOrderService";
+export { productionStepService } from "./productionStepService";
 export { workerEquipmentService } from "./workerEquipmentService";
 export { equipmentUsageService } from "./equipmentUsageService";
 export { workerCalendarService } from "./workerCalendarService";

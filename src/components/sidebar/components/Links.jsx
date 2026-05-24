@@ -21,7 +21,7 @@ const MENU_GROUPS = [
     id: "production-workers",
     label: "Production & Workers",
     translationKey: K.MENU_GROUP_PRODUCTION_WORKERS,
-    items: ["production-lines", "worker-equipment", "equipment-usage", "working-time"]
+    items: ["production-lines", "production-orders", "production-steps", "worker-equipment", "equipment-usage", "working-time"]
   },
   {
     id: "training",

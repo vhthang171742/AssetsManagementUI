@@ -997,17 +997,19 @@ export default function ClassesTable() {
 
           <div>
             <label className="mb-2 block text-sm font-medium text-navy-700 dark:text-white">
-              {`${t(K.ADMIN_TABLE_CLASS_CODE, "Class Code")} *`}
+              {t(K.ADMIN_TABLE_CLASS_CODE, "Class Code")}
             </label>
             <input
               type="text"
               name="classCode"
               value={formData.classCode}
               onChange={handleInputChange}
-              required
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm placeholder-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder={t(K.ADMIN_TABLE_ENTER_CLASS_CODE, "Enter class code")}
+              placeholder={!editingId ? t(K.ADMIN_TABLE_LEAVE_EMPTY_AUTO_GENERATION, "Leave empty for auto-generation") : t(K.ADMIN_TABLE_ENTER_CLASS_CODE, "Enter class code")}
             />
+            {!editingId && (
+              <p className="mt-1 text-xs text-gray-500">{t(K.ADMIN_TABLE_AUTO_CODE_EXAMPLE, "If empty, code will be auto-generated (e.g., CLS-000001)")}</p>
+            )}
           </div>
 
           <div>
@@ -1469,7 +1471,7 @@ export default function ClassesTable() {
                 </div>
 
                 {/* Assignments */}
-                <div>
+                <div className="mb-4">
                   <h4 className="font-semibold mb-2 dark:text-white">{t(K.ADMIN_TABLE_ASSIGNMENT_STATUS, "Assignment Status")}</h4>
                   {(() => {
                     const activeAssignments = assetAssignments.filter(
