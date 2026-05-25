@@ -318,14 +318,14 @@ export default function ProductionLinesTable() {
         <div className="flex gap-2">
           <button
             onClick={() => openWorkersModal(row)}
-            className="inline-flex min-w-[80px] items-center justify-center rounded-md border border-sky-300 bg-sky-500 px-2 py-1 text-xs font-semibold text-white hover:bg-sky-600"
+            className="inline-flex min-w-[80px] items-center justify-center rounded-md border border-blue-300 bg-blue-500 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-600"
             title={t(K.ADMIN_TABLE_WORKERS, "Workers")}
           >
             {t(K.ADMIN_TABLE_WORKERS, "Workers")}
           </button>
           <button
             onClick={() => openAssetsModal(row)}
-            className="inline-flex min-w-[110px] items-center justify-center rounded-md border border-emerald-300 bg-emerald-500 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-600"
+            className="inline-flex min-w-[110px] items-center justify-center rounded-md border border-teal-300 bg-teal-500 px-2 py-1 text-xs font-semibold text-white hover:bg-teal-600"
             title={t(K.ADMIN_TABLE_WORKING_ASSETS, "Working Assets")}
           >
             {t(K.ADMIN_TABLE_WORKING_ASSETS, "Working Assets")}
