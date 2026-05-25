@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { maintenanceScheduleService, assetService } from "services/api";
 import { dropdownService } from "services/dropdownService";
 import Table from "components/table/Table";
+import TableFilterModal from "components/table/TableFilterModal";
 import { renderLookupEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Card from "components/card";
@@ -25,9 +26,7 @@ export default function MaintenanceSchedulesTable() {
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [assetFilter, setAssetFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [activeFilter, setActiveFilter] = useState("");
+  const [activeFilters, setActiveFilters] = useState({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortBy, setSortBy] = useState("scheduleID");
@@ -56,7 +55,7 @@ export default function MaintenanceSchedulesTable() {
 
   useEffect(() => {
     fetchSchedules();
-  }, [page, pageSize, debouncedSearch, assetFilter, typeFilter, activeFilter, sortBy, sortDirection]);
+  }, [page, pageSize, debouncedSearch, activeFilters, sortBy, sortDirection]);
 
   const fetchSchedules = async () => {
     try {
@@ -67,9 +66,9 @@ export default function MaintenanceSchedulesTable() {
         search: debouncedSearch,
         sortBy,
         sortDirection,
-        assetID: assetFilter ? Number(assetFilter) : undefined,
-        maintenanceTypeItemID: typeFilter ? Number(typeFilter) : undefined,
-        isActive: activeFilter === "" ? undefined : activeFilter === "true",
+        assetID: activeFilters.assetID?.length ? Number(activeFilters.assetID[0]) : undefined,
+        maintenanceTypeItemID: activeFilters.maintenanceTypeItemID?.length ? Number(activeFilters.maintenanceTypeItemID[0]) : undefined,
+        isActive: activeFilters.isActive?.length ? activeFilters.isActive[0] === "true" : undefined,
       });
       setSchedules(data?.items || []);
       setTotalCount(data?.totalCount || 0);
@@ -193,69 +192,38 @@ export default function MaintenanceSchedulesTable() {
     return type ? type.label : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
   };
 
+  const filterableColumns = [
+    { key: "assetID", label: t(K.ADMIN_TABLE_ASSET, "Asset"), options: assets.map((a) => ({ value: String(a.assetID), label: a.assetName })) },
+    { key: "maintenanceTypeItemID", label: t(K.ADMIN_TABLE_TYPE, "Type"), options: maintenanceTypes.map((mt) => ({ value: String(mt.itemID), label: mt.label })) },
+    {
+      key: "isActive",
+      label: t(K.ADMIN_TABLE_STATUS, "Status"),
+      options: [
+        { value: "true", label: t(K.ADMIN_TABLE_ACTIVE, "Active") },
+        { value: "false", label: t(K.ADMIN_TABLE_INACTIVE, "Inactive") },
+      ],
+    },
+  ];
+
+  const handleFilterApply = (newFilters) => { setActiveFilters(newFilters); setPage(1); };
+
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center gap-3">
         <button
-          onClick={() => {
-            setEditingId(null);
-            resetForm();
-            setShowModal(true);
-          }}
-          className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
+          onClick={() => { setEditingId(null); resetForm(); setShowModal(true); }}
+          className="shrink-0 px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
           {t(K.ADMIN_TABLE_ADD_MAINTENANCE_SCHEDULE, "Add Maintenance Schedule")}
         </button>
-        <div className="flex flex-col gap-2 sm:flex-row md:max-w-3xl">
-          <input
-            type="text"
-            value={searchText}
-            onChange={(e) => {
-              setSearchText(e.target.value);
-              setPage(1);
-            }}
-            placeholder={t(K.ADMIN_TABLE_SEARCH_ASSET_DESCRIPTION, "Search asset, description")}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          />
-          <select
-            value={assetFilter}
-            onChange={(e) => {
-              setAssetFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ROUTE_ASSETS, "Assets")}`}</option>
-            {assets.map((a) => (
-              <option key={a.assetID} value={a.assetID}>{a.assetName}</option>
-            ))}
-          </select>
-          <select
-            value={typeFilter}
-            onChange={(e) => {
-              setTypeFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_TYPES, "Types")}`}</option>
-            {maintenanceTypes.map((t) => (
-              <option key={t.itemID} value={t.itemID}>{t.label}</option>
-            ))}
-          </select>
-          <select
-            value={activeFilter}
-            onChange={(e) => {
-              setActiveFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
-            <option value="true">{t(K.ADMIN_TABLE_ACTIVE, "Active")}</option>
-            <option value="false">{t(K.ADMIN_TABLE_INACTIVE, "Inactive")}</option>
-          </select>
-        </div>
+        <TableFilterModal filterableColumns={filterableColumns} activeFilters={activeFilters} onFilterApply={handleFilterApply} />
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
+          placeholder={t(K.ADMIN_TABLE_SEARCH_ASSET_DESCRIPTION, "Search asset, description")}
+          className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+        />
       </div>
 
       {loading ? (
@@ -293,11 +261,11 @@ export default function MaintenanceSchedulesTable() {
                 fallbackLabel: t(K.ADMIN_TABLE_NA, 'N/A'),
               }),
             },
-            { header: t(K.ADMIN_TABLE_TYPE, 'Type'), accessor: 'maintenanceTypeItemID', sortKey: "maintenanceType", render: (row) => getMaintenanceTypeName(row.maintenanceTypeItemID) },
+            { header: t(K.ADMIN_TABLE_TYPE, 'Type'), accessor: 'maintenanceTypeItemID', sortKey: "maintenanceType", filterKey: "maintenanceTypeItemID", render: (row) => getMaintenanceTypeName(row.maintenanceTypeItemID) },
             { header: t(K.ADMIN_TABLE_FREQUENCY, 'Frequency'), accessor: 'frequency', sortKey: "frequency", render: (row) => t(K.ADMIN_TABLE_FREQUENCY_DAYS_HOURS, `${row.frequency} days/hours`).replace("{value}", row.frequency) },
             { header: t(K.ADMIN_TABLE_LAST_MAINTENANCE, 'Last Maintenance'), accessor: 'lastMaintenanceDate', sortKey: "lastMaintenanceDate", render: (row) => row.lastMaintenanceDate ? formatDateInTimeZone(row.lastMaintenanceDate, userTimeZoneId) : t(K.ADMIN_TABLE_NA, 'N/A') },
             { header: t(K.ADMIN_TABLE_NEXT_DUE, 'Next Due'), accessor: 'nextDueDate', sortKey: "nextDueDate", render: (row) => row.nextDueDate ? formatDateInTimeZone(row.nextDueDate, userTimeZoneId) : t(K.ADMIN_TABLE_NA, 'N/A') },
-            { header: t(K.ADMIN_TABLE_ACTIVE, 'Active'), accessor: 'isActive', sortKey: "isActive", render: (row) => row.isActive ? '\u2713' : '\u2717' },
+            { header: t(K.ADMIN_TABLE_ACTIVE, 'Active'), accessor: 'isActive', sortKey: "isActive", filterKey: "isActive", render: (row) => row.isActive ? '✓' : '✗' },
             {
               header: t(K.ADMIN_TABLE_ACTIONS, 'Actions'),
               isActions: true,
@@ -323,6 +291,8 @@ export default function MaintenanceSchedulesTable() {
               ),
             },
           ]}
+          filterableColumns={filterableColumns}
+          activeFilters={activeFilters}
         />
       )}
 

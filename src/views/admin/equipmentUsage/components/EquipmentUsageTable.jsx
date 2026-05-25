@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { equipmentUsageService, userService, roomService, productionLineService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
+import TableFilterModal from "components/table/TableFilterModal";
 import { renderEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
@@ -25,7 +26,7 @@ export default function EquipmentUsageTable() {
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [lineFilter, setLineFilter] = useState("");
+  const [activeFilters, setActiveFilters] = useState({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortBy, setSortBy] = useState("startTime");
@@ -57,7 +58,7 @@ export default function EquipmentUsageTable() {
 
   useEffect(() => {
     fetchUsageLogs();
-  }, [page, pageSize, debouncedSearch, lineFilter, sortBy, sortDirection]);
+  }, [page, pageSize, debouncedSearch, activeFilters, sortBy, sortDirection]);
 
   const fetchUsageLogs = async () => {
     try {
@@ -68,7 +69,7 @@ export default function EquipmentUsageTable() {
         search: debouncedSearch,
         sortBy,
         sortDirection,
-        productionLineID: lineFilter ? Number(lineFilter) : undefined,
+        productionLineID: activeFilters.productionLineID?.length ? Number(activeFilters.productionLineID[0]) : undefined,
       });
       setUsageLogs(data?.items || []);
       setTotalCount(data?.totalCount || 0);
@@ -253,6 +254,7 @@ export default function EquipmentUsageTable() {
       accessor: (row) =>
         lines.find((l) => l.productionLineID === row.productionLineID)?.lineName || t(K.ADMIN_TABLE_NA, "N/A"),
       sortKey: "productionLineName",
+      filterKey: "productionLineID",
       render: (row) => {
         const line = lines.find((l) => l.productionLineID === row.productionLineID);
         return renderEntityPill({
@@ -303,54 +305,33 @@ export default function EquipmentUsageTable() {
     },
   ];
 
+  const filterableColumns = [
+    { key: "productionLineID", label: t(K.ADMIN_TABLE_PRODUCTION_LINE, "Production Line"), options: lines.map((l) => ({ value: String(l.productionLineID), label: l.lineName })) },
+  ];
+
+  const handleFilterApply = (newFilters) => { setActiveFilters(newFilters); setPage(1); };
+
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center gap-3">
         <button
           onClick={() => {
-            setFormData({
-              roomAssetID: "",
-              workerID: "",
-              productionLineID: "",
-              startTime: new Date().toISOString(),
-              endTime: "",
-              runningMinutes: "",
-              downtimeMinutes: "",
-              stitchCount: "",
-              notes: "",
-            });
+            setFormData({ roomAssetID: "", workerID: "", productionLineID: "", startTime: new Date().toISOString(), endTime: "", runningMinutes: "", downtimeMinutes: "", stitchCount: "", notes: "" });
             setEditingId(null);
             setShowModal(true);
           }}
-          className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
+          className="shrink-0 px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
           {t(K.ADMIN_TABLE_LOG_EQUIPMENT_USAGE, "Log Equipment Usage")}
         </button>
-        <div className="flex flex-col gap-2 sm:flex-row md:max-w-lg">
-          <input
-            type="text"
-            value={searchText}
-            onChange={(e) => {
-              setSearchText(e.target.value);
-              setPage(1);
-            }}
-            placeholder={t(K.ADMIN_TABLE_SEARCH_WORKER_EQUIPMENT, "Search worker, equipment")}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          />
-          <select
-            value={lineFilter}
-            onChange={(e) => {
-              setLineFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_PRODUCTION_LINES, "Production Lines")}`}</option>
-            {lines.map((l) => (
-              <option key={l.productionLineID} value={l.productionLineID}>{l.lineName}</option>
-            ))}
-          </select>
-        </div>
+        <TableFilterModal filterableColumns={filterableColumns} activeFilters={activeFilters} onFilterApply={handleFilterApply} />
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
+          placeholder={t(K.ADMIN_TABLE_SEARCH_WORKER_EQUIPMENT, "Search worker, equipment")}
+          className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+        />
       </div>
 
       {loading ? (
@@ -369,11 +350,9 @@ export default function EquipmentUsageTable() {
           onPageSizeChange={setPageSize}
           sortBy={sortBy}
           sortDirection={sortDirection}
-          onSortChange={(key, direction) => {
-            setSortBy(key);
-            setSortDirection(direction);
-            setPage(1);
-          }}
+          onSortChange={(key, direction) => { setSortBy(key); setSortDirection(direction); setPage(1); }}
+          filterableColumns={filterableColumns}
+          activeFilters={activeFilters}
         />
       )}
 

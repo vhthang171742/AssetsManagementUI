@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { assetCourseMappingService, courseService, assetService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
+import TableFilterModal from "components/table/TableFilterModal";
 import { renderLookupEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
@@ -20,8 +21,7 @@ export default function AssetCourseMappingsTable() {
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [courseFilter, setCourseFilter] = useState("");
-  const [requiredFilter, setRequiredFilter] = useState("");
+  const [activeFilters, setActiveFilters] = useState({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortBy, setSortBy] = useState("isRequired");
@@ -46,7 +46,7 @@ export default function AssetCourseMappingsTable() {
 
   useEffect(() => {
     fetchMappings();
-  }, [page, pageSize, debouncedSearch, courseFilter, requiredFilter, sortBy, sortDirection]);
+  }, [page, pageSize, debouncedSearch, activeFilters, sortBy, sortDirection]);
 
   const fetchMappings = async () => {
     try {
@@ -57,8 +57,8 @@ export default function AssetCourseMappingsTable() {
         search: debouncedSearch,
         sortBy,
         sortDirection,
-        courseID: courseFilter ? Number(courseFilter) : undefined,
-        isRequired: requiredFilter === "" ? undefined : requiredFilter === "true",
+        courseID: activeFilters.courseID?.length ? Number(activeFilters.courseID[0]) : undefined,
+        isRequired: activeFilters.isRequired?.length ? activeFilters.isRequired[0] === "true" : undefined,
       });
       setMappings(data?.items || []);
       setTotalCount(data?.totalCount || 0);
@@ -185,8 +185,7 @@ export default function AssetCourseMappingsTable() {
       header: t(K.ADMIN_TABLE_COURSE, "Course"),
       accessor: (row) =>
         courses.find((c) => c.courseID === row.courseID)?.courseName || t(K.ADMIN_TABLE_NA, "N/A"),
-      sortKey: "courseName",
-      render: (row) => renderLookupEntityPill({
+      sortKey: "courseName",      filterKey: "courseID",      render: (row) => renderLookupEntityPill({
         type: "course",
         id: row.courseID,
         items: courses,
@@ -199,8 +198,30 @@ export default function AssetCourseMappingsTable() {
       header: t(K.ADMIN_TABLE_REQUIRED, "Required"),
       accessor: (row) => (row.isRequired ? t(K.ADMIN_TABLE_YES, "Yes") : t(K.ADMIN_TABLE_NO, "No")),
       sortKey: "isRequired",
+      filterKey: "isRequired",
     },
   ];
+
+  const filterableColumns = [
+    {
+      key: "courseID",
+      label: t(K.ADMIN_TABLE_COURSE, "Course"),
+      options: courses.map((c) => ({ value: String(c.courseID), label: c.courseName })),
+    },
+    {
+      key: "isRequired",
+      label: t(K.ADMIN_TABLE_REQUIRED, "Required"),
+      options: [
+        { value: "true", label: t(K.ADMIN_TABLE_REQUIRED, "Required") },
+        { value: "false", label: t(K.ADMIN_TABLE_OPTIONAL, "Optional") },
+      ],
+    },
+  ];
+
+  const handleFilterApply = (newFilters) => {
+    setActiveFilters(newFilters);
+    setPage(1);
+  };
 
   const actions = [
     {
@@ -218,58 +239,25 @@ export default function AssetCourseMappingsTable() {
 
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center gap-3">
         <button
           onClick={() => {
             setEditingId(null);
-            setFormData({
-              assetID: "",
-              courseID: "",
-              isRequired: false,
-            });
+            setFormData({ assetID: "", courseID: "", isRequired: false });
             setShowModal(true);
           }}
-          className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
+          className="shrink-0 px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
           {`${t(K.ADMIN_TABLE_ADD, "Add")} ${t(K.ADMIN_TABLE_MAPPING, "Mapping")}`}
         </button>
-        <div className="flex flex-col gap-2 sm:flex-row md:max-w-2xl">
-          <input
-            type="text"
-            value={searchText}
-            onChange={(e) => {
-              setSearchText(e.target.value);
-              setPage(1);
-            }}
-            placeholder={t(K.ADMIN_TABLE_SEARCH_ASSET_COURSE, "Search asset, course")}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          />
-          <select
-            value={courseFilter}
-            onChange={(e) => {
-              setCourseFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_COURSES, "Courses")}`}</option>
-            {courses.map((c) => (
-              <option key={c.courseID} value={c.courseID}>{c.courseName}</option>
-            ))}
-          </select>
-          <select
-            value={requiredFilter}
-            onChange={(e) => {
-              setRequiredFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{t(K.ADMIN_TABLE_ALL, "All")}</option>
-            <option value="true">{t(K.ADMIN_TABLE_REQUIRED, "Required")}</option>
-            <option value="false">{t(K.ADMIN_TABLE_OPTIONAL, "Optional")}</option>
-          </select>
-        </div>
+        <TableFilterModal filterableColumns={filterableColumns} activeFilters={activeFilters} onFilterApply={handleFilterApply} />
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
+          placeholder={t(K.ADMIN_TABLE_SEARCH_ASSET_COURSE, "Search asset, course")}
+          className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+        />
       </div>
 
       <Table
@@ -286,11 +274,9 @@ export default function AssetCourseMappingsTable() {
         onPageSizeChange={setPageSize}
         sortBy={sortBy}
         sortDirection={sortDirection}
-        onSortChange={(key, direction) => {
-          setSortBy(key);
-          setSortDirection(direction);
-          setPage(1);
-        }}
+        onSortChange={(key, direction) => { setSortBy(key); setSortDirection(direction); setPage(1); }}
+        filterableColumns={filterableColumns}
+        activeFilters={activeFilters}
       />
 
       <Modal

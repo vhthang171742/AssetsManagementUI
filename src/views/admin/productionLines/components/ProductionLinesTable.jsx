@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { productionLineService, departmentService, userService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
+import TableFilterModal from "components/table/TableFilterModal";
 import { renderEntityPill, renderLookupEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete, MdAdd } from "react-icons/md";
 import Modal from "components/modal/Modal";
@@ -26,8 +27,7 @@ export default function ProductionLinesTable() {
   const [selectedWorkerId, setSelectedWorkerId] = useState("");
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState("");
-  const [activeFilter, setActiveFilter] = useState("");
+  const [activeFilters, setActiveFilters] = useState({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortBy, setSortBy] = useState("lineName");
@@ -54,7 +54,7 @@ export default function ProductionLinesTable() {
 
   useEffect(() => {
     fetchProductionLines();
-  }, [page, pageSize, debouncedSearch, departmentFilter, activeFilter, sortBy, sortDirection]);
+  }, [page, pageSize, debouncedSearch, activeFilters, sortBy, sortDirection]);
 
   const fetchProductionLines = async () => {
     try {
@@ -65,8 +65,8 @@ export default function ProductionLinesTable() {
         search: debouncedSearch,
         sortBy,
         sortDirection,
-        departmentID: departmentFilter ? Number(departmentFilter) : undefined,
-        isActive: activeFilter === "" ? undefined : activeFilter === "true",
+        departmentID: activeFilters["departmentID"]?.[0] ? Number(activeFilters["departmentID"][0]) : undefined,
+        isActive: activeFilters["isActive"]?.[0] === undefined ? undefined : activeFilters["isActive"][0] === "true",
       });
       setLines(data?.items || []);
       setTotalCount(data?.totalCount || 0);
@@ -346,9 +346,23 @@ export default function ProductionLinesTable() {
     },
   ];
 
+  const filterableColumns = [
+    { key: "departmentID", label: t(K.ADMIN_TABLE_DEPARTMENT, "Department"), options: departments.map((d) => ({ value: String(d.departmentID), label: d.departmentName })) },
+    {
+      key: "isActive",
+      label: t(K.ADMIN_TABLE_STATUS, "Status"),
+      options: [
+        { value: "true", label: t(K.ADMIN_TABLE_ACTIVE, "Active") },
+        { value: "false", label: t(K.ADMIN_TABLE_INACTIVE, "Inactive") },
+      ],
+    },
+  ];
+
+  const handleFilterApply = (newFilters) => { setActiveFilters(newFilters); setPage(1); };
+
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center gap-3">
         <button
           onClick={() => {
             setFormData({
@@ -362,47 +376,18 @@ export default function ProductionLinesTable() {
             setEditingId(null);
             setShowModal(true);
           }}
-          className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
+          className="shrink-0 px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
           {`${t(K.ADMIN_TABLE_ADD, "Add")} ${t(K.ADMIN_TABLE_PRODUCTION_LINE, "Production Line")}`}
         </button>
-        <div className="flex flex-col gap-2 sm:flex-row md:max-w-2xl">
-          <input
-            type="text"
-            value={searchText}
-            onChange={(e) => {
-              setSearchText(e.target.value);
-              setPage(1);
-            }}
-            placeholder={t(K.ADMIN_TABLE_SEARCH_NAME_CODE, "Search name, code")}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          />
-          <select
-            value={departmentFilter}
-            onChange={(e) => {
-              setDepartmentFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_DEPARTMENTS, "Departments")}`}</option>
-            {departments.map((d) => (
-              <option key={d.departmentID} value={d.departmentID}>{d.departmentName}</option>
-            ))}
-          </select>
-          <select
-            value={activeFilter}
-            onChange={(e) => {
-              setActiveFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
-            <option value="true">{t(K.ADMIN_TABLE_ACTIVE, "Active")}</option>
-            <option value="false">{t(K.ADMIN_TABLE_INACTIVE, "Inactive")}</option>
-          </select>
-        </div>
+        <TableFilterModal filterableColumns={filterableColumns} activeFilters={activeFilters} onFilterApply={handleFilterApply} />
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
+          placeholder={t(K.ADMIN_TABLE_SEARCH_NAME_CODE, "Search name, code")}
+          className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+        />
       </div>
 
       {loading ? (
@@ -425,6 +410,8 @@ export default function ProductionLinesTable() {
             setSortDirection(direction);
             setPage(1);
           }}
+          filterableColumns={filterableColumns}
+          activeFilters={activeFilters}
         />
       )}
 

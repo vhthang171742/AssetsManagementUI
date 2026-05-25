@@ -4,6 +4,7 @@ import { getData as getCountryData } from "country-list";
 import { assetService, assetCategoryService, roomService, productionLineService, classService, studentEquipmentAssignmentService } from "services/api";
 import { dropdownService } from "services/dropdownService";
 import Table from "components/table/Table";
+import TableFilterModal from "components/table/TableFilterModal";
 import { renderEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete, MdInfoOutline } from "react-icons/md";
 import Card from "components/card";
@@ -49,7 +50,7 @@ export default function AssetsTable() {
   const [isUnassigningStudent, setIsUnassigningStudent] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const [activeFilters, setActiveFilters] = useState({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortBy, setSortBy] = useState("assetCode");
@@ -97,7 +98,7 @@ export default function AssetsTable() {
 
   useEffect(() => {
     fetchAssets();
-  }, [page, pageSize, debouncedSearch, categoryFilter, sortBy, sortDirection]);
+  }, [page, pageSize, debouncedSearch, activeFilters, sortBy, sortDirection]);
 
   const fetchAssets = async () => {
     try {
@@ -108,7 +109,7 @@ export default function AssetsTable() {
         search: debouncedSearch,
         sortBy,
         sortDirection,
-        categoryID: categoryFilter ? Number(categoryFilter) : undefined,
+        categoryID: activeFilters["categoryID"]?.[0] ? Number(activeFilters["categoryID"][0]) : undefined,
       });
       setAssets(data?.items || []);
       setTotalCount(data?.totalCount || 0);
@@ -588,9 +589,15 @@ export default function AssetsTable() {
     return countries;
   }, [formData.countryOfOrigin]);
 
+  const filterableColumns = [
+    { key: "categoryID", label: t(K.ADMIN_TABLE_CATEGORY, "Category"), options: categories.map((cat) => ({ value: String(cat.categoryID), label: cat.categoryName })) },
+  ];
+
+  const handleFilterApply = (newFilters) => { setActiveFilters(newFilters); setPage(1); };
+
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center gap-3">
         <button
           onClick={() => {
             setEditingId(null);
@@ -609,38 +616,18 @@ export default function AssetsTable() {
             });
             setShowModal(true);
           }}
-          className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
+          className="shrink-0 px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
           {`${t(K.ADMIN_TABLE_ADD, "Add")} ${t(K.ADMIN_TABLE_ASSET, "Asset")}`}
         </button>
-
-        <div className="grid w-full gap-2 sm:grid-cols-2 md:max-w-2xl">
-          <input
-            type="text"
-            value={searchText}
-            onChange={(e) => {
-              setSearchText(e.target.value);
-              setPage(1);
-            }}
-            placeholder={t(K.ADMIN_TABLE_SEARCH_CODE_NAME_BRAND_MODEL, "Search code, name, brand, model")}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          />
-          <select
-            value={categoryFilter}
-            onChange={(e) => {
-              setCategoryFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ROUTE_CATEGORIES, "Categories")}`}</option>
-            {categories.map((cat) => (
-              <option key={cat.categoryID} value={cat.categoryID}>
-                {cat.categoryName}
-              </option>
-            ))}
-          </select>
-        </div>
+        <TableFilterModal filterableColumns={filterableColumns} activeFilters={activeFilters} onFilterApply={handleFilterApply} />
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
+          placeholder={t(K.ADMIN_TABLE_SEARCH_CODE_NAME_BRAND_MODEL, "Search code, name, brand, model")}
+          className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+        />
       </div>
 
       {loading ? (
@@ -714,6 +701,8 @@ export default function AssetsTable() {
               ),
             },
           ]}
+          filterableColumns={filterableColumns}
+          activeFilters={activeFilters}
         />
       )}
 

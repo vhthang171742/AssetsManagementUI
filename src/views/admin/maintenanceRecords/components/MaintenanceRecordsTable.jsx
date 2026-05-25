@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { maintenanceRecordService, assetService, userService } from "services/api";
 import { dropdownService } from "services/dropdownService";
 import Table from "components/table/Table";
+import TableFilterModal from "components/table/TableFilterModal";
 import { renderLookupEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Card from "components/card";
@@ -28,9 +29,7 @@ export default function MaintenanceRecordsTable() {
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [assetFilter, setAssetFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [activeFilters, setActiveFilters] = useState({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortBy, setSortBy] = useState("maintenanceDate");
@@ -65,7 +64,7 @@ export default function MaintenanceRecordsTable() {
 
   useEffect(() => {
     fetchRecords();
-  }, [page, pageSize, debouncedSearch, assetFilter, typeFilter, statusFilter, sortBy, sortDirection]);
+  }, [page, pageSize, debouncedSearch, activeFilters, sortBy, sortDirection]);
 
   const fetchRecords = async () => {
     try {
@@ -76,9 +75,9 @@ export default function MaintenanceRecordsTable() {
         search: debouncedSearch,
         sortBy,
         sortDirection,
-        assetID: assetFilter ? Number(assetFilter) : undefined,
-        maintenanceTypeItemID: typeFilter ? Number(typeFilter) : undefined,
-        completionStatusItemID: statusFilter ? Number(statusFilter) : undefined,
+        assetID: activeFilters.assetID?.length ? Number(activeFilters.assetID[0]) : undefined,
+        maintenanceTypeItemID: activeFilters.maintenanceTypeItemID?.length ? Number(activeFilters.maintenanceTypeItemID[0]) : undefined,
+        completionStatusItemID: activeFilters.completionStatusItemID?.length ? Number(activeFilters.completionStatusItemID[0]) : undefined,
       });
       setRecords(data?.items || []);
       setTotalCount(data?.totalCount || 0);
@@ -255,70 +254,31 @@ export default function MaintenanceRecordsTable() {
     return tech ? tech.fullName : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
   };
 
+  const filterableColumns = [
+    { key: "assetID", label: t(K.ADMIN_TABLE_ASSET, "Asset"), options: assets.map((a) => ({ value: String(a.assetID), label: a.assetName })) },
+    { key: "maintenanceTypeItemID", label: t(K.ADMIN_TABLE_TYPE, "Type"), options: maintenanceTypes.map((mt) => ({ value: String(mt.itemID), label: mt.label })) },
+    { key: "completionStatusItemID", label: t(K.ADMIN_TABLE_COMPLETION_STATUS, "Completion Status"), options: completionStatuses.map((s) => ({ value: String(s.itemID), label: s.label })) },
+  ];
+
+  const handleFilterApply = (newFilters) => { setActiveFilters(newFilters); setPage(1); };
+
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center gap-3">
         <button
-          onClick={() => {
-            setEditingId(null);
-            resetForm();
-            setShowModal(true);
-          }}
-          className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
+          onClick={() => { setEditingId(null); resetForm(); setShowModal(true); }}
+          className="shrink-0 px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
           {t(K.ADMIN_TABLE_ADD_MAINTENANCE_RECORD, "Add Maintenance Record")}
         </button>
-        <div className="flex flex-col gap-2 sm:flex-row md:max-w-3xl">
-          <input
-            type="text"
-            value={searchText}
-            onChange={(e) => {
-              setSearchText(e.target.value);
-              setPage(1);
-            }}
-            placeholder={t(K.ADMIN_TABLE_SEARCH_ASSET_TECHNICIAN_ROOT_CAUSE, "Search asset, technician, root cause")}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          />
-          <select
-            value={assetFilter}
-            onChange={(e) => {
-              setAssetFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ROUTE_ASSETS, "Assets")}`}</option>
-            {assets.map((a) => (
-              <option key={a.assetID} value={a.assetID}>{a.assetName}</option>
-            ))}
-          </select>
-          <select
-            value={typeFilter}
-            onChange={(e) => {
-              setTypeFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_TYPES, "Types")}`}</option>
-            {maintenanceTypes.map((t) => (
-              <option key={t.itemID} value={t.itemID}>{t.label}</option>
-            ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_COMPLETION_STATUSES, "Completion Statuses")}`}</option>
-            {completionStatuses.map((s) => (
-              <option key={s.itemID} value={s.itemID}>{s.label}</option>
-            ))}
-          </select>
-        </div>
+        <TableFilterModal filterableColumns={filterableColumns} activeFilters={activeFilters} onFilterApply={handleFilterApply} />
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
+          placeholder={t(K.ADMIN_TABLE_SEARCH_ASSET_TECHNICIAN_ROOT_CAUSE, "Search asset, technician, root cause")}
+          className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+        />
       </div>
 
       {loading ? (
@@ -356,7 +316,7 @@ export default function MaintenanceRecordsTable() {
                 fallbackLabel: t(K.ADMIN_TABLE_NA, 'N/A'),
               }),
             },
-            { header: t(K.ADMIN_TABLE_TYPE, 'Type'), accessor: 'maintenanceTypeItemID', sortKey: "maintenanceType", render: (row) => getMaintenanceTypeName(row.maintenanceTypeItemID) },
+            { header: t(K.ADMIN_TABLE_TYPE, 'Type'), accessor: 'maintenanceTypeItemID', sortKey: "maintenanceType", filterKey: "maintenanceTypeItemID", render: (row) => getMaintenanceTypeName(row.maintenanceTypeItemID) },
             { header: t(K.ADMIN_TABLE_DATE, 'Date'), accessor: 'maintenanceDate', sortKey: "maintenanceDate", render: (row) => formatDateInTimeZone(row.maintenanceDate, userTimeZoneId) },
             { header: t(K.ADMIN_TABLE_TECHNICIAN, 'Technician'), accessor: 'technicianID', sortKey: "technicianName", render: (row) => getTechnicianName(row.technicianID) },
             { header: t(K.ADMIN_TABLE_DURATION_MIN, 'Duration (min)'), accessor: 'repairDurationMinutes', sortKey: "repairDurationMinutes" },
@@ -385,6 +345,8 @@ export default function MaintenanceRecordsTable() {
               ),
             },
           ]}
+          filterableColumns={filterableColumns}
+          activeFilters={activeFilters}
         />
       )}
 

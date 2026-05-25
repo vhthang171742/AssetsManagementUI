@@ -4,6 +4,7 @@ import { handoverService, roomService, assetService, productionLineService } fro
 import { dropdownService } from "services/dropdownService";
 import Card from "components/card";
 import Table from "components/table/Table";
+import TableFilterModal from "components/table/TableFilterModal";
 import { MdInfoOutline, MdModeEditOutline, MdDelete, MdRemoveCircle, MdAdd } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
@@ -31,7 +32,7 @@ export default function HandoversTable() {
   const [handoverDetails, setHandoverDetails] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [roomFilter, setRoomFilter] = useState("");
+  const [activeFilters, setActiveFilters] = useState({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortBy, setSortBy] = useState("handoverDate");
@@ -68,21 +69,21 @@ export default function HandoversTable() {
 
   useEffect(() => {
     fetchHandovers();
-  }, [page, pageSize, debouncedSearch, roomFilter, sortBy, sortDirection]);
+  }, [page, pageSize, debouncedSearch, activeFilters, sortBy, sortDirection]);
 
   const fetchHandovers = async () => {
     try {
       setLoading(true);
-      const [filterType, filterIdRaw] = roomFilter ? roomFilter.split(":") : [null, null];
-      const filterId = filterIdRaw ? Number(filterIdRaw) : undefined;
+      const roomID = activeFilters.roomID?.length ? Number(activeFilters.roomID[0]) : undefined;
+      const productionLineID = activeFilters.productionLineID?.length ? Number(activeFilters.productionLineID[0]) : undefined;
       const data = await handoverService.getPaged({
         page,
         pageSize,
         search: debouncedSearch,
         sortBy,
         sortDirection,
-        roomID: filterType === "room" ? filterId : undefined,
-        productionLineID: filterType === "line" ? filterId : undefined,
+        roomID,
+        productionLineID,
       });
       setHandovers(data?.items || []);
       setTotalCount(data?.totalCount || 0);
@@ -412,59 +413,36 @@ export default function HandoversTable() {
     return formatDateInTimeZone(dateString, userTimeZoneId);
   };
 
+  const filterableColumns = [
+    { key: "roomID", label: t(K.ROUTE_ROOMS, "Room"), options: rooms.map((r) => ({ value: String(r.roomID), label: r.roomName })) },
+    { key: "productionLineID", label: t(K.ROUTE_PRODUCTION_LINES, "Production Line"), options: productionLines.map((l) => ({ value: String(l.productionLineID), label: l.lineName })) },
+  ];
+
+  const handleFilterApply = (newFilters) => { setActiveFilters(newFilters); setPage(1); };
+
   return (
     <>
       <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <button
-            onClick={() => {
-              setEditingId(null);
-              setFormData({
-                targetSelection: "",
-                handoverDate: "",
-                deliveredBy: "",
-                receivedBy: "",
-                notes: "",
-              });
-              setShowModal(true);
-            }}
-            className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
-          >
-            {`${t(K.ADMIN_TABLE_CREATE, "Create")} ${t(K.ADMIN_TABLE_HANDOVER, "Handover")}`}
-          </button>
-          <div className="flex flex-col gap-2 sm:flex-row md:max-w-lg">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setEditingId(null);
+                setFormData({ targetSelection: "", handoverDate: "", deliveredBy: "", receivedBy: "", notes: "" });
+                setShowModal(true);
+              }}
+              className="shrink-0 px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
+            >
+              {`${t(K.ADMIN_TABLE_CREATE, "Create")} ${t(K.ADMIN_TABLE_HANDOVER, "Handover")}`}
+            </button>
+            <TableFilterModal filterableColumns={filterableColumns} activeFilters={activeFilters} onFilterApply={handleFilterApply} />
             <input
               type="text"
               value={searchText}
-              onChange={(e) => {
-                setSearchText(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
               placeholder={t(K.ADMIN_TABLE_SEARCH_DELIVERED_RECEIVED_BY, "Search delivered by, received by")}
               className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             />
-            <select
-              value={roomFilter}
-              onChange={(e) => {
-                setRoomFilter(e.target.value);
-                setPage(1);
-              }}
-              className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            >
-              <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_TARGET_LOCATION, "Targets")}`}</option>
-              <optgroup label={t(K.ROUTE_ROOMS, "Rooms")}>
-                {rooms.map((r) => (
-                  <option key={`room-${r.roomID}`} value={`room:${r.roomID}`}>{r.roomName}</option>
-                ))}
-              </optgroup>
-              <optgroup label={t(K.ROUTE_PRODUCTION_LINES, "Production Lines")}>
-                {productionLines.map((l) => (
-                  <option key={`line-${l.productionLineID}`} value={`line:${l.productionLineID}`}>{l.lineName}</option>
-                ))}
-              </optgroup>
-            </select>
           </div>
-        </div>
 
         {loading ? (
           <div className="text-center py-8">{t(K.ADMIN_TABLE_LOADING, "Loading...")}</div>
@@ -492,6 +470,7 @@ export default function HandoversTable() {
                 header: t(K.ADMIN_TABLE_TARGET_LOCATION, 'Target'),
                 accessor: 'roomID',
                 sortKey: "roomName",
+                filterKey: "roomID",
                 render: (row) => (
                   <div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">{getTargetType(row)}</div>
@@ -535,6 +514,8 @@ export default function HandoversTable() {
                 ),
               },
             ]}
+            filterableColumns={filterableColumns}
+            activeFilters={activeFilters}
           />
         )}
       </Card>

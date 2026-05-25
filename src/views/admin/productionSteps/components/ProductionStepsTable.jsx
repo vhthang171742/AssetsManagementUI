@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { productionStepService, productionOrderService, productionLineService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
+import TableFilterModal from "components/table/TableFilterModal";
 import { renderEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete } from "react-icons/md";
 import Modal from "components/modal/Modal";
@@ -35,16 +36,12 @@ export default function ProductionStepsTable() {
   const [totalCount, setTotalCount] = useState(0);
   const [productionLines, setProductionLines] = useState([]);
   const [productionOrders, setProductionOrders] = useState([]);
-  const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [lineFilter, setLineFilter] = useState("");
-  const [orderFilter, setOrderFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [activeFilter, setActiveFilter] = useState("");
+  const [activeFilters, setActiveFilters] = useState({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortBy, setSortBy] = useState("stepSequence");
@@ -65,16 +62,7 @@ export default function ProductionStepsTable() {
 
   useEffect(() => {
     fetchSteps();
-  }, [page, pageSize, debouncedSearch, orderFilter, statusFilter, activeFilter, sortBy, sortDirection]);
-
-  useEffect(() => {
-    if (lineFilter) {
-      setFilteredOrders(productionOrders.filter((o) => String(o.productionLineID) === String(lineFilter)));
-      setOrderFilter("");
-    } else {
-      setFilteredOrders(productionOrders);
-    }
-  }, [lineFilter, productionOrders]);
+  }, [page, pageSize, debouncedSearch, activeFilters, sortBy, sortDirection]);
 
   useEffect(() => {
     if (formLineFilter) {
@@ -96,7 +84,6 @@ export default function ProductionStepsTable() {
     try {
       const data = await productionOrderService.getAll();
       setProductionOrders(data || []);
-      setFilteredOrders(data || []);
       setFormFilteredOrders(data || []);
     } catch { /* non-critical */ }
   };
@@ -110,9 +97,9 @@ export default function ProductionStepsTable() {
         search: debouncedSearch,
         sortBy,
         sortDirection,
-        productionOrderID: orderFilter ? Number(orderFilter) : undefined,
-        status: statusFilter !== "" ? Number(statusFilter) : undefined,
-        isActive: activeFilter === "" ? undefined : activeFilter === "true",
+        productionOrderID: activeFilters.productionOrderID?.length ? Number(activeFilters.productionOrderID[0]) : undefined,
+        status: activeFilters.status?.length ? Number(activeFilters.status[0]) : undefined,
+        isActive: activeFilters.isActive?.length ? activeFilters.isActive[0] === "true" : undefined,
       });
       setSteps(data?.items || []);
       setTotalCount(data?.totalCount || 0);
@@ -208,6 +195,52 @@ export default function ProductionStepsTable() {
   const getStatusLabel = (status) => STATUS_OPTIONS.find((s) => s.value === status)?.label ?? String(status);
   const getOrderName = (orderId) => productionOrders.find((o) => o.productionOrderID === orderId)?.orderName ?? String(orderId);
 
+  // Filterable columns for the filter bar
+  const filterOrderOptions = (() => {
+    const lineIds = activeFilters.productionLineID ?? [];
+    const orders = lineIds.length
+      ? productionOrders.filter((o) => lineIds.includes(String(o.productionLineID)))
+      : productionOrders;
+    return orders.map((o) => ({ value: String(o.productionOrderID), label: o.orderName }));
+  })();
+
+  const filterableColumns = [
+    {
+      key: "productionLineID",
+      label: t(K.ADMIN_TABLE_PRODUCTION_LINE, "Production Line"),
+      options: productionLines.map((l) => ({ value: String(l.productionLineID), label: l.lineName })),
+    },
+    {
+      key: "productionOrderID",
+      label: t(K.ADMIN_TABLE_PRODUCTION_ORDER, "Production Order"),
+      options: filterOrderOptions,
+    },
+    {
+      key: "status",
+      label: t(K.ADMIN_TABLE_STATUS, "Status"),
+      options: STATUS_OPTIONS.map((s) => ({ value: String(s.value), label: s.label })),
+    },
+    {
+      key: "isActive",
+      label: t(K.ADMIN_TABLE_STATUS, "Active"),
+      options: [
+        { value: "true", label: t(K.ADMIN_TABLE_ACTIVE, "Active") },
+        { value: "false", label: t(K.ADMIN_TABLE_INACTIVE, "Inactive") },
+      ],
+    },
+  ];
+
+  const handleFilterApply = (newFilters) => {
+    // Clear order filter when line filter changes
+    const prevLineIds = JSON.stringify(activeFilters.productionLineID ?? []);
+    const nextLineIds = JSON.stringify(newFilters.productionLineID ?? []);
+    if (prevLineIds !== nextLineIds) {
+      delete newFilters.productionOrderID;
+    }
+    setActiveFilters(newFilters);
+    setPage(1);
+  };
+
   const columns = [
     {
       header: t(K.ADMIN_TABLE_PRODUCTION_STEP_SEQUENCE, "Seq"),
@@ -235,11 +268,13 @@ export default function ProductionStepsTable() {
       header: t(K.ADMIN_TABLE_PRODUCTION_ORDER, "Production Order"),
       accessor: (row) => getOrderName(row.productionOrderID),
       sortKey: "productionOrderID",
+      filterKey: "productionOrderID",
     },
     {
       header: t(K.ADMIN_TABLE_STATUS, "Status"),
       accessor: (row) => getStatusLabel(row.status),
       sortKey: "status",
+      filterKey: "status",
     },
     {
       header: t(K.ADMIN_TABLE_PRODUCTION_ORDER_PLANNED_START, "Planned Start"),
@@ -255,6 +290,7 @@ export default function ProductionStepsTable() {
       header: t(K.ADMIN_TABLE_STATUS, "Active"),
       accessor: (row) => (row.isActive ? t(K.ADMIN_TABLE_ACTIVE, "Active") : t(K.ADMIN_TABLE_INACTIVE, "Inactive")),
       sortKey: "isActive",
+      filterKey: "isActive",
     },
   ];
 
@@ -274,7 +310,7 @@ export default function ProductionStepsTable() {
 
   return (
     <Card extra={"w-full h-full min-h-0 px-2 sm:px-0"}>
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center gap-3">
         <button
           onClick={() => {
             setEditingId(null);
@@ -282,58 +318,18 @@ export default function ProductionStepsTable() {
             setFormLineFilter("");
             setShowModal(true);
           }}
-          className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
+          className="shrink-0 px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
         >
           {`${t(K.ADMIN_TABLE_ADD, "Add")} ${t(K.ADMIN_TABLE_PRODUCTION_STEP, "Production Step")}`}
         </button>
-        <div className="flex flex-wrap gap-2 md:max-w-2xl">
-          <input
-            type="text"
-            value={searchText}
-            onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
-            placeholder={t(K.ADMIN_TABLE_SEARCH_NAME_CODE, "Search name, code")}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          />
-          <select
-            value={lineFilter}
-            onChange={(e) => { setLineFilter(e.target.value); setPage(1); }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_PRODUCTION_LINES, "Lines")}`}</option>
-            {productionLines.map((l) => (
-              <option key={l.productionLineID} value={l.productionLineID}>{l.lineName}</option>
-            ))}
-          </select>
-          <select
-            value={orderFilter}
-            onChange={(e) => { setOrderFilter(e.target.value); setPage(1); }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_PRODUCTION_ORDERS, "Orders")}`}</option>
-            {filteredOrders.map((o) => (
-              <option key={o.productionOrderID} value={o.productionOrderID}>{o.orderName}</option>
-            ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </select>
-          <select
-            value={activeFilter}
-            onChange={(e) => { setActiveFilter(e.target.value); setPage(1); }}
-            className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_STATUSES, "Statuses")}`}</option>
-            <option value="true">{t(K.ADMIN_TABLE_ACTIVE, "Active")}</option>
-            <option value="false">{t(K.ADMIN_TABLE_INACTIVE, "Inactive")}</option>
-          </select>
-        </div>
+        <TableFilterModal filterableColumns={filterableColumns} activeFilters={activeFilters} onFilterApply={handleFilterApply} />
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
+          placeholder={t(K.ADMIN_TABLE_SEARCH_NAME_CODE, "Search name, code")}
+          className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+        />
       </div>
 
       {loading ? (
@@ -354,6 +350,8 @@ export default function ProductionStepsTable() {
         actions={actions}
         idField="productionStepID"
         onBulkDelete={handleBulkDelete}
+        filterableColumns={filterableColumns}
+        activeFilters={activeFilters}
       />
       )}
 

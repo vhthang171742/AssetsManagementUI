@@ -1,17 +1,21 @@
 ﻿import React, { useMemo, useState, useEffect } from "react";
 import toast from "react-hot-toast";
+import { MdFilterAlt } from "react-icons/md";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
 
 // Shared Table component
 // Props:
-// - columns: [{ header, accessor, width?, render?: (row) => node }]
+// - columns: [{ header, accessor, width?, filterKey?, render?: (row) => node }]
 // - data: array of objects
 // - pageSize: number (optional)
 // - height: CSS height string for the scrollable area (optional)
 // - onBulkDelete: fn(ids) => Promise (optional)
 // - selectable: boolean (default true)
 // - idField: string (default "assetID" - the field name for unique id)
+// - filterableColumns: [{ key, label, options: [{value,label}] }] — enables the filter bar
+// - activeFilters: { [key]: string[] } — currently applied filters
+// - onFilterApply: (filters) => void
 
 export default function Table({
   columns = [],
@@ -31,6 +35,9 @@ export default function Table({
   sortBy,
   sortDirection = "asc",
   onSortChange,
+  filterableColumns,
+  activeFilters = {},
+  onFilterApply,
 }) {
   const CHECKBOX_COL_WIDTH = "40px";
 
@@ -189,6 +196,15 @@ export default function Table({
     };
   };
 
+  const getFilterTooltip = (filterKey) => {
+    const field = filterableColumns?.find((f) => f.key === filterKey);
+    const values = activeFilters?.[filterKey] ?? [];
+    const labels = values.map(
+      (v) => field?.options?.find((o) => String(o.value) === String(v))?.label ?? String(v),
+    );
+    return `${field?.label ?? filterKey}: ${labels.join(", ")}`;
+  };
+
   return (
     <div className="flex h-full min-h-0 w-full flex-col rounded border bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
       <div style={{ height }} className="min-h-0 flex-1 overflow-x-auto overflow-y-auto">
@@ -200,30 +216,43 @@ export default function Table({
                   <input type="checkbox" checked={allSelectedOnPage} onChange={toggleSelectAllOnPage} />
                 </th>
               )}
-              {columns.map((col, idx) => (
-                <th
-                  key={idx}
-                  className={`text-left p-3 sticky top-0 bg-white dark:bg-gray-800 dark:text-white z-10 ${onSortChange && getSortKey(col) ? "cursor-pointer select-none" : ""}`}
-                  style={isActionsColumn(col)
-                    ? getActionsColumnStyle(col)
-                    : {
-                      width: col.width,
-                      maxWidth: col.width ? col.width : 0,
-                    }}
-                  onClick={() => handleSort(col)}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    {col.header}
-                    {onSortChange && getSortKey(col) && (
-                      <span className="text-xs opacity-70">
-                        {sortBy === getSortKey(col)
-                          ? (String(sortDirection).toLowerCase() === "desc" ? "▼" : "▲")
-                          : "↕"}
-                      </span>
-                    )}
-                  </span>
-                </th>
-              ))}
+              {columns.map((col, idx) => {
+                const colFilterKey = col.filterKey;
+                const isFiltered = colFilterKey && (activeFilters?.[colFilterKey]?.length ?? 0) > 0;
+                return (
+                  <th
+                    key={idx}
+                    className={`text-left p-3 sticky top-0 bg-white dark:bg-gray-800 dark:text-white z-10 ${onSortChange && getSortKey(col) ? "cursor-pointer select-none" : ""}`}
+                    style={isActionsColumn(col)
+                      ? getActionsColumnStyle(col)
+                      : {
+                        width: col.width,
+                        maxWidth: col.width ? col.width : 0,
+                      }}
+                    onClick={() => handleSort(col)}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {col.header}
+                      {onSortChange && getSortKey(col) && (
+                        <span className="text-xs opacity-70">
+                          {sortBy === getSortKey(col)
+                            ? (String(sortDirection).toLowerCase() === "desc" ? "▼" : "▲")
+                            : "↕"}
+                        </span>
+                      )}
+                      {isFiltered && (
+                        <span
+                          title={getFilterTooltip(colFilterKey)}
+                          className="cursor-help text-brand-500"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MdFilterAlt className="h-3.5 w-3.5" />
+                        </span>
+                      )}
+                    </span>
+                  </th>
+                );
+              })}
               {actions.length > 0 && (
                 <th className="text-left p-3 sticky top-0 bg-white dark:bg-gray-800 dark:text-white z-10" style={getActionsColumnStyle()}>
                   {t(K.TABLE_ACTIONS, "Actions")}
