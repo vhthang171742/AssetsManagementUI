@@ -139,6 +139,13 @@ export const handoverService = {
    */
   getSparePartAssets: () =>
     httpClient(`/handovers/spare-part-assets`),
+
+  /**
+   * Get all asset items across all types (Spare, Room, Production)
+   * @returns {Promise<Array>} List of all asset items
+   */
+  getAllAssetItems: () =>
+    httpClient(`/handovers/all-asset-items`),
 };
 
 export default handoverService;

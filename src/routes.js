@@ -9,7 +9,7 @@ import Categories from "views/admin/categories";
 import Departments from "views/admin/departments";
 import Rooms from "views/admin/rooms";
 import Handovers from "views/admin/handovers";
-import SpareAssets from "views/admin/spareAssets";
+import AllAssetItems from "views/admin/allAssetItems";
 import Configuration from "views/admin/configuration";
 import Users from "views/admin/users";
 import PortalAccess from "views/admin/portalAccess";
@@ -117,12 +117,12 @@ const routes = [
     requiredRoles: RoleSets.AssetsUser,
   },
   {
-    name: "Spare Asset Items",
-    translationKey: K.ROUTE_SPARE_ASSETS,
+    name: "All Asset Items",
+    translationKey: K.ROUTE_ASSET_ITEMS,
     layout: "/admin",
-    path: "spare-assets",
-    icon: <MdInventory2 className="h-6 w-6" />,
-    component: <SpareAssets />,
+    path: "asset-items",
+    icon: <MdListAlt className="h-6 w-6" />,
+    component: <AllAssetItems />,
     requiredRoles: RoleSets.AssetsUser,
   },
   {

@@ -15,7 +15,7 @@ const MENU_GROUPS = [
     id: "asset-management",
     label: "Asset Management",
     translationKey: K.MENU_GROUP_ASSET_MANAGEMENT,
-    items: ["departments", "categories", "assets", "handovers"]
+    items: ["departments", "categories", "assets", "handovers", "asset-items"]
   },
   {
     id: "production-workers",
