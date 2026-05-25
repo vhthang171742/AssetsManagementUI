@@ -9,6 +9,7 @@ import Categories from "views/admin/categories";
 import Departments from "views/admin/departments";
 import Rooms from "views/admin/rooms";
 import Handovers from "views/admin/handovers";
+import SpareAssets from "views/admin/spareAssets";
 import Configuration from "views/admin/configuration";
 import Users from "views/admin/users";
 import PortalAccess from "views/admin/portalAccess";
@@ -28,8 +29,6 @@ import AssetCourseMappings from "views/admin/assetCourseMappings";
 // Maintenance Management Imports (Phase 9)
 import MaintenanceSchedules from "views/admin/maintenanceSchedules";
 import MaintenanceRecords from "views/admin/maintenanceRecords";
-import SpareParts from "views/admin/spareParts";
-import MaintenanceSparePartUsages from "views/admin/maintenanceSparePartUsages";
 
 // Auth Imports
 import SignIn from "views/auth/SignIn";
@@ -115,6 +114,15 @@ const routes = [
     path: "handovers",
     icon: <MdAssignment className="h-6 w-6" />,
     component: <Handovers />,
+    requiredRoles: RoleSets.AssetsUser,
+  },
+  {
+    name: "Spare Asset Items",
+    translationKey: K.ROUTE_SPARE_ASSETS,
+    layout: "/admin",
+    path: "spare-assets",
+    icon: <MdInventory2 className="h-6 w-6" />,
+    component: <SpareAssets />,
     requiredRoles: RoleSets.AssetsUser,
   },
   {
@@ -250,15 +258,6 @@ const routes = [
     path: "maintenance-records",
     icon: <MdHistory className="h-6 w-6" />,
     component: <MaintenanceRecords />,
-    requiredRoles: RoleSets.MaintenanceUser,
-  },
-  {
-    name: "Spare Parts",
-    translationKey: K.ROUTE_SPARE_PARTS,
-    layout: "/admin",
-    path: "spare-parts",
-    icon: <MdInventory2 className="h-6 w-6" />,
-    component: <SpareParts />,
     requiredRoles: RoleSets.MaintenanceUser,
   },
   {

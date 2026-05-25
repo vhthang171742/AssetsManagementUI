@@ -132,6 +132,13 @@ export const handoverService = {
       method: "DELETE",
       body: JSON.stringify({ ids }),
     }),
+
+  /**
+   * Get all assets in the spare parts virtual room
+   * @returns {Promise<Array>} List of spare part assets
+   */
+  getSparePartAssets: () =>
+    httpClient(`/handovers/spare-part-assets`),
 };
 
 export default handoverService;

@@ -38,7 +38,7 @@ export default function HandoversTable() {
   const [sortBy, setSortBy] = useState("handoverDate");
   const [sortDirection, setSortDirection] = useState("desc");
   const [formData, setFormData] = useState({
-    targetSelection: "",
+    targetSelection: "spare",
     handoverDate: "",
     deliveredBy: "",
     receivedBy: "",
@@ -47,7 +47,7 @@ export default function HandoversTable() {
   const [detailFormData, setDetailFormData] = useState({
     assetID: "",
     serialNumber: "",
-    targetSelection: "",
+    targetSelection: "spare",
     conditionAtHandover: "",
     remarks: "",
   });
@@ -209,12 +209,7 @@ export default function HandoversTable() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (!formData.targetSelection) {
-        toast.error(t(K.ADMIN_TABLE_TARGET_REQUIRED, "Please select a target"));
-        return;
-      }
-
-      const [targetType, targetIdRaw] = formData.targetSelection.split(":");
+      const [targetType, targetIdRaw] = (formData.targetSelection || "").split(":");
       const targetId = Number(targetIdRaw);
       const payload = {
         roomID: targetType === "room" ? targetId : null,
@@ -235,7 +230,7 @@ export default function HandoversTable() {
       setShowModal(false);
       setEditingId(null);
       setFormData({
-        targetSelection: "",
+        targetSelection: "spare",
         handoverDate: "",
         deliveredBy: "",
         receivedBy: "",
@@ -252,22 +247,13 @@ export default function HandoversTable() {
   const handleAddDetailSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (!detailFormData.targetSelection) {
-        toast.error(t(K.ADMIN_TABLE_TARGET_REQUIRED, "Please select a target"));
-        return;
-      }
-
       if (stagedItems.length === 0) {
         toast.error(t(K.ADMIN_TABLE_STAGED_ITEMS_EMPTY, "Add at least one asset item"));
         return;
       }
 
-      const [targetType, targetIdRaw] = detailFormData.targetSelection.split(":");
+      const [targetType, targetIdRaw] = (detailFormData.targetSelection || "spare").split(":");
       const targetId = Number(targetIdRaw);
-      if (!targetType || !targetId) {
-        toast.error(t(K.ADMIN_TABLE_TARGET_REQUIRED, "Please select a target"));
-        return;
-      }
 
       const grouped = stagedItems.reduce((acc, item) => {
         if (!acc[item.assetID]) {
@@ -297,7 +283,7 @@ export default function HandoversTable() {
       setDetailFormData({
         assetID: "",
         serialNumber: "",
-        targetSelection: "",
+        targetSelection: "spare",
         conditionAtHandover: "",
         remarks: "",
       });
@@ -317,7 +303,7 @@ export default function HandoversTable() {
     const dateObj = new Date(handover.handoverDate);
     const formattedDate = dateObj.toISOString().slice(0, 16);
 
-    let targetSelection = "";
+    let targetSelection = "spare";
     if (handover.roomID) {
       targetSelection = `room:${handover.roomID}`;
     } else if (handover.productionLineID) {
@@ -378,7 +364,7 @@ export default function HandoversTable() {
     setDetailFormData({
       assetID: "",
       serialNumber: "",
-      targetSelection: "",
+      targetSelection: "spare",
       conditionAtHandover: "",
       remarks: "",
     });    setAvailableItems([]);    setNewSerialText("");    setStagedItems([]);
@@ -395,13 +381,13 @@ export default function HandoversTable() {
       const line = productionLines.find((l) => l.productionLineID === row.productionLineID);
       return line ? line.lineName : t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
     }
-    return t(K.ADMIN_TABLE_UNKNOWN, "Unknown");
+    return t(K.ADMIN_TABLE_SPARE_PARTS, "Spare Parts");
   };
 
   const getTargetType = (row) => {
     if (row.roomID) return t(K.ROUTE_ROOMS, "Room");
     if (row.productionLineID) return t(K.ROUTE_PRODUCTION_LINES, "Line");
-    return "";
+    return t(K.ADMIN_TABLE_SPARE_PARTS, "Spare Parts");
   };
 
   const getAssetName = (assetID) => {
@@ -427,7 +413,7 @@ export default function HandoversTable() {
             <button
               onClick={() => {
                 setEditingId(null);
-                setFormData({ targetSelection: "", handoverDate: "", deliveredBy: "", receivedBy: "", notes: "" });
+                setFormData({ targetSelection: "spare", handoverDate: "", deliveredBy: "", receivedBy: "", notes: "" });
                 setShowModal(true);
               }}
               className="shrink-0 px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
@@ -554,9 +540,8 @@ export default function HandoversTable() {
                 value={formData.targetSelection}
                 onChange={handleInputChange}
                 className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                required
               >
-                <option value="">{t(K.ADMIN_TABLE_SELECT_TARGET_LOCATION, "Select target")}</option>
+                <option value="spare">{t(K.ADMIN_TABLE_SPARE_PARTS, "Spare Parts")} ({t(K.ADMIN_TABLE_NO_LOCATION, "No Location")})</option>
                 <optgroup label={t(K.ROUTE_ROOMS, "Rooms")}>
                   {rooms.map((room) => (
                     <option key={`room-${room.roomID}`} value={`room:${room.roomID}`}>
@@ -723,9 +708,8 @@ export default function HandoversTable() {
                     value={detailFormData.targetSelection}
                     onChange={handleDetailInputChange}
                     className="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-white"
-                    required
                   >
-                    <option value="">{t(K.ADMIN_TABLE_SELECT_TARGET_LOCATION, "Select target")}</option>
+                    <option value="spare">{t(K.ADMIN_TABLE_SPARE_PARTS, "Spare Parts")} ({t(K.ADMIN_TABLE_NO_LOCATION, "No Location")})</option>
                     <optgroup label={t(K.ROUTE_ROOMS, "Rooms")}>
                       {rooms.map((room) => (
                         <option key={`room-${room.roomID}`} value={`room:${room.roomID}`}>

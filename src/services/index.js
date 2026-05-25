@@ -27,8 +27,6 @@ export { assetCourseMappingService } from "./assetCourseMappingService";
 // Phase 9: Maintenance Management Services
 export { maintenanceScheduleService } from "./maintenanceScheduleService";
 export { maintenanceRecordService } from "./maintenanceRecordService";
-export { sparePartService } from "./sparePartService";
-export { maintenanceSparePartUsageService } from "./maintenanceSparePartUsageService";
 
 // Phase 11: Practice Session Logging Services
 export { 

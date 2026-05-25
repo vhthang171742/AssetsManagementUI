@@ -20,7 +20,6 @@ import AssetsByCategoryChart from "./components/AssetsByCategoryChart";
 import MaintenanceTrendChart from "./components/MaintenanceTrendChart";
 import UsageDowntimeChart from "./components/UsageDowntimeChart";
 import UpcomingMaintenanceTable from "./components/UpcomingMaintenanceTable";
-import SparePartsHealthTable from "./components/SparePartsHealthTable";
 
 const Dashboard = () => {
   const { t } = useLanguage();
@@ -112,9 +111,8 @@ const Dashboard = () => {
       </div>
 
       {/* Tables */}
-      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
+      <div className="mt-5">
         <UpcomingMaintenanceTable data={summary?.upcomingMaintenanceSchedules ?? []} />
-        <SparePartsHealthTable data={summary?.lowStockSpareParts ?? []} />
       </div>
 
       {/* Maintenance Calendar */}

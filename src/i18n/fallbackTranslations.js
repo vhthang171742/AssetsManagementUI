@@ -71,6 +71,7 @@ export const fallbackTranslations = {
     [K.ROUTE_MAINTENANCE_SCHEDULES]: "Maintenance Schedules",
     [K.ROUTE_MAINTENANCE_RECORDS]: "Maintenance Records",
     [K.ROUTE_SPARE_PARTS]: "Spare Parts",
+    [K.ROUTE_SPARE_ASSETS]: "Spare Asset Items",
     [K.ROUTE_SIGN_IN]: "Sign In",
 
     [K.PORTAL_ADMIN_NAME]: "Admin Portal",
@@ -584,6 +585,8 @@ export const fallbackTranslations = {
     [K.ADMIN_TABLE_ADDITIONAL_REMARKS]: "Additional remarks...",
     [K.ADMIN_TABLE_QR_CODE]: "QR Code",
     [K.ADMIN_TABLE_VIEW_QR]: "View QR",
+    [K.ADMIN_TABLE_SPARE_PARTS]: "Spare Parts",
+    [K.ADMIN_TABLE_NO_LOCATION]: "No Location",
     [K.ADMIN_TABLE_ASSET_QR_CODE]: "Asset QR Code",
     [K.ADMIN_TABLE_REMOVE]: "Remove",
     [K.ADMIN_TABLE_ASSET_ADDED_TO_ROOM_SUCCESSFULLY]: "Asset added to room successfully",
@@ -944,6 +947,7 @@ export const fallbackTranslations = {
     [K.ROUTE_MAINTENANCE_SCHEDULES]: "Lịch bảo trì",
     [K.ROUTE_MAINTENANCE_RECORDS]: "Phiếu bảo trì",
     [K.ROUTE_SPARE_PARTS]: "Linh kiện",
+    [K.ROUTE_SPARE_ASSETS]: "Tài sản dự phòng",
     [K.ROUTE_SIGN_IN]: "Đăng nhập",
 
     [K.PORTAL_ADMIN_NAME]: "Cổng quản trị",
@@ -1457,6 +1461,8 @@ export const fallbackTranslations = {
     [K.ADMIN_TABLE_ADDITIONAL_REMARKS]: "Ghi chú bổ sung...",
     [K.ADMIN_TABLE_QR_CODE]: "Mã QR",
     [K.ADMIN_TABLE_VIEW_QR]: "Xem QR",
+    [K.ADMIN_TABLE_SPARE_PARTS]: "Phụ tùng dự phòng",
+    [K.ADMIN_TABLE_NO_LOCATION]: "Không có vị trí",
     [K.ADMIN_TABLE_ASSET_QR_CODE]: "Mã QR tài sản",
     [K.ADMIN_TABLE_REMOVE]: "Gỡ",
     [K.ADMIN_TABLE_ASSET_ADDED_TO_ROOM_SUCCESSFULLY]: "Thêm tài sản vào phòng thành công",
