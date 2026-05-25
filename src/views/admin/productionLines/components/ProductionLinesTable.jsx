@@ -6,6 +6,7 @@ import Table from "components/table/Table";
 import TableFilterModal from "components/table/TableFilterModal";
 import { renderEntityPill, renderLookupEntityPill } from "components/table/entityPillHelpers";
 import { MdModeEditOutline, MdDelete, MdAdd } from "react-icons/md";
+import { QRCodeSVG } from "qrcode.react";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
@@ -19,6 +20,8 @@ export default function ProductionLinesTable() {
   const [showModal, setShowModal] = useState(false);
   const [showAssetsModal, setShowAssetsModal] = useState(false);
   const [showWorkersModal, setShowWorkersModal] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [selectedQrAsset, setSelectedQrAsset] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [managingLine, setManagingLine] = useState(null);
   const [lineAssets, setLineAssets] = useState([]);
@@ -589,7 +592,7 @@ export default function ProductionLinesTable() {
                     <th className="px-3 py-2 text-left">{t(K.ADMIN_TABLE_ASSET, "Asset")}</th>
                     <th className="px-3 py-2 text-left">{t(K.ADMIN_TABLE_SERIAL_NUMBER, "Serial Number")}</th>
                     <th className="px-3 py-2 text-left">{t(K.ADMIN_TABLE_ROOM, "Room")}</th>
-                    <th className="px-3 py-2 text-right">{t(K.ADMIN_TABLE_ACTIONS, "Actions")}</th>
+                    <th className="px-3 py-2 text-left">{t(K.ADMIN_TABLE_ACTIONS, "Actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -606,14 +609,29 @@ export default function ProductionLinesTable() {
                         <td className="px-3 py-2">{asset.serialNumber || t(K.ADMIN_TABLE_NA, "N/A")}</td>
                         <td className="px-3 py-2">{asset.roomName || t(K.ADMIN_TABLE_NA, "N/A")}</td>
                         <td className="px-3 py-2 text-right">
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveLineAsset(asset.assignmentID)}
-                            className="text-red-500 hover:text-red-700 transition-colors"
-                            title={t(K.ADMIN_TABLE_DELETE, "Delete")}
-                          >
-                            <MdDelete className="h-5 w-5" />
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            {asset.qrCodeValue ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedQrAsset(asset);
+                                  setShowQrModal(true);
+                                }}
+                                className="rounded-md border border-brand-300 px-2 py-1 text-xs font-semibold text-brand-700 hover:bg-brand-50"
+                                title={t(K.ADMIN_TABLE_VIEW_QR, "View QR")}
+                              >
+                                {t(K.ADMIN_TABLE_VIEW_QR, "View QR")}
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveLineAsset(asset.assignmentID)}
+                              className="text-red-500 hover:text-red-700 transition-colors"
+                              title={t(K.ADMIN_TABLE_DELETE, "Delete")}
+                            >
+                              <MdDelete className="h-5 w-5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -716,6 +734,40 @@ export default function ProductionLinesTable() {
                 </tbody>
               </table>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {showQrModal && selectedQrAsset && (
+        <Modal
+          isOpen={showQrModal}
+          onClose={() => {
+            setShowQrModal(false);
+            setSelectedQrAsset(null);
+          }}
+          title={t(K.ADMIN_TABLE_ASSET_QR_CODE, "Asset QR Code")}
+          maxWidth={"max-w-md"}
+          footer={
+            <>
+              <button
+                onClick={() => {
+                  setShowQrModal(false);
+                  setSelectedQrAsset(null);
+                }}
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
+              >
+                {t(K.MODAL_CLOSE, "Close")}
+              </button>
+            </>
+          }
+        >
+          <div className="flex flex-col items-center gap-3 py-2">
+            <QRCodeSVG value={selectedQrAsset.qrCodeValue} size={280} level="M" includeMargin={true} />
+            <p className="text-sm font-semibold text-navy-700 dark:text-white">{selectedQrAsset.assetName}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-300">{`${t(K.ADMIN_TABLE_SERIAL, "Serial")}: ${selectedQrAsset.serialNumber}`}</p>
+            <p className="max-w-full break-all text-center font-mono text-[11px] text-gray-500 dark:text-gray-300">
+              {selectedQrAsset.qrCodeValue}
+            </p>
           </div>
         </Modal>
       )}
