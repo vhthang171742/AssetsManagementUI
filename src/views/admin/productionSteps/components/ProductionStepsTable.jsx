@@ -65,12 +65,15 @@ export default function ProductionStepsTable() {
   }, [page, pageSize, debouncedSearch, activeFilters, sortBy, sortDirection]);
 
   useEffect(() => {
-    if (formLineFilter) {
-      setFormFilteredOrders(productionOrders.filter((o) => String(o.productionLineID) === String(formLineFilter)));
-    } else {
-      setFormFilteredOrders(productionOrders);
-    }
-    setFormData((prev) => ({ ...prev, productionOrderID: "" }));
+    const filtered = formLineFilter
+      ? productionOrders.filter((o) => String(o.productionLineID) === String(formLineFilter))
+      : [];
+    setFormFilteredOrders(filtered);
+    // Only clear the selected order if it no longer belongs to the selected line
+    setFormData((prev) => {
+      const stillValid = filtered.some((o) => String(o.productionOrderID) === String(prev.productionOrderID));
+      return stillValid ? prev : { ...prev, productionOrderID: "" };
+    });
   }, [formLineFilter, productionOrders]);
 
   const fetchProductionLines = async () => {
@@ -391,7 +394,7 @@ export default function ProductionStepsTable() {
               onChange={(e) => setFormLineFilter(e.target.value)}
               className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
-              <option value="">{`${t(K.ADMIN_TABLE_ALL, "All")} ${t(K.ADMIN_TABLE_PRODUCTION_LINES, "Lines")}`}</option>
+              <option value="">{t(K.ADMIN_TABLE_SELECT_PRODUCTION_LINE, "Select Production Line")}</option>
               {productionLines.map((l) => (
                 <option key={l.productionLineID} value={l.productionLineID}>{l.lineName}</option>
               ))}
@@ -407,9 +410,10 @@ export default function ProductionStepsTable() {
               value={formData.productionOrderID}
               onChange={handleInputChange}
               required
-              className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              disabled={!formLineFilter}
+              className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <option value="">{t(K.ADMIN_TABLE_SELECT_PRODUCTION_ORDER, "Select Production Order")}</option>
+              <option value="">{formLineFilter ? t(K.ADMIN_TABLE_SELECT_PRODUCTION_ORDER, "Select Production Order") : t(K.ADMIN_TABLE_SELECT_PRODUCTION_LINE_FIRST, "Select a production line first")}</option>
               {formFilteredOrders.map((o) => (
                 <option key={o.productionOrderID} value={o.productionOrderID}>{o.orderName}</option>
               ))}
