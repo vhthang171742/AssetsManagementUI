@@ -185,6 +185,21 @@ export default function HandoversTable() {
       return;
     }
 
+    // Block staging an item that is currently assigned to a person
+    if (!isNew) {
+      const selectedItem = availableItems.find(
+        (item) => item.serialNumber.toLowerCase() === serial.toLowerCase()
+      );
+      const activeAssignees = selectedItem ? (selectedItem.assignedUsers || []) : [];
+      if (activeAssignees.length > 0) {
+        const names = activeAssignees
+          .map((u) => `${u.type === "Student" ? t(K.ADMIN_TABLE_ASSIGNED_STUDENT, "Student") : t(K.ADMIN_TABLE_ASSIGNED_WORKER, "Worker")} ${u.name}`)
+          .join(", ");
+        toast.error(`${serial}: ${t(K.ADMIN_TABLE_ASSIGNED_TO, "Assigned to")} ${names} — ${t(K.ADMIN_TABLE_MUST_UNASSIGN_FIRST, "must be unassigned first")}`);
+        return;
+      }
+    }
+
     const duplicateInStage = stagedItems.some((item) =>
       item.serialNumber.toLowerCase() === serial.toLowerCase()
     );
@@ -663,11 +678,25 @@ export default function HandoversTable() {
                           <option value="">{t(K.ADMIN_TABLE_SELECT_SERIAL_NUMBER, "Select serial number")}</option>
                           {availableItems
                             .filter((item) => !stagedItems.some((s) => s.serialNumber.toLowerCase() === item.serialNumber.toLowerCase()))
-                            .map((item) => (
-                              <option key={item.roomAssetID} value={item.serialNumber}>
-                                {item.serialNumber}{item.roomName ? ` — ${item.roomName}` : ""}
-                              </option>
-                            ))}
+                            .map((item) => {
+                              const activeAssignees = (item.assignedUsers || []).filter(Boolean);
+                              const isAssigned = activeAssignees.length > 0;
+                              const assigneeLabel = activeAssignees
+                                .map((u) => `${u.type === "Student" ? t(K.ADMIN_TABLE_ASSIGNED_STUDENT, "Student") : t(K.ADMIN_TABLE_ASSIGNED_WORKER, "Worker")}: ${u.name}`)
+                                .join(", ");
+                              return (
+                                <option
+                                  key={item.roomAssetID}
+                                  value={item.serialNumber}
+                                  disabled={isAssigned}
+                                  title={isAssigned ? `⛔ ${assigneeLabel} — ${t(K.ADMIN_TABLE_MUST_UNASSIGN_FIRST, "must be unassigned first")}` : undefined}
+                                >
+                                  {item.serialNumber}
+                                  {item.roomName ? ` — ${item.roomName}` : ""}
+                                  {isAssigned ? " ⛔" : ""}
+                                </option>
+                              );
+                            })}
                           <option value="__new__">＋ {t(K.ADMIN_TABLE_NEW_SERIAL_NUMBER, "New serial number...")}</option>
                         </select>
                       ) : (

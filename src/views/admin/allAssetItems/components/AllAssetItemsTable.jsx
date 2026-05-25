@@ -166,6 +166,9 @@ export default function AllAssetItemsTable() {
                     {t(K.ADMIN_TABLE_STATUS, "Status")}
                   </th>
                   <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
+                    {t(K.ADMIN_TABLE_ASSIGNED_TO, "Assigned To")}
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
                     {t(K.ADMIN_TABLE_DATE_ASSIGNED, "Date Assigned")}
                   </th>
                   <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">
@@ -223,6 +226,32 @@ export default function AllAssetItemsTable() {
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadgeClass(asset.operationalStatus)}`}>
                           {asset.operationalStatus}
                         </span>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-600">—</span>
+                      )}
+                    </td>
+
+                    {/* Assigned users */}
+                    <td className="px-4 py-3">
+                      {(asset.assignedUsers || []).length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {(asset.assignedUsers || []).map((u, idx) => (
+                            <span
+                              key={idx}
+                              title={u.type === "Student"
+                                ? t(K.ADMIN_TABLE_ASSIGNED_STUDENT, "Student")
+                                : t(K.ADMIN_TABLE_ASSIGNED_WORKER, "Worker")}
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                                u.type === "Student"
+                                  ? "bg-violet-100 text-violet-700 dark:bg-violet-900/20 dark:text-violet-300"
+                                  : "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/20 dark:text-cyan-300"
+                              }`}
+                            >
+                              <span className="opacity-70">{u.type === "Student" ? "S" : "W"}</span>
+                              {u.name}
+                            </span>
+                          ))}
+                        </div>
                       ) : (
                         <span className="text-gray-400 dark:text-gray-600">—</span>
                       )}
