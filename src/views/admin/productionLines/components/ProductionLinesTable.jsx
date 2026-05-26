@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { productionLineService, departmentService } from "services/api";
+import { productionLineService, departmentService, productionManagerService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
 import TableFilterModal from "components/table/TableFilterModal";
@@ -16,6 +16,7 @@ export default function ProductionLinesTable() {
   const [lines, setLines] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [departments, setDepartments] = useState([]);
+  const [productionManagers, setProductionManagers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showAssetsModal, setShowAssetsModal] = useState(false);
@@ -38,10 +39,12 @@ export default function ProductionLinesTable() {
     orderCode: "",
     capacity: "",
     isActive: true,
+    productionManagerID: "",
   });
 
   useEffect(() => {
     fetchDepartments();
+    fetchProductionManagers();
   }, []);
 
   useEffect(() => {
@@ -87,6 +90,15 @@ export default function ProductionLinesTable() {
       setDepartments(data || []);
     } catch (error) {
       console.error("Failed to fetch departments:", error);
+    }
+  };
+
+  const fetchProductionManagers = async () => {
+    try {
+      const data = await productionManagerService.getAll();
+      setProductionManagers(data || []);
+    } catch (error) {
+      console.error("Failed to fetch production managers:", error);
     }
   };
 
@@ -136,12 +148,16 @@ export default function ProductionLinesTable() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const payload = {
+      ...formData,
+      productionManagerID: formData.productionManagerID !== "" ? Number(formData.productionManagerID) : null,
+    };
     try {
       if (editingId) {
-        await productionLineService.update(editingId, formData);
+        await productionLineService.update(editingId, payload);
         toast.success(`${t(K.ADMIN_TABLE_PRODUCTION_LINE, "Production line")} ${t(K.ADMIN_TABLE_UPDATED_SUCCESSFULLY, "updated successfully")}`);
       } else {
-        await productionLineService.create(formData);
+        await productionLineService.create(payload);
         toast.success(`${t(K.ADMIN_TABLE_PRODUCTION_LINE, "Production line")} ${t(K.ADMIN_TABLE_CREATED_SUCCESSFULLY, "created successfully")}`);
       }
       setShowModal(false);
@@ -153,6 +169,7 @@ export default function ProductionLinesTable() {
         orderCode: "",
         capacity: "",
         isActive: true,
+        productionManagerID: "",
       });
       fetchProductionLines();
     } catch (error) {
@@ -170,6 +187,7 @@ export default function ProductionLinesTable() {
       orderCode: line.orderCode,
       capacity: line.capacity,
       isActive: line.isActive,
+      productionManagerID: line.productionManagerID ?? "",
     });
     setEditingId(line.productionLineID);
     setShowModal(true);
@@ -243,6 +261,21 @@ export default function ProductionLinesTable() {
       sortKey: "capacity",
     },
     {
+      header: "Manager",
+      accessor: "productionManagerName",
+      render: (row) =>
+        row.productionManagerID
+          ? renderLookupEntityPill({
+              type: "user",
+              id: row.productionManagerID,
+              items: productionManagers,
+              idField: "productionManagerID",
+              labelResolver: (pm) => pm?.fullName || pm?.managerCode || String(row.productionManagerID),
+              fallbackLabel: row.productionManagerName || "-",
+            })
+          : <span className="text-gray-400 text-xs">—</span>,
+    },
+    {
       header: t(K.ADMIN_TABLE_STATUS, "Status"),
       accessor: (row) => (row.isActive ? t(K.ADMIN_TABLE_ACTIVE, "Active") : t(K.ADMIN_TABLE_INACTIVE, "Inactive")),
       sortKey: "isActive",
@@ -304,6 +337,7 @@ export default function ProductionLinesTable() {
               orderCode: "",
               capacity: "",
               isActive: true,
+              productionManagerID: "",
             });
             setEditingId(null);
             setShowModal(true);
@@ -456,6 +490,25 @@ export default function ProductionLinesTable() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder={t(K.ADMIN_TABLE_ENTER_CAPACITY, "Enter capacity")}
               />
+            </div>
+
+            <div>
+              <label className="mb-2 text-sm font-medium text-gray-700 dark:text-white">
+                Manager
+              </label>
+              <select
+                name="productionManagerID"
+                value={formData.productionManagerID}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="">— No manager assigned —</option>
+                {productionManagers.map((pm) => (
+                  <option key={pm.productionManagerID} value={pm.productionManagerID}>
+                    {pm.fullName || pm.managerCode} ({pm.managerCode})
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="flex items-center gap-2">

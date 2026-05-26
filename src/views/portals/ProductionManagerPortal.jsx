@@ -4,12 +4,13 @@ import Card from "components/card";
 import Modal from "components/modal/Modal";
 import PortalLayout from "layouts/portal";
 import { workSessionService } from "services/workSessionService";
+import { productionManagerService } from "services/productionManagerService";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const APPROVAL_STATUS = { Pending: 0, Approved: 1, Rejected: 2 };
+const APPROVAL_STATUS = { Pending: "Pending", Approved: "Approved", Rejected: "Rejected" };
 
 function durationLabel(session) {
   if (!session.startTime) return "—";
@@ -20,7 +21,11 @@ function durationLabel(session) {
 }
 
 function ApprovalBadge({ status }) {
-  const map = { 0: ["Pending", "bg-yellow-100 text-yellow-800"], 1: ["Approved", "bg-green-100 text-green-800"], 2: ["Rejected", "bg-red-100 text-red-800"] };
+  const map = {
+    Pending: ["Pending", "bg-yellow-100 text-yellow-800"],
+    Approved: ["Approved", "bg-green-100 text-green-800"],
+    Rejected: ["Rejected", "bg-red-100 text-red-800"],
+  };
   const [label, cls] = map[status] ?? ["Unknown", "bg-gray-100 text-gray-600"];
   return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>{label}</span>;
 }
@@ -29,6 +34,10 @@ function ApprovalBadge({ status }) {
 
 export default function ProductionManagerPortal() {
   const { t } = useLanguage();
+
+  const [managedLines, setManagedLines] = useState([]);
+  const [isUnscoped, setIsUnscoped] = useState(true);
+  const [loadingScope, setLoadingScope] = useState(true);
 
   const [activeSessions, setActiveSessions] = useState([]);
   const [pendingSessions, setPendingSessions] = useState([]);
@@ -42,6 +51,19 @@ export default function ProductionManagerPortal() {
   const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectNotes, setRejectNotes] = useState("");
   const [approveBusy, setApproveBusy] = useState({});
+
+  const loadManagedLines = useCallback(async () => {
+    setLoadingScope(true);
+    try {
+      const result = await productionManagerService.getMyLines();
+      setManagedLines(result?.items ?? []);
+      setIsUnscoped(result?.isUnscoped ?? true);
+    } catch {
+      // non-critical
+    } finally {
+      setLoadingScope(false);
+    }
+  }, []);
 
   const loadActiveSessions = useCallback(async () => {
     setLoadingActive(true);
@@ -68,9 +90,10 @@ export default function ProductionManagerPortal() {
   }, []);
 
   useEffect(() => {
+    loadManagedLines();
     loadActiveSessions();
     loadPendingSessions();
-  }, [loadActiveSessions, loadPendingSessions]);
+  }, [loadManagedLines, loadActiveSessions, loadPendingSessions]);
 
   const handleForceClose = async () => {
     if (!forceCloseTarget || !forceCloseReason.trim()) {
@@ -127,6 +150,32 @@ export default function ProductionManagerPortal() {
   return (
     <PortalLayout titleKey={K.PORTAL_PRODUCTION_MANAGER_NAME} title="Production Manager Portal">
       <div className="flex flex-1 flex-col min-h-0 gap-5">
+
+        {/* ── Scope Banner ──────────────────────────────────────────────────── */}
+        <Card extra="px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              Line Scope:
+            </span>
+            {loadingScope ? (
+              <span className="text-xs text-gray-400">Loading…</span>
+            ) : isUnscoped ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                All Lines (unscoped — no assignments)
+              </span>
+            ) : (
+              managedLines.map((l) => (
+                <span
+                  key={l.productionLineID}
+                  className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-3 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
+                >
+                  {l.lineName}
+                  <span className="text-indigo-400">({l.lineCode})</span>
+                </span>
+              ))
+            )}
+          </div>
+        </Card>
 
         {/* ── Active Sessions ───────────────────────────────────────────────── */}
         <Card extra="p-4">
