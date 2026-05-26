@@ -330,6 +330,8 @@ export default function WorkerPortal() {
 
   // ── Derived (hooks must come before early returns) ───────────────────────────
 
+  const activeAssignments = useMemo(() => assignments.filter((a) => a.isActive), [assignments]);
+
   const calendarScheduleItems = useMemo(
     () =>
       (workingEvents || []).map((item, index) => {
@@ -488,7 +490,6 @@ export default function WorkerPortal() {
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
-  const activeAssignments = assignments.filter((a) => a.isActive);
   const recentLogs = usageLogs.filter((l) => !(l.notes || "").includes("[WORKING_ATTENDANCE]")).slice(0, 10);
   const activeSessionStart = activeSession ? parseApiDateTime(activeSession.startTime) : null;
 
