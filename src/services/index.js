@@ -42,3 +42,6 @@ export {
   certificationService,
   skillRankingService
 } from "./competencyService";
+
+// Phase 13: Work Session (Production Worker Flow)
+export { workSessionService } from "./workSessionService";

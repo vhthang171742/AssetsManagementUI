@@ -46,4 +46,7 @@ export { practiceSessionService, practiceErrorLogService, sessionEvaluationServi
 // Phase 14: Asset Lifecycle State Machine
 export { assetLifecycleService } from "./assetLifecycleService";
 
+// Phase 13: Work Session (Production Worker Flow)
+export { workSessionService } from "./workSessionService";
+
 export const userService = userServiceDefault;

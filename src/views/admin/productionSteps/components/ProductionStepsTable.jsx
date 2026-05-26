@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { productionStepService, productionOrderService, productionLineService } from "services/api";
+import { userService } from "services/api";
 import Card from "components/card";
 import Table from "components/table/Table";
 import TableFilterModal from "components/table/TableFilterModal";
 import { renderEntityPill } from "components/table/entityPillHelpers";
-import { MdModeEditOutline, MdDelete } from "react-icons/md";
+import { MdModeEditOutline, MdDelete, MdAdd, MdPeople } from "react-icons/md";
 import Modal from "components/modal/Modal";
 import { useLanguage } from "context/LanguageContext";
 import { TranslationKeys as K } from "i18n/translationKeys";
@@ -49,6 +50,13 @@ export default function ProductionStepsTable() {
   const [formData, setFormData] = useState(createDefaultFormData());
   const [formLineFilter, setFormLineFilter] = useState("");
   const [formFilteredOrders, setFormFilteredOrders] = useState([]);
+
+  // Workers management
+  const [showWorkersModal, setShowWorkersModal] = useState(false);
+  const [managingStep, setManagingStep] = useState(null);
+  const [stepWorkers, setStepWorkers] = useState([]);
+  const [allWorkers, setAllWorkers] = useState([]);
+  const [selectedWorkerId, setSelectedWorkerId] = useState("");
 
   useEffect(() => {
     fetchProductionLines();
@@ -195,6 +203,59 @@ export default function ProductionStepsTable() {
     }
   };
 
+  // ─── Worker management ───────────────────────────────────────────────────
+
+  const fetchAllWorkers = async () => {
+    try {
+      const users = await userService.getAllUsers();
+      const workers = (users || []).filter((u) => u.roles?.includes("Worker") && u.workerRole?.workerID);
+      setAllWorkers(workers);
+    } catch {
+      toast.error("Failed to fetch workers");
+    }
+  };
+
+  const fetchStepWorkers = async (stepId) => {
+    try {
+      const data = await productionStepService.getWorkers(stepId);
+      setStepWorkers(data || []);
+    } catch {
+      setStepWorkers([]);
+    }
+  };
+
+  const openWorkersModal = async (step) => {
+    setManagingStep(step);
+    setShowWorkersModal(true);
+    setSelectedWorkerId("");
+    await Promise.all([fetchStepWorkers(step.productionStepID), fetchAllWorkers()]);
+  };
+
+  const handleAddWorkerToStep = async () => {
+    if (!managingStep?.productionStepID || !selectedWorkerId) return;
+    try {
+      await productionStepService.addWorker(managingStep.productionStepID, Number(selectedWorkerId));
+      toast.success("Worker assigned to step");
+      setSelectedWorkerId("");
+      await fetchStepWorkers(managingStep.productionStepID);
+    } catch (error) {
+      toast.error(`Failed to assign worker: ${error.message || "Unknown error"}`);
+    }
+  };
+
+  const handleRemoveWorkerFromStep = async (workerId) => {
+    if (!managingStep?.productionStepID) return;
+    try {
+      await productionStepService.removeWorker(managingStep.productionStepID, workerId);
+      toast.success("Worker removed from step");
+      await fetchStepWorkers(managingStep.productionStepID);
+    } catch (error) {
+      toast.error(`Failed to remove worker: ${error.message || "Unknown error"}`);
+    }
+  };
+
+  // ─── Display helpers ──────────────────────────────────────────────────────
+
   const getStatusLabel = (status) => STATUS_OPTIONS.find((s) => s.value === status)?.label ?? String(status);
   const getOrderName = (orderId) => productionOrders.find((o) => o.productionOrderID === orderId)?.orderName ?? String(orderId);
 
@@ -298,6 +359,12 @@ export default function ProductionStepsTable() {
   ];
 
   const actions = [
+    {
+      icon: <MdPeople className="h-4 w-4" />,
+      onClick: (row) => openWorkersModal(row),
+      label: "Workers",
+      variant: "secondary",
+    },
     {
       icon: <MdModeEditOutline className="h-4 w-4" />,
       onClick: (row) => handleEdit(row),
@@ -542,6 +609,99 @@ export default function ProductionStepsTable() {
 
         </form>
       </Modal>
+
+      {showWorkersModal && (
+        <Modal
+          isOpen={showWorkersModal}
+          onClose={() => {
+            setShowWorkersModal(false);
+            setManagingStep(null);
+            setStepWorkers([]);
+            setSelectedWorkerId("");
+          }}
+          title={`Workers — ${managingStep?.stepName || managingStep?.stepCode || ""}`}
+          footer={
+            <button
+              type="button"
+              onClick={() => {
+                setShowWorkersModal(false);
+                setManagingStep(null);
+                setStepWorkers([]);
+                setSelectedWorkerId("");
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
+            >
+              {t(K.ADMIN_TABLE_CANCEL, "Close")}
+            </button>
+          }
+        >
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <select
+                value={selectedWorkerId}
+                onChange={(e) => setSelectedWorkerId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="">Select Worker</option>
+                {allWorkers
+                  .filter((w) => !stepWorkers.some((sw) => sw.workerID === w.workerRole?.workerID))
+                  .map((worker) => (
+                    <option key={worker.workerRole.workerID} value={worker.workerRole.workerID}>
+                      {`${worker.fullName || worker.email} (${worker.workerRole?.employeeCode || ""})`}
+                    </option>
+                  ))}
+              </select>
+              <button
+                type="button"
+                onClick={handleAddWorkerToStep}
+                disabled={!selectedWorkerId}
+                className="inline-flex items-center justify-center gap-1 px-4 py-2 rounded bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50"
+              >
+                <MdAdd className="h-4 w-4" />
+                {t(K.ADMIN_TABLE_ADD, "Add")}
+              </button>
+            </div>
+
+            <div className="max-h-72 overflow-auto rounded border border-gray-200 dark:border-gray-700">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th className="px-3 py-2 text-left">{t(K.ADMIN_TABLE_WORKER, "Worker")}</th>
+                    <th className="px-3 py-2 text-left">{t(K.ADMIN_TABLE_CODE, "Code")}</th>
+                    <th className="px-3 py-2 text-right">{t(K.ADMIN_TABLE_ACTIONS, "Actions")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stepWorkers.length === 0 ? (
+                    <tr>
+                      <td className="px-3 py-3 text-gray-500 dark:text-gray-300" colSpan={3}>
+                        No workers assigned to this step
+                      </td>
+                    </tr>
+                  ) : (
+                    stepWorkers.map((worker) => (
+                      <tr key={worker.workerID} className="border-t border-gray-100 dark:border-gray-700">
+                        <td className="px-3 py-2">{worker.fullName || worker.email || t(K.ADMIN_TABLE_NA, "N/A")}</td>
+                        <td className="px-3 py-2">{worker.employeeCode || t(K.ADMIN_TABLE_NA, "N/A")}</td>
+                        <td className="px-3 py-2 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveWorkerFromStep(worker.workerID)}
+                            className="text-red-500 hover:text-red-700 transition-colors"
+                            title={t(K.ADMIN_TABLE_DELETE, "Delete")}
+                          >
+                            <MdDelete className="h-5 w-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </Modal>
+      )}
     </Card>
   );
 }

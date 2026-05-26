@@ -5,6 +5,7 @@ import Modal from "components/modal/Modal";
 import PortalLayout from "layouts/portal";
 import TrainingCalendarBoard from "components/calendar/TrainingCalendarBoard";
 import { workerEquipmentService, equipmentUsageService, workerCalendarService } from "services";
+import { workSessionService } from "services/workSessionService";
 import { httpClient } from "services/httpClient";
 import { useLanguage } from "context/LanguageContext";
 import { useAuth } from "context/AuthContext";
@@ -87,6 +88,11 @@ export default function WorkerPortal() {
   const [isScanning, setIsScanning] = useState(false);
   const [scannerSupported, setScannerSupported] = useState(true);
   const [scannerTarget, setScannerTarget] = useState(null);
+
+  // Checkout quantity modal
+  const [pendingCheckoutQr, setPendingCheckoutQr] = useState(null);
+  const [checkoutQuantity, setCheckoutQuantity] = useState("");
+  const [checkoutNotes, setCheckoutNotes] = useState("");
 
   // Modal visibility
   const [showEquipmentModal, setShowEquipmentModal] = useState(false);
@@ -174,15 +180,18 @@ export default function WorkerPortal() {
       return;
     }
 
+    if (mode === "checkout") {
+      // Intercept checkout: show quantity modal first
+      setPendingCheckoutQr(cleaned);
+      setCheckoutQuantity("");
+      setCheckoutNotes("");
+      return;
+    }
+
     setQrBusy(true);
     try {
-      if (mode === "checkout") {
-        await workerCalendarService.checkoutByQr(cleaned);
-        toast.success(t(K.WORKER_QR_CHECKOUT_SUCCESS, "Attendance ended successfully."));
-      } else {
-        await workerCalendarService.checkinByQr(cleaned);
-        toast.success(t(K.WORKER_QR_CHECKIN_SUCCESS, "Attendance started successfully."));
-      }
+      await workSessionService.checkinByQr(cleaned);
+      toast.success(t(K.WORKER_QR_CHECKIN_SUCCESS, "Attendance started successfully."));
       await Promise.all([loadData(), loadWorkingCalendar(calendarDate, true)]);
     } catch (err) {
       toast.error(`${t(K.WORKER_QR_ACTION_FAILED, "QR attendance action failed")}: ${err?.message || "Unknown error"}`);
@@ -190,6 +199,24 @@ export default function WorkerPortal() {
       setQrBusy(false);
     }
   }, [calendarDate, loadData, loadWorkingCalendar, t]);
+
+  const handleCheckoutConfirm = useCallback(async () => {
+    if (!pendingCheckoutQr) return;
+    setQrBusy(true);
+    const qty = checkoutQuantity !== "" ? Number(checkoutQuantity) : null;
+    try {
+      await workSessionService.checkoutByQr(pendingCheckoutQr, qty, checkoutNotes || null);
+      toast.success(t(K.WORKER_QR_CHECKOUT_SUCCESS, "Attendance ended successfully."));
+      setPendingCheckoutQr(null);
+      setCheckoutQuantity("");
+      setCheckoutNotes("");
+      await Promise.all([loadData(), loadWorkingCalendar(calendarDate, true)]);
+    } catch (err) {
+      toast.error(`${t(K.WORKER_QR_ACTION_FAILED, "QR attendance action failed")}: ${err?.message || "Unknown error"}`);
+    } finally {
+      setQrBusy(false);
+    }
+  }, [calendarDate, checkoutNotes, checkoutQuantity, loadData, loadWorkingCalendar, pendingCheckoutQr, t]);
 
   const startScanner = useCallback(async (target) => {
     try {
@@ -834,6 +861,66 @@ export default function WorkerPortal() {
             </table>
           </div>
         )}
+      </Modal>
+
+      {/* ── QR Checkout — Quantity Modal ─────────────────────────────────────── */}
+      <Modal
+        isOpen={!!pendingCheckoutQr}
+        onClose={() => { setPendingCheckoutQr(null); setCheckoutQuantity(""); setCheckoutNotes(""); }}
+        title="Confirm Work Session Checkout"
+        maxWidth="max-w-sm"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => { setPendingCheckoutQr(null); setCheckoutQuantity(""); setCheckoutNotes(""); }}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-white/10 dark:text-gray-300 dark:hover:bg-white/5"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleCheckoutConfirm}
+              disabled={qrBusy}
+              className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
+            >
+              {qrBusy ? "Submitting..." : "Confirm Checkout"}
+            </button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Enter the quantity you produced this session (optional).
+          </p>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
+              Quantity Produced
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              value={checkoutQuantity}
+              onChange={(e) => setCheckoutQuantity(e.target.value)}
+              placeholder="0"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-navy-800 dark:text-white"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
+              Quality Notes (optional)
+            </label>
+            <textarea
+              rows={2}
+              value={checkoutNotes}
+              onChange={(e) => setCheckoutNotes(e.target.value)}
+              placeholder="Any quality observations..."
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-navy-800 dark:text-white"
+            />
+          </div>
+        </div>
       </Modal>
 
     </PortalLayout>
