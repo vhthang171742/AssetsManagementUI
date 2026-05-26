@@ -405,15 +405,23 @@ export default function WorkerPortal() {
       return null;
     }
 
+    const nonOperationalAssignments = activeAssignments.filter(
+      (a) => a.isActive && a.operationalStatus && a.operationalStatus !== 'OPERATIONAL'
+    );
+    const hasNonOperationalMachine = nonOperationalAssignments.length > 0;
+
     return {
       action,
       isCurrentScannerTarget,
+      warning: hasNonOperationalMachine
+        ? t(K.WORKER_ASSET_NOT_OPERATIONAL, "One or more assigned machines are not operational. QR scanning may be rejected.")
+        : null,
       buttonLabel: `${t(K.WORKER_OPEN_CAMERA, "Open Camera")} (${action === "checkin" ? t(K.WORKER_QR_CHECKIN, "Start attendance") : t(K.WORKER_QR_CHECKOUT, "End attendance")})`,
       helperText: action === "checkin"
         ? t(K.WORKER_QR_SCAN_CHECKIN_HINT, "Scan QR code to start attendance for this shift.")
         : t(K.WORKER_QR_SCAN_CHECKOUT_HINT, "Scan QR code to end attendance for this shift."),
     };
-  }, [isScanning, scannerTarget, t, userTimeZoneId]);
+  }, [activeAssignments, isScanning, scannerTarget, t, userTimeZoneId]);
 
   const renderShiftActions = useCallback(({ lesson, lessonKey, selectedDate }) => {
     const qrState = getShiftQrState(lesson, selectedDate, lessonKey);
@@ -423,6 +431,11 @@ export default function WorkerPortal() {
 
     return (
       <div className="mt-3 rounded-xl border border-sky-100 bg-white/70 p-3 dark:border-sky-900 dark:bg-navy-800/60">
+        {qrState.warning && (
+          <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 p-2 dark:border-amber-800/50 dark:bg-amber-950/20">
+            <p className="text-xs font-medium text-amber-700 dark:text-amber-400">⚠ {qrState.warning}</p>
+          </div>
+        )}
         <p className="text-xs text-gray-500 dark:text-gray-300">{qrState.helperText}</p>
         <div className="mt-3 flex flex-col gap-3">
           <button
@@ -586,7 +599,14 @@ export default function WorkerPortal() {
                     <p className="font-semibold text-navy-700 dark:text-white">{a.assetName}</p>
                     <p className="text-xs text-gray-400">{a.assetCode}</p>
                   </div>
-                  <StatusBadge active={a.isActive} />
+                  <div className="flex flex-col items-end gap-1">
+                    <StatusBadge active={a.isActive} />
+                    {a.operationalStatus && a.operationalStatus !== 'OPERATIONAL' && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                        ⚠ {a.operationalStatus}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {a.serialNumber && (
                   <p className="text-xs text-gray-500 dark:text-gray-400">S/N: {a.serialNumber}</p>

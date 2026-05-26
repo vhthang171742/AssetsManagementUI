@@ -242,6 +242,7 @@ export default function StudentPortal() {
           assetCode: assignment?.assetCode || null,
           serialNumber: assignment?.serialNumber || null,
           assetStatus: assignment?.assetStatus || null,
+          operationalStatus: assignment?.operationalStatus || null,
           startTime: group.startTime || item.scheduleStartTime || "",
           endTime: group.endTime || item.scheduleEndTime || "",
           plannedStartTime: group.startTime || item.scheduleStartTime || "",
@@ -267,6 +268,7 @@ export default function StudentPortal() {
                 assetCode: lessonAssetCode || null,
                 serialNumber: assignment?.serialNumber || null,
                 assetStatus: assignment?.assetStatus || null,
+                operationalStatus: assignment?.operationalStatus || null,
                 assetLabel: assignment?.serialNumber
                   ? `SN ${assignment.serialNumber}`
                   : lessonAssetCode || (lessonAssetId ? `Asset #${lessonAssetId}` : "No assigned asset"),
@@ -635,6 +637,15 @@ export default function StudentPortal() {
       return null;
     }
 
+    if (lesson.operationalStatus && lesson.operationalStatus !== 'OPERATIONAL') {
+      return {
+        action: canCheckin ? 'checkin' : 'checkout',
+        isCurrentScannerTarget: false,
+        blocked: true,
+        operationalStatus: lesson.operationalStatus,
+      };
+    }
+
     return {
       action: canCheckin ? "checkin" : "checkout",
       isCurrentScannerTarget,
@@ -652,6 +663,19 @@ export default function StudentPortal() {
 
     if (!qrState) {
       return null;
+    }
+
+    if (qrState.blocked) {
+      return (
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-800/50 dark:bg-amber-950/20">
+          <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+            ⚠ {t(K.STUDENT_ASSET_NOT_OPERATIONAL, "Your assigned asset is not operational. QR scanning is unavailable.")}
+          </p>
+          <p className="mt-1 text-xs text-amber-600 dark:text-amber-500">
+            {t(K.STUDENT_ASSET_OPERATIONAL_STATUS, "Asset status")}: <span className="font-semibold uppercase">{qrState.operationalStatus}</span>
+          </p>
+        </div>
+      );
     }
 
     return (
